@@ -1,0 +1,44 @@
+# Handover & Statistical Script Pre-Flight Linter (`check_spec.py`)
+
+Added on **2026-11-24** after inspecting multi-agent failures in E1 Step 5a across `e1 Committee` (`claude:3008`), `Papers Supervisor` (`claude:12906`), and `e1 executor` (`claude:3693`).
+
+`check_spec.py` catches four structural and numerical defects **before** a handover, sub-plan, review reply, or statistics script is committed or dispatched:
+
+## What It Checks
+
+### On `.md` documents (handovers, sub-plans, review replies)
+1. **`ERROR [META_CONTRACT]`** — Rejects meta-prose placeholders such as `"The command-line contract is exact"` when the document defines zero literal `--flag` CLI options (caught `5a-1.md` blocking `codex:374060`).
+2. **`ERROR [RETIRED_PATH]`** — Flags references to removed pre-reorganization `AI-management` paths (`AI-management/agy-bridge/send_to_tty.sh`, `rules-gate/ack-rules.sh`, `executor-rules/...`, `download-ui-template/...`, old `How_to_Control_Other_Agy_Sessions_*.md`) while permitting installed runtime directories like `~/.claude/agy-bridge/` and bare prose labels like `` `rules-gate/` ``. <!-- handover-lint: allow -->
+3. **`WARN [APPROVAL_PICKER_PATTERN]`** — Warns on quoted `"(Recommended)"` picker selections in approval records (`D89`/`D90`) or `"Do not ask the user again"` relays lacking an audited timestamp (`HH:MM` / ISO UTC). <!-- handover-lint: allow -->
+4. **`WARN [ADDENDUM_HEADER_DRIFT]`** — Warns when a document gains an `## Addendum` / `## Erratum` section while its top header still asserts an unannotated absolute claim such as `"reads no E1 file"` (`REPLY.md` line 8 vs `sigcheck.cc`).
+
+### On `.py` scripts
+1. **`ERROR [NORM_CDF_TAIL]`** — Rejects `1 - stats.norm.cdf(...)` or `1 - ndtr(...)`, which suffers catastrophic float64 cancellation to `0.0` at $z \ge 8.2924$ (`reach.py` v2 and `first_look_stats.py` crashing `limit()`/`upper_limit()` for $n \in \{0,\dots,37\}$); use `stats.norm.sf(...)`.
+   **`ERROR [CDF_TAIL]`** (added 2026-11-25) is the same finding for every other distribution: `1 - stats.chi2.cdf(q, 1)` (exactly `0.0` from $q = 70.1$), `1.0 - norm(0, 1).cdf(z)`, or the two-line form through a temporary. The error is already 7% at $z = 8$. Comments and string literals are never findings.
+2. **`ERROR [HARDCODED_PY_MINOR_SITE]`** — Rejects hardcoded `.local/lib/python3.<N>/site-packages` path literals (`first_look_stats.py`), enforcing `site.getusersitepackages()` or `sysconfig` for 10-year portability (`#` comments and docstrings mentioning the pattern are ignored).
+3. **`WARN [SPLITLINES_LINE_NUM]`** — Flags `.splitlines()`, which splits on `\x0c` form feeds in PDF text layers instead of `\n` (Executor Rule 9).
+4. **`WARN [FIXED_BOUND_MINIMIZE]`** — Flags `minimize_scalar(..., method='bounded', bounds=(const, const))`, which silently clamps MLEs on large excesses/deficits (`D92 (d)` clamping $\hat\mu$ at `60` / `-5`).
+
+## Usage
+
+```bash
+# Built-in unit self-test
+/usr/bin/python3 -I ~/AI-management/general/tools/handover-lint/check_spec.py --selftest
+
+# Lint handovers, plans, or Python scripts before dispatching
+/usr/bin/python3 -I ~/AI-management/general/tools/handover-lint/check_spec.py path/to/handover.md path/to/stats.py
+/usr/bin/python3 -I ~/AI-management/general/tools/handover-lint/check_spec.py --strict path/to/plan/
+```
+
+A finding on a line that ends with `handover-lint: allow` (in a comment) is skipped. Use it for a deliberate exception and give the reason on the same line.
+
+## As a write-time hook (`--hook`, added 2026-11-25)
+
+`check_spec.py --hook` reads a Claude Code `PreToolUse` JSON on stdin and exits 10, with one line of reason, when a `Write`, `Edit` or `MultiEdit` of a `.py` file **adds** a `NORM_CDF_TAIL`, `CDF_TAIL` or `HARDCODED_PY_MINOR_SITE` finding. It parses the file as it would be after the edit, so:
+
+- `#` comments and docstrings are ignored (and string literals are ignored for `1 - cdf`, while path literals in code remain checked for `HARDCODED_PY_MINOR_SITE`);
+- an edit that only touches a hunk or line which already had the finding is let through (removing an old finding in one function does not excuse adding a new finding elsewhere);
+- a line marked `handover-lint: allow` is skipped;
+- any doubt (unreadable file, syntax error, an edit that would not apply) lets the edit through.
+
+The Claude guardrails hook (`claude/hooks/claude-guardrails/`) calls it. Before 2026-11-25 that hook matched text: it refused comments, test strings and any edit of a line in an upstream file that already contained `1 - norm.cdf(`, and it missed the two-line form and every other distribution.

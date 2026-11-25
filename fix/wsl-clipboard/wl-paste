@@ -1,0 +1,9 @@
+#!/bin/sh
+# Fast native Win32 clipboard bridge for Wayland/WSL2 CLI tools (agy, claude, codex).
+# Self-heals via ~/.local/share/wsl-clipboard/install-wsl-clipboard.sh if wl-paste.exe is missing.
+export WSLENV="${WSLENV:+${WSLENV}:}WSL_DISTRO_NAME"
+WINCLIP_EXE="${WSL_WINCLIP_EXE:-/mnt/c/Users/ROG/AppData/Local/wsl-clipboard/wl-paste.exe}"
+if [ ! -x "$WINCLIP_EXE" ] && [ -x "$HOME/.local/share/wsl-clipboard/install-wsl-clipboard.sh" ]; then
+    "$HOME/.local/share/wsl-clipboard/install-wsl-clipboard.sh" --quiet >/dev/null 2>&1 || true
+fi
+exec "$WINCLIP_EXE" "$@" </dev/null

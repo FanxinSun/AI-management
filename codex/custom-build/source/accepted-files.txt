@@ -1,0 +1,19 @@
+# Accepted untracked source files included by codex-custom-0.154.0.patch.
+# Temporary .snap.new and .pending-snap files from the source worktree are
+# intentionally excluded; this list is the reproducibility allow-list.
+codex-rs/tui/src/app/statement_print.rs
+codex-rs/tui/src/app/statement_print_tests.rs
+codex-rs/tui/src/app/tests/conversation_scroll_tests.rs
+codex-rs/tui/src/keymap/terminal_hint_tests.rs
+codex-rs/tui/src/transcript_code_block.rs
+codex-rs/tui/src/transcript_code_block_tests.rs
+codex-rs/tui/src/tui/conversation_screen.rs
+codex-rs/tui/src/tui/conversation_screen_tests.rs
+codex-rs/tui/src/tui/history_selection.rs
+codex-rs/tui/src/tui/history_selection_tests.rs
+codex-rs/tui/src/tui_selection_pty_tests.rs
+codex-rs/tui/src/app/snapshots/codex_tui__app__statement_print__tests__styled_assistant_statement_print_document.snap
+codex-rs/tui/src/snapshots/codex_tui__transcript_code_block__tests__assistant_message_code_panel.snap
+codex-rs/tui/src/snapshots/codex_tui__transcript_code_block__tests__complete_command_panel_24.snap
+codex-rs/tui/src/snapshots/codex_tui__transcript_code_block__tests__complete_command_panel_72.snap
+codex-rs/tui/src/snapshots/codex_tui__transcript_code_block__tests__message_code_panel.snap

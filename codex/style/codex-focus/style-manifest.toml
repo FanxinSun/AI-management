@@ -1,0 +1,39 @@
+schema_version = 1
+captured_at = "2026-11-06"
+codex_cli_version = "codex-cli 0.154.0"
+source_codex_home = "~/.codex"
+bundle_scope = "Codex terminal UI appearance only"
+
+[appearance.tui]
+settings_file = "tui-settings.toml"
+theme = "codex-focus"
+status_line = ["thread-title", "model-with-reasoning", "current-dir", "permissions", "approval-mode", "five-hour-limit", "weekly-limit"]
+status_line_use_colors = true
+terminal_title = ["activity", "thread-title", "project-name"]
+
+[appearance.theme]
+file = "themes/codex-focus.tmTheme"
+sha256 = "63304ccea6f3c6e77f2febee435ae7f062c3dbae2c8c79aa689408600b423e24"
+name = "Codex Focus"
+background = "#000000"
+foreground = "#E6EDF3"
+caret = "#FFFFFF"
+selection = "#26344D"
+line_highlight = "#171F2A"
+invisibles = "#65758B"
+
+[portability]
+config_target = "$CODEX_HOME/config.toml or ~/.codex/config.toml"
+theme_target = "$CODEX_HOME/themes/codex-focus.tmTheme"
+installer = "install-codex-style.sh"
+
+[host_environment_observation]
+term = "xterm-256color"
+no_color = "1"
+colorterm = ""
+portable = false
+note = "Observed in the current shell; not installed because these are host-wide environment values rather than Codex-owned style settings."
+
+[excluded]
+reason = "The full Codex home contains private credentials, policy, hooks, sessions, handovers, logs, databases, plugins, and machine-specific state."
+files = ["auth.json", "AGENTS.md", "hooks.json", "session_index.jsonl", "history.jsonl", "state databases", "logs", "handover records", "project trust entries"]

@@ -1,0 +1,28 @@
+schema_version = 1
+codex_version = "0.154.0"
+upstream_url = "https://github.com/openai/codex.git"
+upstream_commit = "6b9826e3aa83b1a5947db50f4332cb9c65f1b340"
+source_patch = "codex-custom-0.154.0.patch"
+source_patch_sha256 = "677e3e444d2c2ccab3cb879f981e3aa17ccf4ecf42775e5b855a56d33c09b9aa"
+release_target = "x86_64-unknown-linux-musl"
+rust_toolchain = "1.95.0"
+rust_min_stack = 16777216
+active_binary_sha256 = "0dea38fa91a4efced0e906d704bc652ab77af9595eab3b79c6b79b13cc9ecaff"
+active_release = "0.154.0-x86_64-unknown-linux-musl-custom-0dea38fa91a4efce"
+
+[scope]
+included = [
+  "The pinned upstream Codex source commit",
+  "The accepted 0.154.0 source patch and tests",
+  "Deterministic source-build/package/install/rollback tooling",
+  "Portable WSL session helper implementations, tests, schema, and wrappers",
+  "The separately recorded Codex appearance bundle and cross-agent bridge",
+]
+excluded = [
+  "Authentication and credentials",
+  "The machine-wide responsibility policy and hooks",
+  "Session history, handovers, logs, databases, receipts, and private runtime state",
+  "The active Codex release and current symlink",
+  "Native Windows configuration",
+  "Temporary snapshot/debris files (.snap.new and .pending-snap)",
+]

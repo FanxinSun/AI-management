@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CODEX_ROOT=${CODEX_HOME:-${HOME}/.codex}
+: "${RUST_MIN_STACK:=16777216}"
+export RUST_MIN_STACK
+exec "${CODEX_ROOT}/packages/standalone/current/bin/codex" "$@"

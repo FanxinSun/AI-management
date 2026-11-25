@@ -1,0 +1,21 @@
+# The files every Claude Code session reads before it starts work (the user, 2026-11-24).
+# The Claude rules gate (claude/hooks/rules-gate/) reads this list at run time: it records which of these
+# files a session has read, by content, and refuses the session's other tools until all are read.
+# One path per line, relative to the repository root. "linux <path>" or "darwin <path>" applies on
+# that platform only. Keep host and hardware fixes out of these files (they belong in fix/): every
+# change to a listed file sends every session back to read it.
+README.md
+general/rules/mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md
+general/regulations/executor-regulations/The_Executor_Regulations.md
+general/regulations/others-repositories/The_Others_Repositories_Regulation.md
+general/rules/regular-remote-push/The_Regular_Remote_Push_Rule.md
+claude/rules/ten-years-retention/The_10_Years_Rule.md
+claude/rules/ultracode-workflow/The_Ultracode_Rule.md
+general/rules/multi-agent-dispatch/MULTI_AGENT_DISPATCH_RULES.md
+general/regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md
+general/regulations/executor-regulations/HANDOVER_RULES.md
+general/templates/download-ui/README.md
+claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md
+general/tools/handover-lint/README.md
+linux general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md
+darwin general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md

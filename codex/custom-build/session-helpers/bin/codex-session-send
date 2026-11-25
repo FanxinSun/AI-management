@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -n ${CODEX_SESSION_HELPER_LIB_DIR:-} ]]; then
+    HELPER_LIB=${CODEX_SESSION_HELPER_LIB_DIR}
+else
+    HELPER_LIB=$(cd "$(dirname "${BASH_SOURCE[0]}")/../lib/codex-session-helpers" && pwd)
+fi
+export CODEX_SESSION_HELPER_LIB_DIR=${HELPER_LIB}
+export CODEX_SESSION_STATUS_BIN=${CODEX_SESSION_STATUS_BIN:-${HELPER_LIB}/status.py}
+exec python3 -B "${HELPER_LIB}/send.py" "$@"

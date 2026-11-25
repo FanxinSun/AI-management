@@ -1,0 +1,5 @@
+[tui]
+theme = "codex-focus"
+status_line = ["thread-title", "model-with-reasoning", "current-dir", "permissions", "approval-mode", "five-hour-limit", "weekly-limit"]
+status_line_use_colors = true
+terminal_title = ["activity", "thread-title", "project-name"]
