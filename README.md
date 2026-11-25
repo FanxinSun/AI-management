@@ -4,6 +4,37 @@ Tools, regulations, rules, templates, and configuration guides for multi-agent C
 
 ---
 
+## Why Let Your AI Read & Install This Repo?
+
+Having your AI agent (or team of agents) read and install this repository fundamentally upgrades how autonomous AI sessions behave on your machine. Instead of isolated, unpredictable, and hallucination-prone agents, you get a disciplined, interconnected, and production-ready multi-agent engineering environment:
+
+### 1. Hallucination-Free, Disciplined Agent Execution
+* **Zero Make-Up (Rule 1)**: Every number, metric, path, error, and quoted line must come directly from real tool output or files. Agents are barred from inventing facts or guessing file states.
+* **Strict Plan Adherence (Rule 2 & 5)**: Agents follow ordered handover plans step-by-step. They cannot silently alter specifications, delete user code, or take unauthorized shortcuts.
+* **Anti-Regression & Independent Verification (Rule 4 & 8)**: Work already verified is strictly preserved. Every test and check must be capable of failing on an independent source rather than trivially validating against a copy of itself.
+* **Copy-Paste Ready Deliverables (Rule 14)**: Whenever manual user execution is required, agents must provide the exact, full runnable command at the very end of their response.
+
+### 2. Autonomous Cross-Terminal Multi-Agent Collaboration (`send_to_tty`)
+* **Breaks Agent Silos**: Enables agents running across different terminal tabs or multiplexers (Windows Terminal, tmux, macOS Terminal) to message each other, dispatch work, and coordinate complex pipelines.
+* **Manager-Executor Workflows**: Planners and managers can orchestrate specialized worker agents (runners, auditors, preparers) and receive completion signals automatically via `send_to_tty reply "<status>"`.
+* **Collision-Free Terminal Injection**: Built-in dialog and state detectors check whether the target session is at an idle prompt or awaiting interactive user input before sending keystrokes, preventing corrupted sessions.
+
+### 3. Automated Guardrails & Quality Assurance
+* **Interactive Picker Blocker**: Intercepts fragile TUI selection prompts (`AskUserQuestion`), forcing verifiable plain-text approvals with clear provenance trails.
+* **Numerical & Code Hygiene**: Hooks refuse edits introducing `1 - cdf` floating-point precision loss in statistical functions (enforcing `.sf`) and prevent brittle hardcoded `python3.X` site-packages paths.
+* **Pre-Flight Spec Linter (`check_spec.py`)**: Automatically detects vague handover contracts, missing CLI flags, and formatting drift before handovers are executed.
+* **Repository Safety (Rule 11 & 12)**: Strictly gates git push operations and protects unowned/third-party repositories from unauthorized modifications.
+
+### 4. Production-Grade Templates & UI Telemetry
+* **Standardized Download Dashboard**: Provides a battle-tested threaded downloader (`fetch_dst.py` + `download_wrapper.sh`) with in-place live redraws, `<100`-col layout, HTTP Range resumption, and POSIX exit codes.
+* **Live Terminal Telemetry**: Adds Claude-style statusline pills (`[WORKING]` / `[STOPPED]`), color badges (`/color`), and live braille tab spinners for `agy`, alongside the distraction-free `codex-focus` style bundle for Codex.
+* **Host Friction Fixes**: Bundles out-of-the-box fixes for fast WSL2 screenshot clipboard pasting (~80–115 ms), keyboard remapping, chassis lighting, and socket starvation.
+
+### 5. Turnkey Installation
+Running `./install-all.sh` configures hooks, skills, and `$PATH` utilities across all supported agent CLIs on your system in seconds.
+
+---
+
 ## Repository Organization
 
 The repository is organized cleanly at the top level into 5 folders — **target AI brand** (`general/`, `claude/`, `agy/`, `codex/`) plus **`fix/`** (host/hardware/WSL fixes) — and subdivided by **usage category** (`regulations/`, `rules/`, `templates/`, `guides/`, `tools/`, `hooks/`, `skills/`, `style/`, `custom-build/`), with **one case per folder**.
@@ -123,11 +154,23 @@ general/tools/agent-bridge/send_to_tty.sh reply "[AGY-FEEDBACK] All checks passe
 
 ---
 
+## Buy me a coffee
+
+AI-management is free and open-source. If it has been useful to you, you are warmly welcome to support its continued development with a coffee. There is no obligation at all—your interest, feedback, and use of the project already mean a great deal. Thank you.
+
+### [☕ **Buy me a coffee**](https://buymeacoffee.com/fanxinsun)
+
+If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also available (打开支付宝，扫一扫). Thank you for helping this work continue.
+
+---
+
 ## Repository Structure
 
 ```text
 ├── README.md
 ├── install-all.sh
+├── assets/
+│   └── alipay.jpg
 ├── general/
 │   ├── regulations/
 │   │   ├── executor-regulations/      # The_Executor_Regulations.md, EXECUTOR_RULES_BLOCK.md, HANDOVER_RULES.md, installer
