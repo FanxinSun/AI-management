@@ -56,6 +56,8 @@ The repository is organized cleanly at the top level into 5 folders — **target
   Set by the user on 2026-11-23: all user-owned projects with a git repo must push to the remote regularly (at milestones and whenever blocked) with descriptive commit messages and up-to-date in-repo status files.
 * **[Multi-Agent Coordination & Dispatch Rules](general/rules/multi-agent-dispatch/MULTI_AGENT_DISPATCH_RULES.md)**  
   Hard dispatch gate: review dispatch to Claude Code is strictly gated until both Manager and Executor sessions have finished working (both in `[STOPPED]` state).
+* **[Project Planning Rule](general/rules/project-planning/The_Project_Planning_Rule.md)**  
+  Set by the user on 2026-09-23: a project has one and only one `PLAN.md`, one `PLAN_lane<N>.md` per lane, sub-plan files that are each a single execution step, and one execution order per plan. Every AI agent works from the same plan files; a takeover from another agent starts with a snapshot push and edits increase-only. Checked by `check_spec.py --plan-layout`.
 
 ### Templates (`general/templates/`)
 * **[Download UI Template](general/templates/download-ui/README.md)**  
@@ -65,7 +67,7 @@ The repository is organized cleanly at the top level into 5 folders — **target
 * **[Agent Bridge (`send_to_tty.sh`)](general/tools/agent-bridge/send_to_tty.sh)**  
   Cross-session terminal relay (`send_to_tty.sh` + [`conin_inject.ps1`](general/tools/agent-bridge/conin_inject.ps1) + [`install-agent-bridge-tool.sh`](general/tools/agent-bridge/install-agent-bridge-tool.sh)) for sending prompts, `--raw` slash commands, and replies across `agy`, Claude Code, Codex, and Gemini tabs on macOS, WSL2/Windows Terminal, and Linux/tmux, with pre-send Claude JSONL + console (`CONOUT$`/`history`/`tmux`) dialog guards.
 * **[Handover & Statistical Spec Linter (`check_spec.py`)](general/tools/handover-lint/README.md)**  
-  Pre-flight checker for handovers, sub-plans, review replies, and statistical scripts: catches placeholder `"contract is exact"` specs lacking CLI flags, retired paths, `(Recommended)` picker approval patterns, Addendum/header drift, `1 - cdf` float64 tail cancellation (any distribution), hardcoded `python3.<N>` site-packages paths, and `.splitlines()`.
+  Pre-flight checker for handovers, sub-plans, review replies, and statistical scripts: catches placeholder `"contract is exact"` specs lacking CLI flags, retired paths, `(Recommended)` picker approval patterns, Addendum/header drift, `1 - cdf` float64 tail cancellation (any distribution), hardcoded `python3.<N>` site-packages paths, `.splitlines()`, and plan files outside the layout of the Project Planning Rule (`--plan-layout`).
 
 ### Guides (`general/guides/`)
 * **[Chunked Download–Process–Delete Pipeline Guide](general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md)**  
@@ -178,6 +180,7 @@ If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also availa
 │   ├── rules/
 │   │   ├── mandatory-repo-read/       # The_Mandatory_Repo_Read_Rule.md, ack-rules.sh, reading-list.txt
 │   │   ├── multi-agent-dispatch/      # MULTI_AGENT_DISPATCH_RULES.md
+│   │   ├── project-planning/          # The_Project_Planning_Rule.md
 │   │   └── regular-remote-push/       # The_Regular_Remote_Push_Rule.md
 │   ├── templates/
 │   │   └── download-ui/               # README.md, fetch_dst.py, download_wrapper.sh

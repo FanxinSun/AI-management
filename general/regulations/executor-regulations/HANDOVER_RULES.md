@@ -44,6 +44,7 @@ the handover is what the executor reads first.
   agents; your part is organizing, planning, reasoning and the verdict. Any agent can be the executor, Claude Code
   included.
 - One page: the approval quote, the rules, numbered tasks with expected output, the report path, the reply phrase.
+- Plans follow [The Project Planning Rule](../../rules/project-planning/The_Project_Planning_Rule.md) (user, 2026-09-23): one `PLAN.md` per project, one `PLAN_lane<N>.md` per lane, every sub-plan file a single execution step, one execution order per plan, and never a second plan file at any level. The handover points to the step file it carries out. Check with `general/tools/handover-lint/check_spec.py --plan-layout <project>`.
 - Exact commands, texts and lists. Inserted text comes with a script that has a `--check` mode, dry-run before
   sending and rebuilt and compared afterwards.
 - No open-ended judgment over many items. Give the rules as data, or judge in your own session.

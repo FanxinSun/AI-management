@@ -30,7 +30,8 @@ Every session MUST read the entire `~/AI-management` rule set **at least once** 
 11. `general/templates/download-ui/README.md`
 12. `claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md`
 13. `general/tools/handover-lint/README.md`
-14. Platform bridge guide as applicable: `general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md` or `general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md`.
+14. `general/rules/project-planning/The_Project_Planning_Rule.md`
+15. Platform bridge guide as applicable: `general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md` or `general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md`.
 
 ### How to acknowledge
 
@@ -38,7 +39,7 @@ Every session MUST read the entire `~/AI-management` rule set **at least once** 
 whole with the Read tool, by content, and refuses the session's other tools until every listed file is read. There is
 no command to run and none that can record it: `ack-rules.sh claude-<session_id>` only reports what is read. After a
 commit the hook asks only for the listed files whose content changed. The list the hook uses is
-[`reading-list.txt`](reading-list.txt) beside this file: items 1 to 13 above and the platform's bridge guide. Keep the
+[`reading-list.txt`](reading-list.txt) beside this file: items 1 to 14 above and the platform's bridge guide. Keep the
 two in step, and keep host and hardware fixes out of these files (they go in `fix/`), because every change to a listed
 file sends every session back to read it.
 

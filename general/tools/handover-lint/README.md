@@ -19,6 +19,9 @@ Added on **2026-11-24** after inspecting multi-agent failures in E1 Step 5a acro
 3. **`WARN [SPLITLINES_LINE_NUM]`** — Flags `.splitlines()`, which splits on `\x0c` form feeds in PDF text layers instead of `\n` (Executor Rule 9).
 4. **`WARN [FIXED_BOUND_MINIMIZE]`** — Flags `minimize_scalar(..., method='bounded', bounds=(const, const))`, which silently clamps MLEs on large excesses/deficits (`D92 (d)` clamping $\hat\mu$ at `60` / `-5`).
 
+### On plan files (added 2026-11-26)
+1. **`ERROR [PLAN_LAYOUT]`** — a Markdown file that is a plan file by name (`plan` or `subplan` as a whole word of the name, in any letter case, with words split at `_`, `-` and `.`) but does not sit where [The Project Planning Rule](../../rules/project-planning/The_Project_Planning_Rule.md) puts plan files: one `PLAN.md` per project (at the project root or in `<project>/plan/`, never both), `plan/PLAN_lane<N>.md` beside a root `PLAN.md`, and no plan root below another in the same git repository (a directory with its own `.git` is its own project). `PLAN_v2.md`, `test-plan.md` and a second `PLAN.md` further down are findings; `planning-notes.md` is not a plan file by name. The check reads the path only, so the `handover-lint: allow` marker does not waive it. Files under agent configuration, caches, installed packages and `/tmp` are left alone, unless `--plan-layout` names the path. On 2026-11-26 the verdict was compared with the Claude Code plan-file guard on 43 paths (24 refused, 19 allowed): identical.
+
 ## Usage
 
 ```bash
@@ -28,7 +31,13 @@ Added on **2026-11-24** after inspecting multi-agent failures in E1 Step 5a acro
 # Lint handovers, plans, or Python scripts before dispatching
 /usr/bin/python3 -I ~/AI-management/general/tools/handover-lint/check_spec.py path/to/handover.md path/to/stats.py
 /usr/bin/python3 -I ~/AI-management/general/tools/handover-lint/check_spec.py --strict path/to/plan/
+
+# Check only the plan-file layout: a whole project, or one file path before the file is written
+/usr/bin/python3 -I ~/AI-management/general/tools/handover-lint/check_spec.py --plan-layout path/to/project/
+/usr/bin/python3 -I ~/AI-management/general/tools/handover-lint/check_spec.py --plan-layout path/to/project/plan/PLAN_lane2.md
 ```
+
+`--plan-layout` prints each finding as `ERROR [PLAN_LAYOUT] <path>:1: <reason>`, then the line `Checked <N> markdown file(s): <P> plan file(s) by name, <E> not canonical`, and exits 0 when nothing is found and 1 otherwise.
 
 A finding on a line that ends with `handover-lint: allow` (in a comment) is skipped. Use it for a deliberate exception and give the reason on the same line.
 

@@ -13,6 +13,11 @@ Catches concrete defect classes observed in multi-agent physics/software workflo
   - HARDCODED_PY_MINOR_SITE: hardcoded `.local/lib/python3.<N>/site-packages`.
   - SPLITLINES_LINE_NUM: `.splitlines(` usage (splits on form feeds `\x0c`; violates Rule 9).
   - FIXED_BOUND_MINIMIZE: unexpanded hardcoded `minimize_scalar(..., method='bounded', bounds=(...))`.
+  - PLAN_LAYOUT: a Markdown file that is a plan file by name (`plan` or `subplan` as a whole word of the
+    name) but does not sit where The Project Planning Rule puts plan files (added 2026-11-26).
+
+`--plan-layout` makes only the PLAN_LAYOUT check, on every Markdown file under the given directories and
+on the given file paths, existing or planned; exit 0 when every plan file is canonical, 1 otherwise.
 
 `--hook` reads a Claude Code PreToolUse JSON on stdin and exits 10 with one line of reason when a
 Write/Edit/MultiEdit of a .py file ADDS a NORM_CDF_TAIL, CDF_TAIL or HARDCODED_PY_MINOR_SITE finding
@@ -675,6 +680,113 @@ SKIP_DOC_BASENAMES = {
 ALLOW_MARKER = "handover-lint: allow"
 
 
+# ---- Plan-file layout: general/rules/project-planning/The_Project_Planning_Rule.md ----
+# One PLAN.md per project (project root, or <project>/plan/), plan/PLAN_lane<N>.md per lane, step files
+# <X>-<n>.md in subplan_<X>/ directories; a directory with its own .git is its own project. The verdict is
+# the one the Claude Code plan-file guard gives on the rule's home machine, so that every agent can run it.
+PLAN_NAME_RE = re.compile(r"(^|[_.-])(sub)?plan([_.-]|$)", re.IGNORECASE)
+PLAN_LANE_RE = re.compile(r"^PLAN_lane[0-9]+\.md$")
+PLAN_SCRATCH_DIRS = {
+    ".claude", ".codex", ".gemini", ".cache", ".local", "miniconda", "site-packages", "node_modules", ".git",
+}
+
+
+def _is_markdown_name(name: str) -> bool:
+    return name.endswith(".md") or name.endswith(".MD")
+
+
+def is_plan_named(name: str) -> bool:
+    """True for a Markdown file name with `plan` or `subplan` as a whole word (words split at `_`, `-`, `.`)."""
+    return _is_markdown_name(name) and bool(PLAN_NAME_RE.search(name))
+
+
+def _plan_scratch_path(path: str) -> bool:
+    """Agent configuration, caches, installed packages and /tmp are not project space."""
+    return path.startswith("/tmp/") or any(part in PLAN_SCRATCH_DIRS for part in Path(path).parts[:-1])
+
+
+def _plan_root_above(start: str) -> bool:
+    """True when `start`, or a directory above it inside the same git repository, holds a plan root."""
+    home = os.path.expanduser("~")
+    d = start
+    while d not in ("/", home, "/mnt") and not re.fullmatch(r"/mnt/.", d):
+        if os.path.isfile(os.path.join(d, "PLAN.md")) or os.path.isfile(os.path.join(d, "plan", "PLAN.md")):
+            return True
+        if os.path.exists(os.path.join(d, ".git")):
+            return False  # repository root: what lies above belongs to another project
+        parent = os.path.dirname(d)
+        if parent == d:
+            return False
+        d = parent
+    return False
+
+
+def plan_layout_verdict(path: str, honor_scratch: bool = True) -> str:
+    """'' when a Markdown file at `path` (existing or planned) is not a plan file by name, or sits where the
+    rule puts plan files; otherwise the reason why it is not canonical."""
+    p = os.path.abspath(path)
+    name = os.path.basename(p)
+    if not _is_markdown_name(name):
+        return ""
+    if honor_scratch and _plan_scratch_path(p):
+        return ""
+    d = os.path.dirname(p)
+    in_plan_dir = os.path.basename(d) == "plan"
+    if name == "PLAN.md":
+        if in_plan_dir:
+            project = os.path.dirname(d)
+            other = os.path.join(project, "PLAN.md")
+        else:
+            project = d
+            other = os.path.join(d, "plan", "PLAN.md")
+        if os.path.isfile(other):
+            return f"this project already has {other}: one layout only, never both PLAN.md and plan/PLAN.md"
+        if os.path.exists(os.path.join(project, ".git")):
+            return ""  # its own git repository (a submodule, for example) is its own project
+        if _plan_root_above(os.path.dirname(project)):
+            return (
+                "a plan root already exists above this directory in the same git repository: a project has one "
+                "and only one PLAN.md (use plan/PLAN_lane<N>.md and sub-plan step files; a submodule may hold "
+                "its own PLAN.md once it is its own git repository)"
+            )
+        return ""
+    if PLAN_LANE_RE.match(name):
+        if in_plan_dir and os.path.isfile(os.path.join(os.path.dirname(d), "PLAN.md")):
+            return ""
+        return "PLAN_lane<N>.md lives only directly inside plan/, beside the project's root PLAN.md"
+    if PLAN_NAME_RE.search(name):
+        return f"'{name}' is not a canonical plan file name"
+    return ""
+
+
+def iter_markdown(root: Path) -> Iterable[Path]:
+    for cur, dirs, files in os.walk(root):
+        dirs[:] = sorted(d for d in dirs if d not in PLAN_SCRATCH_DIRS and d != "__pycache__")
+        for fn in sorted(files):
+            if _is_markdown_name(fn):
+                yield Path(cur) / fn
+
+
+def plan_layout_findings(paths: Iterable[str]) -> Tuple[int, int, List[Finding]]:
+    """(Markdown files checked, plan files by name, findings) for directories and for existing or planned files.
+
+    The paths are checked because they were named, so the scratch-space exemption is not applied to them;
+    directories of that kind are still not entered below a named directory."""
+    n_md = n_named = 0
+    findings: List[Finding] = []
+    for raw in paths:
+        p = Path(raw)
+        for fp in (iter_markdown(p) if p.is_dir() else [p]):
+            if not _is_markdown_name(fp.name):
+                continue
+            n_md += 1
+            n_named += int(is_plan_named(fp.name))
+            reason = plan_layout_verdict(str(fp), honor_scratch=False)
+            if reason:
+                findings.append(Finding("ERROR", "PLAN_LAYOUT", str(fp), 1, reason))
+    return n_md, n_named, findings
+
+
 def iter_targets(paths: Iterable[Path]) -> Iterable[Path]:
     for p in paths:
         if p.is_file():
@@ -688,21 +800,27 @@ def iter_targets(paths: Iterable[Path]) -> Iterable[Path]:
                         yield fp
 
 
-def lint_path(path: Path) -> List[Finding]:
+def lint_path(path: Path, honor_scratch: bool = True) -> List[Finding]:
+    # The plan-file layout is a matter of the path alone, and no marker in the text waives it.
+    layout: List[Finding] = []
+    if path.suffix.lower() == ".md":
+        reason = plan_layout_verdict(str(path), honor_scratch)
+        if reason:
+            layout.append(Finding("ERROR", "PLAN_LAYOUT", str(path), 1, reason))
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError as exc:
-        return [Finding("ERROR", "READ_ERROR", str(path), 1, str(exc))]
+        return layout + [Finding("ERROR", "READ_ERROR", str(path), 1, str(exc))]
     if path.suffix.lower() == ".md":
         if path.name in SKIP_DOC_BASENAMES:
-            return []
+            return layout
         raw = lint_markdown(path, text)
     elif path.suffix.lower() == ".py":
         raw = lint_python(path, text)
     else:
         return []
     lines = text.split("\n")
-    return [f for f in raw if ALLOW_MARKER not in lines[f.line - 1]]
+    return layout + [f for f in raw if ALLOW_MARKER not in lines[f.line - 1]]
 
 
 HOOK_CODES = ("NORM_CDF_TAIL", "CDF_TAIL", "HARDCODED_PY_MINOR_SITE")
@@ -1076,6 +1194,53 @@ def selftest() -> int:
             repr([bool(x) for x in (r_swap_multi, r_swap_write, r_taint_earlier, r_site_comment, r_site_doc)]),
         )
 
+        # Plan-file layout. The fixture lives in the temporary directory, which is scratch space to the rule,
+        # so these calls set honor_scratch=False (plan_layout_findings always does).
+        tree = tmp / "plantree"
+        canonical = [
+            "multi/PLAN.md", "multi/plan/PLAN_lane0.md", "multi/plan/PLAN_lane1.md",
+            "multi/plan/lane0_subplan_A/A-0.md", "multi/plan/lane0_subplan_A/subplan_A-0/A-0-0.md",
+            "multi/docs/planning-notes.md", "multi/module/PLAN.md",
+            "single/plan/PLAN.md", "single/plan/subplan_A/A-0.md",
+        ]
+        not_canonical = [
+            "multi/PLAN_v2.md", "multi/docs/test-plan.md", "multi/PLAN_lane2.md", "multi/tools/PLAN.md",
+            "single/plan/PLAN_lane0.md", "both/PLAN.md", "both/plan/PLAN.md",
+        ]
+        for repo in ("multi", "multi/module", "single", "both"):
+            (tree / repo / ".git").mkdir(parents=True)
+        for rel in canonical + not_canonical:
+            (tree / rel).parent.mkdir(parents=True, exist_ok=True)
+            (tree / rel).write_text("# fixture\n", encoding="utf-8")
+        n_md, n_named, layout = plan_layout_findings([str(tree)])
+        got_layout = sorted(os.path.relpath(x.path, str(tree)) for x in layout)
+        check(
+            "plan layout: a second plan file, a nested plan root, both layouts and a stray lane file are found; "
+            "the canonical tree and a submodule's own PLAN.md pass",
+            # plan files by name: the 5 canonical ones (3 PLAN.md, 2 lane files) and all 7 that are not canonical
+            got_layout == sorted(not_canonical) and n_md == len(canonical) + len(not_canonical) and n_named == 12,
+            f"{got_layout} md={n_md} named={n_named}",
+        )
+        planned_ok = plan_layout_verdict(str(tree / "multi/plan/PLAN_lane7.md"), honor_scratch=False)
+        planned_bad = plan_layout_verdict(str(tree / "multi/notes/sub-plan.md"), honor_scratch=False)
+        in_tmp = plan_layout_verdict(str(tree / "multi/PLAN_v2.md"))
+        in_agent_cfg = plan_layout_verdict(os.path.join(os.path.expanduser("~"), ".claude", "handover", "x-plan-v2.md"))
+        not_md = plan_layout_verdict(str(tree / "multi/plan.txt"), honor_scratch=False)
+        check(
+            "plan layout: a planned path is judged before it exists; scratch space and non-Markdown files are left alone",
+            planned_ok == "" and bool(planned_bad) and in_tmp == "" and in_agent_cfg == "" and not_md == "",
+            repr([planned_ok, bool(planned_bad), in_tmp, in_agent_cfg, not_md]),
+        )
+        lint_bad = [x.code for x in lint_path(tree / "multi/PLAN_v2.md", honor_scratch=False)]
+        lint_good = lint_path(tree / "multi/PLAN.md", honor_scratch=False)
+        (tree / "multi/docs/waived-plan.md").write_text("<!-- handover-lint: allow -->\n", encoding="utf-8")
+        lint_waived = [x.code for x in lint_path(tree / "multi/docs/waived-plan.md", honor_scratch=False)]
+        check(
+            "plan layout: the ordinary lint of a Markdown file reports it, and the allow marker does not waive it",
+            lint_bad == ["PLAN_LAYOUT"] and lint_good == [] and lint_waived == ["PLAN_LAYOUT"],
+            repr([lint_bad, lint_good, lint_waived]),
+        )
+
     print("RESULT:", "PASS" if ok else "FAIL")
     return 0 if ok else 1
 
@@ -1086,6 +1251,9 @@ def main() -> int:
     ap.add_argument("--strict", action="store_true", help="Treat warnings as non-zero exit.")
     ap.add_argument("--hook", action="store_true",
                     help="Read a Claude Code PreToolUse JSON on stdin; exit 10 with a reason if the edit adds a hygiene finding.")
+    ap.add_argument("--plan-layout", action="store_true",
+                    help="Check only the plan-file layout (The Project Planning Rule): every Markdown file under the "
+                         "given directories, and the given file paths, existing or planned. Exit 0 if all canonical, 1 if not.")
     ap.add_argument("paths", nargs="*", help="Files or directories to check.")
     args = ap.parse_args()
 
@@ -1095,6 +1263,13 @@ def main() -> int:
         return hook_main()
     if not args.paths:
         ap.error("provide at least one path or --selftest")
+
+    if args.plan_layout:
+        n_md, n_named, layout = plan_layout_findings(args.paths)
+        for f in layout:
+            print(f.format())
+        print(f"Checked {n_md} markdown file(s): {n_named} plan file(s) by name, {len(layout)} not canonical")
+        return 1 if layout else 0
 
     targets = [Path(p) for p in args.paths]
     all_findings: List[Finding] = []

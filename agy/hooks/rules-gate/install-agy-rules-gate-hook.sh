@@ -70,6 +70,7 @@ Whether this is a BRAND NEW session or a RESUMED/OLD session, you MUST do the fo
    - $REPO/general/templates/download-ui/README.md (and fetch_dst.py / download_wrapper.sh if a download task)
    - $REPO/claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md
    - $REPO/general/tools/handover-lint/README.md
+   - $REPO/general/rules/project-planning/The_Project_Planning_Rule.md
    - Platform bridge guide (general/guides/agent-control-macos/ or agent-control-wsl/) as applicable.
 2. Acknowledge by running: \"$ACK_SH\" \"$safe_id\"
 3. Confirm in your response that you read ~/AI-management rules.

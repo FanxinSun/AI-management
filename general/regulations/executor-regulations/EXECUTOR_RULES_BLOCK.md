@@ -70,3 +70,13 @@ the incidents behind each rule, is `~/AI-management/general/regulations/executor
     distribution (never `1 - cdf`), use adaptive brackets, self-test each exported statistic at the edges of its
     range and far outside it (a counting statistic: `[0, <<B, B, 100*B]`), and use `site.getusersitepackages()` (no
     hardcoded `python3.<N>` paths); keep read-only seat boundaries and reconcile headers when adding Addenda. See `claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md`.
+20. **Project plans (user, 2026-09-23; addenda 2026-09-24, 2026-09-25 and 2026-10-09):** a project has one and only
+    one `PLAN.md` (at the project root for a multi-outcome project, in `<project>/plan/` for a single-outcome one),
+    one `plan/PLAN_lane<N>.md` per lane, and sub-plan step files (`A-0.md` in `subplan_A/`, `A-0-0.md` in
+    `subplan_A-0/`), each a single execution step of the plan above it, with exactly one execution order per plan.
+    Never a second plan file at the same level (no `PLAN_v2.md`, no draft beside the plan), and no plan root below
+    another in the same git repository. Every AI agent works from the same plan files: your own ledgers and notes go
+    in separate files that are not named or shaped like plans. Taking a project over from another AI agent: snapshot
+    first (commit, push, verify), read every line of every planning document, and edit increase-only (mark an item
+    "retired", never delete it). Check: `general/tools/handover-lint/check_spec.py --plan-layout <project>`. See
+    `general/rules/project-planning/The_Project_Planning_Rule.md`.
