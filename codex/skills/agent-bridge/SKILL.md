@@ -76,3 +76,8 @@ with `reply` only when the user-approved workflow calls for it, and include the
 complete report path and outcome in the final notice. `send_to_tty.sh` inspects
 Claude transcripts and console buffers before sending so Enter will not answer an
 open picker dialog (`D89`/`D90`).
+
+On WSL, if the user explicitly asks you to open or resume a Windows Terminal tab via
+`wt.exe`, never put an unescaped `;` (such as `bash -lc '<cmd>; exec bash'`) in the
+command — `wt.exe` treats `;` as its own subcommand delimiter and spawns a broken
+`'exec bash'` error tab (`0x80070002`). Omit `'; exec bash'` or escape `\;`.

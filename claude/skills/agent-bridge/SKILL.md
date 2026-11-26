@@ -74,7 +74,11 @@ to read ~/.claude/CLAUDE.md and the handover from scratch.
 On WSL, on 2026-11-05, `wt.exe -w 0 new-tab ... wsl.exe -d Ubuntu --cd <dir> -- bash -lc agy`
 run from a Claude session returned exit 0, but no usable session came up (a test tab
 never ran its command). Opening tabs was not tested on macOS either. Ask the user to
-open the tab and `/rename` it, then find it with `$B --list`.
+open the tab and `/rename` it, then find it with `$B --list`. If the user explicitly asks
+you to open or resume a tab via `wt.exe`, never include an unescaped `;` (such as
+`bash -lc '<cmd>; exec bash'`) — `wt.exe` treats `;` as its own subcommand delimiter
+and spawns a broken `'exec bash'` error tab (`0x80070002`). Omit `'; exec bash'` or
+escape `\;`.
 
 ## Codex tabs on WSL (auto-submit fixed 2026-11-22)
 
