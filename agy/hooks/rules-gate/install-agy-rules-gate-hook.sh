@@ -71,12 +71,14 @@ Whether this is a BRAND NEW session or a RESUMED/OLD session, you MUST do the fo
    - $REPO/claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md
    - $REPO/general/tools/handover-lint/README.md
    - $REPO/general/rules/project-planning/The_Project_Planning_Rule.md
+   - $REPO/general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md
    - Platform bridge guide (general/guides/agent-control-macos/ or agent-control-wsl/) as applicable.
 2. Acknowledge by running: \"$ACK_SH\" \"$safe_id\"
 3. Confirm in your response that you read ~/AI-management rules.
 CRITICAL REMINDERS:
 - For any user-run download script, you MUST copy/adapt $REPO/general/templates/download-ui/fetch_dst.py + download_wrapper.sh (exact in-place dashboard, <100-col narrow layout, status subcommand, resume, verification, caffeinate-safe single-instance guard, exit codes 0/1/2/3) — NEVER invent an ad-hoc downloader.
-- End every user-run script/task delivery with the complete, exact copy-paste runnable command (Rule 14)."
+- End every user-run script/task delivery with the complete, exact copy-paste runnable command (Rule 14).
+- Brand neutrality (user, 2026-11-26): treat every AI brand's content (transcripts, histories, caches, handovers) by one standard, agy's own included. Before you keep, delete or report, run $REPO/general/rules/brand-neutrality/ai_content_inventory.py <project folder>: a file-name search finds Claude Code's folders and misses agy's and Codex's, which are named by ID. Your report has a line for every brand."
 
 python3 -c 'import json,sys; print(json.dumps({"injectSteps":[{"systemMessage":{"systemMessage":sys.argv[1]}}]}))' "$note"
 EOF

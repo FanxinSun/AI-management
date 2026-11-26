@@ -80,3 +80,14 @@ the incidents behind each rule, is `~/AI-management/general/regulations/executor
     first (commit, push, verify), read every line of every planning document, and edit increase-only (mark an item
     "retired", never delete it). Check: `general/tools/handover-lint/check_spec.py --plan-layout <project>`. See
     `general/rules/project-planning/The_Project_Planning_Rule.md`.
+21. **Brand neutrality (user, 2026-11-26; every seat, not only executors):** whatever you do to AI-related content
+    (session transcripts, histories, memories, caches, handovers, logs, skills, hooks, settings, and anything written
+    about an agent) you do by one standard for every brand, your own included. Before you keep, delete or report,
+    look in every brand's store the way that store is keyed: Claude Code names its folders after the project, agy
+    and Codex name theirs by conversation or thread ID, so a file-name search finds Claude Code's content and misses
+    the others. Run `~/AI-management/general/rules/brand-neutrality/ai_content_inventory.py <project folder>`.
+    "None found" for a brand needs a query that could have found it. Decide once for all brands, then act; the
+    report has a line for every brand, your own included (found, done, kept and why). Do not turn a rule written for
+    one brand against another; where no rule covers a brand's content, keep it and ask the user. Judge agents by
+    evidence with the same test for each, your own failures as plainly as another's. See
+    `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`.

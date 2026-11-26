@@ -58,6 +58,8 @@ The repository is organized cleanly at the top level into 5 folders — **target
   Hard dispatch gate: review dispatch to Claude Code is strictly gated until both Manager and Executor sessions have finished working (both in `[STOPPED]` state).
 * **[Project Planning Rule](general/rules/project-planning/The_Project_Planning_Rule.md)**  
   Set by the user on 2026-09-23: a project has one and only one `PLAN.md`, one `PLAN_lane<N>.md` per lane, sub-plan files that are each a single execution step, and one execution order per plan. Every AI agent works from the same plan files; a takeover from another agent starts with a snapshot push and edits increase-only. Checked by `check_spec.py --plan-layout`.
+* **[Brand Neutrality Rule](general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md)**  
+  Set by the user on 2026-11-26: an agent treats every AI brand's content (transcripts, histories, caches, handovers, and what is written about an agent) by one standard, its own brand included. Each brand's store is read the way it is keyed, with [`ai_content_inventory.py`](general/rules/brand-neutrality/ai_content_inventory.py); a report has a line for every brand.
 
 ### Templates (`general/templates/`)
 * **[Download UI Template](general/templates/download-ui/README.md)**  
@@ -178,6 +180,7 @@ If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also availa
 │   │   ├── executor-regulations/      # The_Executor_Regulations.md, EXECUTOR_RULES_BLOCK.md, HANDOVER_RULES.md, installer
 │   │   └── others-repositories/       # The_Others_Repositories_Regulation.md
 │   ├── rules/
+│   │   ├── brand-neutrality/          # The_Brand_Neutrality_Rule.md, ai_content_inventory.py, CLAUDE_md_section10.md
 │   │   ├── mandatory-repo-read/       # The_Mandatory_Repo_Read_Rule.md, ack-rules.sh, reading-list.txt
 │   │   ├── multi-agent-dispatch/      # MULTI_AGENT_DISPATCH_RULES.md
 │   │   ├── project-planning/          # The_Project_Planning_Rule.md

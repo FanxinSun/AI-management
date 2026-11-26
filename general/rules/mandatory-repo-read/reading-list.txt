@@ -18,5 +18,6 @@ general/templates/download-ui/README.md
 claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md
 general/tools/handover-lint/README.md
 general/rules/project-planning/The_Project_Planning_Rule.md
+general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md
 linux general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md
 darwin general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md
