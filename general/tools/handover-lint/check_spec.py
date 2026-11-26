@@ -701,8 +701,16 @@ def is_plan_named(name: str) -> bool:
 
 
 def _plan_scratch_path(path: str) -> bool:
-    """Agent configuration, caches, installed packages and /tmp are not project space."""
-    return path.startswith("/tmp/") or any(part in PLAN_SCRATCH_DIRS for part in Path(path).parts[:-1])
+    """Agent configuration, caches, installed packages and temp/scratch dirs are not project space."""
+    tmp_prefixes = (
+        "/tmp/",
+        "/private/tmp/",
+        os.path.abspath(tempfile.gettempdir()).rstrip("/") + "/",
+        os.path.realpath(tempfile.gettempdir()).rstrip("/") + "/",
+    )
+    return path.startswith(tmp_prefixes) or any(
+        part in PLAN_SCRATCH_DIRS for part in Path(path).parts[:-1]
+    )
 
 
 def _plan_root_above(start: str) -> bool:
