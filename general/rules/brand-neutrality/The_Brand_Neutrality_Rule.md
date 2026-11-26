@@ -123,8 +123,10 @@ AI-management repository.
   which `install-executor-rules.sh` installs into agy's global rules (`~/.gemini/config/AGENTS.md`) and into the
   Codex and Claude Code executor-rules skills; and the required reading list of
   [The Mandatory Repo-Read Rule](../mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md).
-- Claude Code's machine rules file (`~/.claude/CLAUDE.md`) and Codex's policy file (`~/.codex/AGENTS.md`) are
-  guarded: only the user adds to them. The section for the first is [`CLAUDE_md_section10.md`](CLAUDE_md_section10.md).
+- Claude Code on the WSL machine: section 10 of the machine rules file `~/.claude/CLAUDE.md`, since 2026-11-26.
+  That file is guarded, so the user added it, from [`CLAUDE_md_section10.md`](CLAUDE_md_section10.md).
+- Codex's policy file (`~/.codex/AGENTS.md`) is guarded too and does not carry it; only the user adds to it, from
+  the paste-in form above.
 
 Where it is installed; nothing is listed until it is:
 
