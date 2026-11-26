@@ -80,6 +80,8 @@ The repository is organized cleanly at the top level into 5 folders — **target
   Terminal.app AppleScript injection, conversation memory, relay correction, model/effort switching, and manual Codex resume after usage limits.
 * **[How to Control Agent Sessions (WSL / Linux)](general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md)**  
   Windows Terminal console input injection, `tmux send-keys`, the dialog guard, session titles and model switching. Host fixes (clipboard paste, keyboard, Codex `app-server` socket) are in `fix/`.
+* **[Muse CLI Local WSL2 Connection Guide](general/guides/muse-cli-wsl/MUSE_CLI_WSL_GUIDE.md)**  
+  WSL2 installation (`muse-cli`), zero-interruption background Windows Chrome `NetworkService` memory cookie sync (`sync_muse_cookies_wsl.sh`), token lifecycle, and agent-safe commands.
 
 ---
 
@@ -194,6 +196,7 @@ If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also availa
 │       ├── agent-control-macos/       # How_to_Control_Agent_Sessions_macOS.md
 │       ├── agent-control-wsl/         # How_to_Control_Agent_Sessions_WSL.md
 │       ├── chunked-pipeline-workflow/ # CHUNKED_PIPELINE_GUIDE.md
+│       ├── muse-cli-wsl/              # MUSE_CLI_WSL_GUIDE.md, sync_muse_cookies_wsl.sh
 │       └── planner-executor-conduct/  # PLANNER_EXECUTOR_OPERATION_GUIDE.md
 ├── claude/
 │   ├── rules/
