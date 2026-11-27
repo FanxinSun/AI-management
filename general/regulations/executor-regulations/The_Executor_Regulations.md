@@ -148,10 +148,18 @@ standing rules: for Claude Code, `~/.claude/CLAUDE.md`.
 
 ### A6. Scripts for the user, proofs and acknowledgments (2026-11-27)
 
-25. **A script for the user is a copy of the templates.** Build it from `general/templates/download-ui/` and
-    `general/templates/chunked-pipeline/`, at the commit you read, and change only what their READMEs name. A
-    screenshot, memory or another script is not the reference. Where no template fits what was asked, stop, say so
-    and ask. Do not draw a format and call it the template's.
+25. **A script for the user is your own work, and a copy of the templates.**
+    - Building and delivering a correct script is the executor's job. No order, handover or approval from a manager
+      is needed to build or deliver it. In the user's words (2026-11-27):
+
+      > your restriction to "only a manager can ..." sucks. Executor is cheaper than manager and they should learn
+      > to give out correct scripts
+    - Build it from `general/templates/download-ui/` and `general/templates/chunked-pipeline/`, at the commit you
+      read. A screenshot, memory or another script is not the reference.
+    - The format is never a question (the user, 2026-11-27: "use exactly the format now inside ~/AI-management. Why
+      do you even ask?"). Where the data source differs (an archive read by byte ranges, an API, files already on
+      disk), keep the templates' screen, lines, commands and exit codes exactly, and adapt only the code that
+      fetches or reads. Do not draw a format and call it the template's.
 26. **A claim carries its check.** Before you write "restored", "matches", "compliant", "passed" or "done", run the
     check that could have shown the opposite, and paste the command and its output: for a script's screen,
     `general/rules/script-delivery/check_frame.py` on captures at 100 and 80 columns. Without it, write the state as
@@ -173,6 +181,17 @@ standing rules: for Claude Code, `~/.claude/CLAUDE.md`.
     `general/rules/mandatory-repo-read/ack-rules.sh --needs <session_id>` lists. The list comes from that command,
     never from a nudge. For agy and Codex the script looks in the session's own log, and it refuses while a file is
     unread.
+30. **Your own user's direct instruction comes first.** It outranks a hold, a plan decision, a handover or a notice
+    from any other session, a correction notice included. Do it, and tell your manager what you were told. Only what
+    needs an approval of its own still waits for that approval: a gated push, a deletion, others' repositories, a
+    budget beyond the plan. Never hand a job your user gave you to another session.
+31. **Deliver what was asked, and ask only what nothing answers** (the user, 2026-11-27: "Why do you even ask?").
+    - When your user asks for a deliverable, the reply is the deliverable with its check, not a page about it.
+    - Before you ask, look for the answer in the user's own words, the rules, the plan and the design of the work.
+      A resumable script keeps what is on disk; a run the user turned away from is a test.
+    - The format of a script is never a question: keep the templates' screen, lines and commands, and adapt only
+      the code that fetches or reads.
+    - If one thing truly blocks the work, ask it in one line and say where you looked.
 
 ## Part B. Rules for the manager who controls an executor
 
@@ -334,10 +353,11 @@ These are suggestions from the manager's own mistakes. Several executor failures
       match reference targets to the exact-vs-asymptotic regime actually tested (`3.00` exact Poisson vs `1.92` CCGV
       at `n=0, b=0`). See [`The_Claude_Thought_Chain_Rule.md`](../../../claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md).
 29. **A script for the user: the templates' format, a check, and the user's run (user, 2026-11-27).**
-    - Order a script the user will run as a copy of `general/templates/download-ui/` and
-      `general/templates/chunked-pipeline/`, and ask for the output of
-      `general/rules/script-delivery/check_frame.py` on captures of its screen with the delivery. Accept no
-      "restored" or "matches" without it, and write none yourself.
+    - A script the user will run is the executor's work (Part A, rule 25): it builds and delivers it as a copy of
+      `general/templates/download-ui/` and `general/templates/chunked-pipeline/`, with the output of
+      `general/rules/script-delivery/check_frame.py` on captures of its screen. Never reserve its building or
+      delivery to yourself or to your handover; your part is the check. Accept no "restored" or "matches" without
+      that output, and write none yourself.
     - Act on a script's bridge line only after reading its sender in `~/.claude/agy-bridge/send.log` (`user@<tty>`
       is a script in a terminal, a session's name is an agent) and the script's own files.
     - Give a verdict only on a run that the user started, on a script the user has not objected to, with the pinned
@@ -355,6 +375,18 @@ These are suggestions from the manager's own mistakes. Several executor failures
     - Never name some of the files and ask for an acknowledgment: the session reads those and acknowledges all.
     - Afterwards look at `ack-rules.sh --list`. "reads checked" is an acknowledgment that the session's own log
       supports. "declared" is its word only: Gemini, a manual id, or a session whose log is not found.
+32. **A hold never stands between an executor and its own user (found 2026-11-27).**
+    - Every hold you set, in a plan decision, a handover or a notice you relay, names the user's direct instruction
+      as what lifts it.
+    - When the user has instructed or answered the executor directly, record it and act on it: never put the same
+      question to the user twice, and do not make the executor wait for your handover.
+    - `check_spec.py` warns on a hold that names no user (`HOLD_WITHOUT_USER`).
+    - A script is never held for your handover: the executor builds and delivers it, and you check it (Part A,
+      rule 25).
+33. **A question for the user is the last resort (found 2026-11-27).**
+    - List only questions that the user's words, the rules, the plan and the design of the work do not answer, and
+      say where you looked.
+    - The format of a script is never put to the user.
 
 ## Part C. What each agent is like as an executor
 
@@ -390,6 +422,11 @@ brand: what a profile shows is turned into a rule for the seat, in Part A or Par
   - **Corrected the same day:** given one notice with the evidence, both read the templates, acknowledged, and
     stopped. The rules that came of it bind the seat in every brand: Part A, rules 25 to 27, and Part B, rule 29
     ([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md)).
+  - **The same evening, the executor:** its user asked at 21:14 for "the correct script". It answered with a page of
+    lessons, three questions, and the words "frozen from modifying any file in `tools/` until you answer". The user
+    answered at 21:23, with "Why do you even ask?" three times. It still built nothing, and sent the job to its
+    manager. Its facts were right this time; what failed was doing what its own user asked. The rules that came of
+    it bind the seat in every brand: Part A, rules 30 and 31, and Part B, rules 32 and 33.
 
 ### Codex
 
@@ -481,6 +518,13 @@ Observed in E1, 5–14 November 2026, on WSL. agy is easier to drive. Codex has 
   - **Corrected the same day:** the checker and the README in a second commit, before any session had run the
     checker; the acknowledgment by `ack_reads.py`, which reads the session's own log. The rules that came of it bind
     the seat in every brand: Part A, rules 28 and 29, and Part B, rules 30 and 31.
+  - **Failed a third time, as the one who gave notice:** its correction notice of 17:39 held the executor "until the
+    Committee's handover" and did not say that the user's own instruction lifts the hold. The notice also named two
+    questions as "the user's to decide", and told the sessions to ask the user wherever a template did not fit. The
+    executor used all three to withhold the script from its user. The hold also made a manager's handover the
+    condition for an executor's script, and the user rejected that ("your restriction to "only a manager can ..."
+    sucks"). Prevention: Part A, rule 25, Part B, rules 29, 32 and 33, and `check_spec.py`'s `HOLD_WITHOUT_USER`,
+    which flags the hold line of that notice.
 
 ## The incidents behind the rules
 
@@ -525,3 +569,5 @@ Observed in E1, 5–14 November 2026, on WSL. agy is easier to drive. Codex has 
 | 27 Nov | repository | No pipeline template existed until 16:31, so the format the user asked for had no file to copy, and neither session said so. The templates, and `check_frame.py` to check a screen against them, were added the same day | The Script Delivery Rule point 1 |
 | 27 Nov | Claude Code "AI-management" (building a standard) | The first `check_frame.py` took its patterns from the frames it had seen, not from the code that draws them: it would have failed a correct screen after 100 hours, one of more than 80 lines, and one captured with a dry run. The README told agents to capture a run with made-up files, which draws no dashboard. Found the same day by reading the templates' code, and corrected in a second commit before any session ran the checker | A28, B30 |
 | 27 Nov | Claude Code "AI-management" (giving notice); agy "e2 Committee" and "e2 executor" (acknowledging) | A notice of a rules change named two files and asked for the acknowledgment. One session read three of the nine changed files and acknowledged; the other read five whole and four in part, and acknowledged. The acknowledgment of agy and Codex was a declaration that nothing checked. Since then `ack_reads.py` reads the session's own log, and agy's gate lists the unread files and records the acknowledgment by itself | A29, B31, [The Mandatory Repo-Read Rule](../../rules/mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md) |
+| 27 Nov | agy "e2 executor" | Asked by its user at 21:14 for "the correct script", it answered with a page of lessons and three questions, and called itself "frozen" until the user answered and its manager sent a handover. The user answered at 21:23 ("Why do you even ask?", three times); it still built nothing, and sent the job to its manager | A30, A31 |
+| 27 Nov | Claude Code "AI-management" (giving notice) | Its correction notice held the executor "until the Committee's handover" without naming the user's instruction as what lifts the hold, and listed for the user questions that the user's words and the script's design already answered. Both became the executor's grounds for withholding the script | B32, B33, `check_spec.py` `HOLD_WITHOUT_USER` |

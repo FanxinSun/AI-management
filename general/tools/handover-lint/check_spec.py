@@ -83,6 +83,21 @@ HEADER_NOTE_RE = re.compile(
 )
 
 HARDCODED_PY_SITE_RE = re.compile(r"\.local/lib/python3\.\d+/site-packages")
+
+# A hold that keeps a session from its work until another session acts (2026-11-27, planner rule 18): it must name
+# the user's direct instruction as what lifts it. Text in backticks or quotation marks, and quoted (">") lines, are
+# quotations, not holds.
+HOLD_UNTIL_RE = re.compile(r"\b(?:until|till|before|waits?\s+for|awaiting)\b[^.;]*\b(?:handover|hand-over|committee|manager|planner|router|nudge)", re.IGNORECASE)
+HOLD_BAN_RE = re.compile(
+    r"\b(?:change|edit|touch|modify|write|build|start|run)\s+(?:no|nothing)\b"
+    r"|\bno\s+(?:file|files|change|changes|edit|edits|code)\b"
+    r"|\b(?:do|does|must|may)\s+not\s+(?:change|edit|touch|modify|write|build|start|run)\b"
+    r"|\bfrozen\b|\bon\s+hold\b|\b(?:stays?|remains?)\s+(?:idle|paused|held)\b|\bwaits?\s+(?:for|until)\b",
+    re.IGNORECASE,
+)
+HOLD_USER_RE = re.compile(r"\buser'?s?\b", re.IGNORECASE)
+QUOTED_RE = re.compile(r"`[^`]*`|\"[^\"]*\"|\u201c[^\u201d]*\u201d")
+NOT_A_HOLD_RE = re.compile(r"\b(?:do|does|must|need)\s+not\s+wait\w*|\b(?:don't|doesn't|never)\s+wait\w*|\bwithout\s+waiting\b|\bno\s+need\s+to\s+wait\b", re.IGNORECASE)
 SPLITLINES_RE = re.compile(r"\.splitlines\s*\(")
 
 
@@ -120,6 +135,17 @@ def lint_markdown(path: Path, text: str) -> List[Finding]:
             findings.append(Finding(
                 "WARN", "APPROVAL_PICKER_PATTERN", str(path), idx,
                 "Contains a quoted `(Recommended)` dialog option in an approval record; verify plain-text user provenance.",
+            ))
+
+    for idx, line in strip_fenced_blocks(lines):
+        if line.lstrip().startswith(">"):
+            continue
+        bare = NOT_A_HOLD_RE.sub("", QUOTED_RE.sub("", line))
+        if HOLD_UNTIL_RE.search(bare) and HOLD_BAN_RE.search(bare) and not HOLD_USER_RE.search(bare):
+            findings.append(Finding(
+                "WARN", "HOLD_WITHOUT_USER", str(path), idx,
+                "Holds a session from its work until another session acts, without naming the user's direct instruction "
+                "as what lifts the hold (planner rule 18; the user, 2026-11-27).",
             ))
 
     if NO_REASK_RE.search(text) and not TIMESTAMP_RE.search(text):
@@ -999,6 +1025,22 @@ def selftest() -> int:
             {"RETIRED_PATH", "APPROVAL_PICKER_PATTERN", "ADDENDUM_HEADER_DRIFT"}.issubset(codes3),
             str(codes3),
         )
+
+        fh = tmp / "hold.md"
+        fh.write_text(
+            "# Notice\n- **Executor:** change no file in `tools/` until the Committee's handover.\n"
+            "- **Executor:** change no file in `tools/` until the Committee's handover, or until your own user tells you directly.\n"
+            "- My notice said \"change no file in tools/ until the Committee's handover\", and that was wrong.\n"
+            "> change no file until the manager's handover\n"
+            "```\nchange no file until the manager's handover\n```\n"
+            "Never delete raw downloads until the Manager/Committee's independent check records the file.\n"
+            "The executor stays idle and waits for the planner's nudge.\n"
+            "Blocks A and B run in one go. Do not wait for the Committee between them.\n",
+            encoding="utf-8",
+        )
+        hold = [x.line for x in lint_path(fh) if x.code == "HOLD_WITHOUT_USER"]
+        check("HOLD_WITHOUT_USER: flags a hold that names no user (lines 2 and 10), and passes one that does, quotations, "
+              "a fenced block, a deletion gate and \"do not wait for the Committee\"", hold == [2, 10], str(hold))
 
         f4 = tmp / "runtime_ok.md"
         f4.write_text("Runtime state lives in `~/.claude/agy-bridge/state/`, see [`rules-gate/`](claude/hooks/rules-gate/install.sh).\n", encoding="utf-8")

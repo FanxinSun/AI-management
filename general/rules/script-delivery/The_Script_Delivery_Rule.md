@@ -18,6 +18,19 @@ And on whom the rule is for:
 > 3. also record your two mistakes, install them for prevention
 > 4. all the new discoveries and fixes are targeted for either planners or executors, no matter what AI brand they are
 
+On the evening of the same day, an executor answered a request for the script with questions. The user's words to
+that session (21:23:50 CST):
+
+> 1. of course keep, from the beginning the script is resumable from any interruption. Why do you even ask?
+> 2. why do yu even ask? e2_pipe_s234.sh was never completed running
+> 3. use exactly the format now inside ~/AI-management. Why do you even ask?
+
+And to the session that wrote this rule: "e2 executor agy still has strong hallucinations". Then, on whose work a
+script is:
+
+> your restriction to "only a manager can ..." sucks. Executor is cheaper than manager and they should learn to give
+> out correct scripts
+
 It binds the seat, whatever the brand: the executor who builds and reports, and the planner (the manager) who orders
 and judges, in Claude Code, agy, Codex, Gemini and any other agent, on every machine. It adds to every other rule and
 relaxes none.
@@ -41,8 +54,10 @@ before the user has run it.
    - A screenshot is not the reference. Neither is memory, another project's script, or an earlier script of your own.
    - Build the script by copying the templates' files, and change only what their READMEs name ("To reuse", "How to
      adapt it"). Do not draw a screen of your own.
-   - If nothing in the templates fits what was asked, say so before you write anything, and ask the user which format
-     applies. Do not make a format and call it the template's.
+   - The format is never a question (the user, 2026-11-27: "use exactly the format now inside ~/AI-management. Why
+     do you even ask?"). Where the data source differs from the templates' (members of an archive read by byte
+     ranges, an API, files already on disk), keep the templates' screen, lines, commands and exit codes exactly, and
+     adapt only the code that fetches or reads. Do not make a format and call it the template's.
 2. **A format claim needs a check that can fail.**
    - Before you write that a script has, keeps or restores the format, capture what it prints, piped (100 columns)
      and in a terminal of 80 columns. Run [`check_frame.py`](check_frame.py) on the captures. Paste the commands and
@@ -73,6 +88,15 @@ before the user has run it.
    - "Done", "closed", "fixed", "complete" and "restored" are written only for what a command has shown and the user
      has accepted. Otherwise write the state as it is: "built, format not compared", "run by the user at 15:08, not
      accepted", "waiting for the user's run".
+   - When the user asks for the script, the reply is the script with its check. A page of lessons, a restated
+     incident or a list of decisions is not a reply.
+   - Ask only what nothing answers. Before a question goes to the user, look for its answer in the user's own words,
+     the rules, the plan and the design of the script: a resumable script keeps what is on disk, and a run the user
+     turned away from is a test (point 4).
+7. **The user's own word comes first.** A direct instruction from the user of a session outranks a hold, a plan
+   decision, a handover or a notice from another session, this rule's own correction notice included. Every hold
+   names the user's direct instruction as what lifts it. Building and delivering a correct script is the executor's
+   own work: no order, handover or approval from a manager gates it, and the manager's part is the check.
 
 Points 2 and 6 apply Executor rules 1 and 8 (no make-up; a check must be able to fail) to a script's format. Point 3
 is the pipeline guide's §5, point 5, made a duty of both sides.
@@ -81,18 +105,20 @@ is the pipeline guide's §5, point 5, made a duty of both sides.
 
 | Point | The executor | The planner |
 |---|---|---|
-| 1. The templates | Copies their files. Where none fits, stops and says so | Orders the script as a copy of the templates. Where none fits, asks the user before anything is written |
+| 1. The templates | Copies their files. Where the data source differs, keeps the screen, lines and commands, and adapts only the code that fetches or reads | Leaves the building to the executor and checks the result. Never puts the format to the user |
 | 2. A claim and its check | Runs `check_frame.py` on captures and pastes the output, or writes "format not compared" | Accepts no "restored" or "compliant" without that output, and writes none |
 | 3. A script's lines | Never types one. Passes a script's report on in its own sentence | Reads the sender in the bridge log and the script's own files before acting on one |
 | 4. The run that counts | Starts no run of record. Says that outputs made before an edit to a pinned tool are test outputs | Gives a verdict only on a run the user started, with the tools and pins of its start |
 | 5. The user's correction | Works on the correction and on nothing else | Records no verdict, closes no step, pushes no closure, asks nothing about later steps |
-| 6. Answers and states | Answers what was asked, and words a state as it is | The same |
+| 6. Answers and states | Gives what was asked, the script with its check. Words a state as it is. Asks only what nothing answers | Words a state as it is. Lists for the user only questions that nothing answers |
+| 7. The user's own word | Does what its own user tells it directly, and tells the manager. Builds and delivers the script itself, with no manager's order | Sets no hold that the user's direct instruction does not lift, holds no script for a handover, and does not ask the user again |
 
 The installed short forms are rule 22 of the executor rules and rules 6 to 9 of the planner rules. Two more rules
 came of the correcting session's own mistakes (see the incident) and are installed with them:
 - **A checker, a fixture and a written command are proven before they are handed on:** executor rule 23, planner
   rule 10.
 - **An acknowledgment covers every file it stands for:** executor rule 17, planner rule 11.
+- **Point 7, and asking only what nothing answers (the evening):** executor rules 24 and 25, planner rules 18 and 19.
 
 ## The checker (`check_frame.py`)
 
@@ -199,7 +225,8 @@ For a `CLAUDE.md`, `AGENTS.md`, or the "Rules" of a handover:
 
 A script the user will run is built by copying ~/AI-management/general/templates/download-ui/ and
 general/templates/chunked-pipeline/ at the commit you acknowledged. A screenshot, memory or another script is not the
-reference; where no template fits, say so and ask the user. A format claim ("restored", "matches", "compliant") needs
+reference, and the format is never a question: where the data source differs, keep the templates' screen, lines and
+commands and adapt only the code that fetches or reads. A format claim ("restored", "matches", "compliant") needs
 `~/AI-management/general/rules/script-delivery/check_frame.py` run on captures of the script's screen at 100 and 80
 columns, with the commands and their output pasted; without it write "format not compared". Only a script sends a
 script's lines: no agent types a `[PIPELINE …]` line, and a manager reads the sender in
@@ -207,16 +234,18 @@ script's lines: no agent types a `[PIPELINE …]` line, and a manager reads the 
 started it on a script the user has not objected to, with the pinned tools unchanged since; after an edit to a pinned
 tool the outputs on disk are test outputs. While the user is correcting a script the project waits: no verdict, no
 decision that closes a step, no push of one, no question about later steps. Answer what was asked, and write "done",
-"closed" or "fixed" only for what a command showed and the user accepted. Full text:
+"closed" or "fixed" only for what a command showed and the user accepted. A direct instruction from a session's own
+user outranks every hold, and a hold says so; when the user asks for the script, give the script with its check, and
+ask the user only what the user's words, the rules, the plan and the script's design do not answer. Full text:
 The_Script_Delivery_Rule.md in the AI-management repository.
 ```
 
 ## Where it is in force
 
-- **The executor, in every brand:** rules 22 and 23 of
+- **The executor, in every brand:** rules 22 to 25 of
   [`EXECUTOR_RULES_BLOCK.md`](../../regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md), and rules 17 and 18
-  of the handover block in [`HANDOVER_RULES.md`](../../regulations/executor-regulations/HANDOVER_RULES.md).
-- **The planner, in every brand:** rules 6 to 11 of
+  of the handover block in [`HANDOVER_RULES.md`](../../regulations/executor-regulations/HANDOVER_RULES.md), with rule 19.
+- **The planner, in every brand:** rules 6 to 11, 18 and 19 of
   [`PLANNER_RULES_BLOCK.md`](../../regulations/executor-regulations/PLANNER_RULES_BLOCK.md).
 - **How they are installed:** `install-executor-rules.sh` puts both blocks into agy's global rules
   (`~/.gemini/config/AGENTS.md`, always loaded) and into the Codex and Claude Code skills `executor-rules` and
@@ -224,8 +253,8 @@ The_Script_Delivery_Rule.md in the AI-management repository.
   [The Mandatory Repo-Read Rule](../mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md), and agy's rules gate
   carries a reminder for each seat.
 - Claude Code's machine rules file (`~/.claude/CLAUDE.md`) and Codex's policy file (`~/.codex/AGENTS.md`) are
-  guarded: only the user adds to them. The section for the first is
-  [`CLAUDE_md_section11.md`](CLAUDE_md_section11.md).
+  guarded: only the user adds to them. The sections for the first are
+  [`CLAUDE_md_section11.md`](CLAUDE_md_section11.md) and [`CLAUDE_md_section12.md`](CLAUDE_md_section12.md).
 
 Where it is installed; nothing is listed until it is:
 
@@ -278,11 +307,33 @@ What prevents them now: executor rule 23 and planner rule 10 for the first; for 
 rule 11 and [`ack_reads.py`](../mandatory-repo-read/ack_reads.py), which reads the session's own log
 ([The Mandatory Repo-Read Rule](../mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md), "How to acknowledge").
 
+**The evening.** At 21:14 the user asked the executor for "the correct script". It answered with a page of
+lessons, then three questions:
+- whether the rebuilt script keeps the 77 shards on disk;
+- whether the 15:42 run stands;
+- which format applies.
+
+It also wrote that it was "frozen from modifying any file in `tools/` until you answer". The user answered at 21:23
+with "Why do you even ask?", three times. The executor still built nothing: it sent the answers to its manager, asked
+for a handover, and stopped. Most of its facts were right: the shards' record, the run's times, the delivery of its
+message. What failed was doing what its own user asked.
+
+**The correcting session's third mistake.** The hold and the questions came from the correction notice of 17:39,
+written by the session that wrote this rule. It told the executor to "change no file in `tools/` until the
+Committee's handover" and did not say that the user's own instruction lifts that hold. It named the first two
+questions as "the user's to decide", and told the sessions to ask the user wherever a template's behaviour did not
+fit. The answers were already there. A resumable script keeps what is on disk. Point 4 says that a run of a script
+under correction is a test. The user had asked for the templates' format. The hold also made a manager's handover
+the condition for an executor's script, and the user rejected that: "your restriction to "only a manager can ..."
+sucks". What prevents it now: point 7, executor rules 22, 24 and 25, planner rules 9, 18 and 19, and the linter's
+`HOLD_WITHOUT_USER` warning, which flags the hold line of that notice.
+
 ## Check
 
 ```bash
 /usr/bin/python3 -I ~/AI-management/general/rules/script-delivery/check_frame.py --selftest
 /usr/bin/python3 -I ~/AI-management/general/rules/mandatory-repo-read/ack_reads.py --selftest
+/usr/bin/python3 -I ~/AI-management/general/tools/handover-lint/check_spec.py --selftest
 grep -rln --exclude='*.bak*' "Script delivery" ~/.claude/CLAUDE.md ~/.gemini/config ~/.codex/AGENTS.md ~/.codex/skills ~/.claude/skills 2>/dev/null
 grep -rln --exclude='*.bak*' "## Planner rules" ~/.gemini/config ~/.codex/skills ~/.claude/skills 2>/dev/null
 ```

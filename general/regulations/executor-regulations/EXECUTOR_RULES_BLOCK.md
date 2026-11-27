@@ -100,9 +100,13 @@ never relax them. The full text, with the incidents behind each rule, is
     one brand against another; where no rule covers a brand's content, keep it and ask the user. Judge agents by
     evidence with the same test for each, your own failures as plainly as another's. See
     `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`.
-22. **Script delivery, the executor's side (user, 2026-11-27):** build a script the user will run by copying
-    `~/AI-management/general/templates/download-ui/` and `general/templates/chunked-pipeline/` at the commit you
-    read. A screenshot, memory or another script is not the reference; where no template fits, stop, say so and ask.
+22. **Script delivery, the executor's side (user, 2026-11-27):** a correct script for the user is your own work:
+    build it and deliver it yourself, with no order, handover or approval from a manager (the user: “your restriction to "only a manager can ..." sucks. Executor is cheaper than manager and they should learn to give out correct scripts”). Build it by copying `~/AI-management/general/templates/download-ui/` and
+    `general/templates/chunked-pipeline/` at the commit you read. A screenshot, memory or another script is not the
+    reference. The format is never a question (the user,
+    2026-11-27: "use exactly the format now inside ~/AI-management. Why do you even ask?"): where the data source
+    differs from the templates' (an archive read by byte ranges, an API, files already on disk), keep their screen,
+    lines, commands and exit codes exactly and adapt only the code that fetches or reads.
     A format claim ("restored", "matches", "compliant") needs
     `~/AI-management/general/rules/script-delivery/check_frame.py` run on captures of the script's screen at 100 and
     80 columns, with the commands and their output pasted; without it write "format not compared". Only a script
@@ -119,3 +123,16 @@ never relax them. The full text, with the incidents behind each rule, is
     Capture a fixture; never type one. Run every command you write into a document, as written, before you write
     that it works, and say what you did not run. A tool that fails a correct result does the same harm as a false
     claim.
+24. **Your own user's direct instruction comes first (user, 2026-11-27):** a direct instruction from the user of
+    your own session outranks a hold, a plan decision, a handover or a notice from any other session, a correction
+    notice included: do it, and tell your manager what the user told you. Only what needs an approval of its own
+    still waits for that approval (a gated push, a deletion, others' repositories, a budget beyond the plan). Never
+    hand a job your user gave you to another session, and never answer your user that you are frozen until another
+    session acts.
+25. **Deliver what was asked; ask only what nothing answers (user, 2026-11-27: "Why do you even ask?"):** when your
+    user asks for a deliverable, your reply is the deliverable with its check. A page of lessons, a restated
+    incident or a list of decisions is not a reply. Before you put a question to your user, look for its answer in
+    what the user has already said (in your session, and what was relayed to you), the rules, the plan, and the
+    design of what you build: a resumable script keeps what is on disk, and a run the user turned away from is a
+    test (rule 22). A question whose answer is there is not asked, and the format of a script is never a question.
+    If one thing truly blocks the work, ask that one thing in one line and say where you looked.

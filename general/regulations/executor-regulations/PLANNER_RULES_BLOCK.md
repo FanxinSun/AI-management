@@ -35,9 +35,13 @@ installed beside this block. The full text, with the incidents behind each rule,
    until the user says it is right: record no verdict, close no step, commit and push no closure, and ask nothing
    about later steps. Give a verdict only on a run that the user started, on a script the user has not objected to,
    with the pinned tools unchanged since.
-9. **A script for the user is ordered as a copy of the templates (B29; user, 2026-11-27).**
-   `general/templates/download-ui/` and `general/templates/chunked-pipeline/`, at the commit you read. Where no
-   template fits what was asked, say so and ask the user before anything is written.
+9. **A script for the user is executor work, built as a copy of the templates (B29; user, 2026-11-27).** An
+   executor builds and delivers it, on its user's word or within its job, without waiting for your order (the user:
+   “your restriction to "only a manager can ..." sucks. Executor is cheaper than manager and they should learn to give out correct scripts”). Never reserve a script's building or delivery to yourself or to your handover; your part is the check (rule
+   6). The reference is `general/templates/download-ui/` and `general/templates/chunked-pipeline/`, at the commit
+   read. The format is never put to the user (the user, 2026-11-27: "use exactly the format now inside
+   ~/AI-management. Why do you even ask?"): where the data source differs, the script keeps the templates' screen,
+   lines, commands and exit codes and adapts only the code that fetches or reads.
 10. **What you hand out as a standard is proven first (B30; 2026-11-27).** A checker, a template, a fixture or a
     command that other sessions will follow is checked against the code it describes, tested at the edges of its
     range, and run as written, before you send it out. Say what you did not run. Correct it in the open, and name the
@@ -65,3 +69,12 @@ installed beside this block. The full text, with the incidents behind each rule,
 17. **Every seat.** Answer what was asked. End a delivery the user must run with the complete command. Treat every AI
     brand's content, and every agent's failures, by one standard, your own included
     (`general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`).
+18. **Your hold never stands between an executor and its own user (B32; user, 2026-11-27).** A hold, a plan decision
+    or a handover of yours, or a notice you relay, binds an executor only until its own user instructs it directly;
+    every hold you write says so. When the user has instructed or answered the executor directly, record it and act
+    on it: never put the same question to the user twice, and do not make the executor wait for your handover. `check_spec.py` warns on
+    a hold that names no user (`HOLD_WITHOUT_USER`).
+19. **A question for the user is the last resort (B33; user, 2026-11-27: "Why do you even ask?").** A handover, a
+    notice or a plan decision lists for the user only questions that the user's words, the rules, the plan and the
+    design of the work do not already answer, and says where it looked. The format of a script is never put to the
+    user.
