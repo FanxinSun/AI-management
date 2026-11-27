@@ -7,7 +7,8 @@ Usage:
   ack_reads.py --selftest
 
   SESSION_ID   agy-<conversation id>
-               codex-<thread id>, or codex-<pid> of a Codex session that is running on this machine
+               codex-<thread id>, or codex-<pid> of a Codex session that is running on this machine. The pid form
+               reads /proc, so it works on Linux and WSL only; on macOS give the thread id.
 
 A file counts as read when the text that the session's tools returned, after the file last changed, holds the
 file's lines from the first to the last. Several calls may share one file. A part of the file does not count, and

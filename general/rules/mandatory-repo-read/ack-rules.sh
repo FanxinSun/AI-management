@@ -4,7 +4,8 @@
 #   session actually read; for these ids this script reports that record and cannot set it.
 #   agy and Codex ids (agy-<conversation id>, codex-<thread id>, codex-<pid of the live session>): since
 #   2026-11-27 the acknowledgment is checked against the session's own log (ack_reads.py). It is recorded when
-#   every listed file was read whole after it last changed, and refused while one is unread.
+#   every listed file was read whole after it last changed, and refused while one is unread. The pid form of a
+#   Codex id needs /proc (Linux, WSL); on macOS give the thread id.
 #   Any other id (gemini-*, manual), and an id whose log cannot be found: a declaration, recorded at the
 #   current HEAD and shown as "declared".
 # Usage:
@@ -99,7 +100,7 @@ record() {  # record ID verified|declared
 
 case "${1:-}" in
   ""|-h|--help)
-    sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
     exit 0
     ;;
   --list)
