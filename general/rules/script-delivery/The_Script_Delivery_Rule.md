@@ -39,6 +39,8 @@ before the user has run it.
    - Before you write that a script has, keeps or restores the format, capture what it prints, piped (100 columns)
      and in a terminal of 80 columns. Run [`check_frame.py`](check_frame.py) on the captures. Paste the commands and
      their output into your message or report.
+   - The run that you capture must really download: a dry run and the pipeline's test modes draw no dashboard.
+     ["How to capture"](#how-to-capture) gives the commands and a test server.
    - "Restored", "matches", "compliant" and "character-for-character" are format claims.
    - If you did not run the check, write "format not compared".
 3. **Only a script sends a script's lines.**
@@ -80,11 +82,12 @@ nothing.
 
 - **What it checks in every frame:** the nine fixed rows in order (the title, `STEP`, `THIS STEP`, `TO DOWNLOAD
   (estimate)`, `TOTAL`, `FILES`, `SPEED`, `LINKS`, `HEALTH`), then `GROUPS (moved / estimate)`, `RECORDS`,
-  `DOWNLOADING NOW (…)` and the bottom line. Bars are made of `█` and `░` only. A row that is missing is named, and
-  so is a row that the format does not have.
+  `DOWNLOADING NOW (…)` and the bottom line. Bars are made of `█` and `░` only, at the template's lengths: 20 and 30
+  characters in the fixed rows, 20 for a group or a record and 16 for a file, or 10 and 6 below 100 columns. A row
+  that is missing is named, and so is a row that the format does not have.
 - **`--kind pipeline`** also asks for the driver's lines: `file <id> (<i> of <n>)`, a job's `start (limit … s) |
   compute …` line and its end line, and a stamped `file report` line. A stamped line that the driver does not print
-  is a finding.
+  is a finding. A job line that the terminal cut needs only its beginning.
 - **`--complete`** says that the capture holds a whole run. Then the seven start lines, the end lines and, for a
   pipeline, `SUMMARY`, `nudge:`, `status:` and `report:` must all be there.
 - **`--columns N`** gives the terminal's width. A line of N-1 characters was cut there, and only its beginning is
@@ -92,25 +95,75 @@ nothing.
 - **Exit status:** 0 when everything fits; 1 when something does not fit, or when no frame was found; 2 on a usage
   error.
 
-How to capture (Linux; on macOS the form is `script -q FILE COMMAND …`):
-
-```bash
-COMMAND > capture-100.txt                                   # piped: the 100-column layout, a frame every 30 s
-COLUMNS=80 LINES=30 script -q -c "COMMAND" capture-80.txt   # a terminal of 80 columns; escape codes are removed
-```
-
 What the checker proves is the rows and the lines. It does not prove the numbers in them: check those against the
 script's own files.
 
-**Checked on 2026-11-27:**
-- **The template's own frames pass.** `fetch_dst.py` ran against a local test server three times: piped, piped with a
-  pipeline's `--context`, and in a terminal of 80 columns. Each run drew 10 frames, and the checker found nothing in
-  any of them.
+### How to capture
+
+The run that is captured must really download. Three kinds of run draw no dashboard, and the checker then reports
+"no dashboard frame found": the downloader's dry run (`PROJECT_DL_DRY_RUN=1`), the pipeline's `--test` modes, and
+its made-up files (`PROJECT_PIPE_SANDBOX_FAKE=1`).
+
+[`frame_test_server.py`](frame_test_server.py) gives a download to capture that touches no real source. It writes
+two test files (6 MiB and 3 MiB) and their list, `DIR/files-tst1.tsv`, and serves them on 127.0.0.1 at 700 KiB/s on
+each connection. The list appears when the server is ready.
+
+The commands use the templates' names: a project's own names replace `PROJECT_DL_`, `PROJECT_PIPE_`,
+`tools/download_one.sh` and `tools/pipe.py`. Run them in a copy of the project, like the template's other tests. On
+macOS the `script` form is `script -q FILE COMMAND …`.
+
+```bash
+T=$(mktemp -d /tmp/frame-test.XXXXXX)
+/usr/bin/python3 -I ~/AI-management/general/rules/script-delivery/frame_test_server.py "$T/srv" & SERVER=$!
+until [ -s "$T/srv/files-tst1.tsv" ]; do sleep 0.2; done
+cd /path/to/copy-of-the-project
+
+# the downloader: piped (the 100-column layout), then in a terminal of 80 columns
+PROJECT_DL_REPORT_SECS=1 PROJECT_DL_WORKERS=2 tools/download_one.sh "$T/srv/files-tst1.tsv" "$T/dl-100" > "$T/capture-100.txt"
+COLUMNS=80 LINES=30 script -q -c "env PROJECT_DL_REPORT_SECS=1 PROJECT_DL_WORKERS=2 tools/download_one.sh '$T/srv/files-tst1.tsv' '$T/dl-80'" "$T/capture-80.txt"
+~/AI-management/general/rules/script-delivery/check_frame.py --complete "$T/capture-100.txt" "$T/capture-80.txt"
+
+# a pipeline: the driver on the same list, as a sandbox run with the bridge pointed away
+printf '#!/bin/bash\necho "sent+enter to /dev/fake-$1"\n' > "$T/fake-send.sh"; chmod +x "$T/fake-send.sh"
+PROJECT_PIPE_SANDBOX_TEST_ROOT="$T/srv" PROJECT_PIPE_SANDBOX_SEND="$T/fake-send.sh" PROJECT_PIPE_POLL_S=1 PROJECT_PIPE_WAIT_H=0.001 PROJECT_DL_REPORT_SECS=1 /usr/bin/python3 -I tools/pipe.py tst1 > "$T/capture-pipe.txt"
+~/AI-management/general/rules/script-delivery/check_frame.py --kind pipeline --complete "$T/capture-pipe.txt"
+kill $SERVER
+```
+
+- **A project with only the download wrapper** runs its downloader on the list:
+  `/usr/bin/python3 -I tools/fetch_dst.py fetch "$T/srv/files-tst1.tsv" "$T/dl-100" --dashboard --report-seconds 1 --workers 2`.
+- **The pipeline run ends with exit 5.** Nobody accepts the test files, so the wait at the end of the split runs
+  out. It sends nothing to a live session.
+- **What the pipeline run writes:** the downloads go under `$T`. In the project it writes under `runs/` only:
+  `runs/<ST>/pipeline-test/`, the test jobs' output files `runs/<ST>/<TEST_PREFIX>-tst1-…`, and their lines in
+  `runs/log.jsonl`, which carry the same prefix.
+- **`script` exits 0 whatever the command did.** The command's own exit status is in the capture's last line.
+- **These are test runs.** They prove the screen, and the run that counts is the user's (point 4).
+
+### Checked on 2026-11-27
+
+- **The templates' own screens pass,** in a test project made of the templates' files, with the commands above:
+  - `download_one.sh`, piped and in a terminal of 80 columns: 10 frames each, and nothing found.
+  - `pipe.py tst1`, piped: exit 5, 16 frames, and nothing found as a complete pipeline run. In a terminal of 80
+    columns: 22 frames, and nothing found.
+  - `fetch_dst.py` itself, piped: 10 frames, and nothing found. Earlier the same day it also passed with a
+    pipeline's `--context`.
 - **The pipeline template's recorded screen passes** (`chunked-pipeline/README.md`, "The screen") as a complete
   pipeline run.
+- **The runs that draw no dashboard fail,** each with "no dashboard frame found": the dry run, `pipe.py --test
+  pilot`, and a run with made-up files.
+- **The edges of the ranges.** `--selftest` loads the template's own `human()`, `rate_text()`, `clock()` and `bar()`
+  and checks that the checker's patterns take what they write: sizes from `0 B` to `5120.00 GB`, rates from
+  `0 KB/s`, a time of `1300:00:00`, and every bar length. It also passes the recorded screen after 100 hours, with
+  150 records, after a dry run's lines, and with a job line cut at 79 characters.
 - **It can fail.** The frame that was delivered at 15:09 as "the original format" (see the incident) gets 18
-  findings. `--selftest` holds that frame, the 14:48 frame, six broken copies of the template's screen and an empty
-  capture, and every one of them must fail.
+  findings, and the 14:48 frame gets 22. `--selftest` holds both, ten broken copies of the template's screen and an
+  empty capture, and every one of them must fail.
+- **Corrected the same day.** The checker's first version, in the commit that added this rule, would have failed
+  three correct screens: a run of 100 hours or more (`elapsed 100:00:00`), a frame of more than 80 lines, and a
+  capture that also held a dry run's lines. The pipeline template's README also named a run with made-up files as
+  the one to capture, and that run draws no dashboard. All four were found by reading the templates' code against
+  the checker, and are fixed.
 
 ## Paste-in form
 

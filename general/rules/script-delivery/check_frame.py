@@ -22,6 +22,8 @@ Usage:
 How to capture (Linux; on macOS: script -q FILE COMMAND ...):
   COMMAND > capture-100.txt                                              # piped: a 100-column frame every 30 s
   COLUMNS=80 LINES=30 script -q -c "COMMAND" capture-80.txt              # a terminal of 80 columns
+COMMAND must really download: a dry run, the pipeline's --test modes and its made-up files draw no frame.
+frame_test_server.py, beside this file, serves two test files slowly for that; the rule gives the commands.
 
 It changes nothing. Exit status: 0 when every frame and line fits, 1 when something does not fit or no frame was
 found, 2 on a usage error.
@@ -33,7 +35,11 @@ import sys
 ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b[()][0-9A-B]|\x1b[=>]")
 HUM = r"(?:\d+\.\d\d (?:GB|MB|KB)|\d+ B)"
 RATE = r"(?:\d+\.\d\d MB/s|\d+ KB/s)"
-CLK = r"\d\d:\d\d:\d\d"
+CLK = r"\d\d:\d\d:\d\d"                 # a time of day
+DUR = r"\d{2,}:\d\d:\d\d"               # a length of time, from clock(): the hours go past 99 (100:00:00)
+NUM = r"\d+(?:\.\d+)?(?:e[+-]?\d+)?"    # a number printed with %g
+BAR_REC = r"(?:[█░]{20}|[█░]{10})"      # a group's or a record's bar: 20 characters, 10 below 100 columns
+BAR_FILE = r"(?:[█░]{16}|[█░]{6})"      # a file's bar: 16 characters, 6 below 100 columns
 UTC = r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ"
 WHERE = "general/templates/download-ui/README.md, \"The dashboard\""
 
@@ -41,9 +47,9 @@ WHERE = "general/templates/download-ui/README.md, \"The dashboard\""
 # The first part of a row must fit even when the terminal cut the line.
 HEAD = [
     ("title", "<TITLE> <run>  |  HH:MM:SS  |  elapsed HH:MM:SS  |  <N> workers  |  time-out <S> s",
-     [r".+?  \|  " + CLK, r"  \|  elapsed " + CLK, r"  \|  \d+ workers", r"  \|  time-out \d+(?:\.\d+)? s"]),
+     [r".+?  \|  " + CLK, r"  \|  elapsed " + DUR, r"  \|  \d+ workers", r"  \|  time-out " + NUM + " s"]),
     ("STEP", "STEP     <i> of <n>  group <G>  |  downloading <a>, processing 0, finished <c> of <d> files",
-     [r"STEP     \d+ of \d+  group ", r".+?  \|  downloading \d+, processing 0, finished \d+ of \d+ files"]),
+     [r"STEP     \d+ of \d+  group ", r".*?  \|  downloading \d+, processing 0, finished \d+ of \d+ files"]),
     ("THIS STEP", "THIS STEP <20-character bar> <p>%  moved <X> of <Y>",
      [r"THIS STEP [█░]{20} +\d+\.\d%", r"  moved " + HUM + " of " + HUM]),
     ("TO DOWNLOAD (estimate)", "TO DOWNLOAD (estimate)  <X> in all   moved <Y>",
@@ -54,7 +60,7 @@ HEAD = [
      [r"FILES    \d+/\d+ complete", r"   \d+ downloading", r"   \d+ workers alive"]),
     ("SPEED", "SPEED    now <rate>   average <rate>   ETA HH:MM:SS",
      [r"SPEED    now (?:measuring|" + RATE + ")", r"   average (?:measuring|" + RATE + ")",
-      r"   ETA (?:" + CLK + "|unknown)"]),
+      r"   ETA (?:" + DUR + "|unknown)"]),
     ("LINKS", "LINKS    <c> connections open   <rate> each   <s> stalled right now",
      [r"LINKS    \d+ connections open", r"   (?:measuring|-|" + RATE + ") each", r"   \d+ stalled right now"]),
     ("HEALTH", "HEALTH   failed attempts <a>   stalls dropped <b>   certificate events <c>[   LASTERR ...]"
@@ -66,11 +72,11 @@ GROUPS_HDR = "GROUPS (moved / estimate)"
 RECORDS_HDR = "RECORDS"
 NOW_HDR = re.compile(r"DOWNLOADING NOW \(showing \d+ of \d+, nearest to done first\)$")
 GROUP_ROW = ("a GROUPS line", "  <G>  <bar> <p>%  <d>/<n>   files  <moved> / <estimate>",
-             [r"  .+? [█░]{10,20} +\d+\.\d%", r"  +\d+/\d+ +files", r"  " + HUM + " / " + HUM])
+             [r"  [^█░]*? " + BAR_REC + r" +\d+\.\d%", r"  +\d+/\d+ +files", r"  " + HUM + " / " + HUM])
 RECORD_ROW = ("a RECORDS line", "  <recid> <name> <bar> <p>%   <d>/<n>   files   <got> / <size>",
-              [r"  \d+ .*?[█░]{10,20} +\d+\.\d%", r"   +\d+/\d+ +files", r"   " + HUM + " / " + HUM])
+              [r"  \d+ [^█░]*?" + BAR_REC + r" +\d+\.\d%", r"   +\d+/\d+ +files", r"   " + HUM + " / " + HUM])
 FILE_ROW = ("a DOWNLOADING NOW line", "  <recid> <key> <bar> <p>%  <got> / <size>  <rate>  ETA HH:MM:SS",
-            [r"  \d+ .+? +[█░]{6,16} +\d+%", r"  +" + HUM + " */ *" + HUM, r" +.+"])
+            [r"  \d+ [^█░]+? +" + BAR_FILE + r" +\d+%", r"  +" + HUM + " */ *" + HUM, r" +.+"])
 MORE_ROW = re.compile(r"  … and \d+ more$")
 BOTTOM = re.compile(r"Ctrl-C stops cleanly; rerun resumes   \|   log: .")
 BOTTOM_ANY = re.compile(r"Ctrl-C stops cleanly")
@@ -83,21 +89,28 @@ START_LINES = [("DOWNLOAD START UTC", re.compile(r"DOWNLOAD START UTC: " + UTC +
                ("TOTAL BYTES", re.compile(r"TOTAL BYTES: \d+$")),
                ("ON DISK AT START", re.compile(r"ON DISK AT START: \d+ files complete, \d+ bytes of \d+$")),
                ("WORKERS", re.compile(r"WORKERS: \d+ \(set \S+ to change\); refresh every \d+ s$"))]
+# Two of these labels as the downloader's dry run prints them (fetch_dst.py, dry_run()): they are not start lines.
+DRY_FORMS = {"TOTAL FILES": re.compile(r"TOTAL FILES: \d+, TOTAL BYTES: \d+$"),
+             "WORKERS": re.compile(r"WORKERS: \d+, max attempts without progress per file: \d+$")}
 END_LINES = [("DOWNLOAD END UTC", re.compile(r"DOWNLOAD END UTC: " + UTC + "$")),
              ("done <n> of <N> files", re.compile(r"done \d+ of \d+ files, \d+ of \d+ bytes; exit reason: ."))]
 END_WORD = re.compile(r"DOWNLOAD COMPLETE$|DOWNLOAD INCOMPLETE \(.+\); rerun the script to resume\. Details: .|"
                       r"INTERRUPTED: partial files are kept\. Rerun the script to resume\.$")
-COMPUTE = r" \| compute \d+\.\d of \d+(?:\.\d+)? min\s*$"
-PIPE_LINES = [("file <id> (<i> of <n>)", re.compile(r"file \S+ \(\d+ of \d+\)\s*$")),
-              ("<STEP_WORD> <job id> start (limit <s> s) | compute <x> of <cap> min",
-               re.compile(r"\S+ \S+ start \(limit \d+ s\)" + COMPUTE)),
-              ("<STEP_WORD> <job id> <outcome> <t> s | compute <x> of <cap> min",
-               re.compile(r"\S+ \S+ (?!start \(limit)(?!running ).+ \d+\.\d s" + COMPUTE)),
-              ("[<utc>] file report DONE|FAILED: ...", re.compile(r"\[" + UTC + r"\] file report (?:DONE|FAILED): ."))]
-PIPE_END = [("[<utc>] SUMMARY: ...", re.compile(r"\[" + UTC + r"\] SUMMARY: .")),
-            ("nudge: ...", re.compile(r"nudge: .")),
-            ("status: ...", re.compile(r"status: .")),
-            ("report: ...", re.compile(r"report: ."))]
+COMPUTE = r" \| compute \d+\.\d of " + NUM + r" min\s*$"
+JOB_START = r"\S.*? start \(limit \d+ s\)"
+JOB_END = r"\S.* \d+\.\d s"
+# (name, the whole line, its beginning). The driver cuts a line at the terminal's width (99 characters when piped),
+# so a line that long needs only its beginning.
+PIPE_LINES = [("file <id> (<i> of <n>)", re.compile(r"file \S+ \(\d+ of \d+\)\s*$"), None),
+              ("<stage> <job id> start (limit <s> s) | compute <x> of <cap> min",
+               re.compile(JOB_START + COMPUTE), re.compile(JOB_START)),
+              ("<stage> <job id> <outcome> <t> s | compute <x> of <cap> min",
+               re.compile(JOB_END + COMPUTE), re.compile(JOB_END)),
+              ("[<utc>] file report DONE|FAILED: ...", re.compile(r"\[" + UTC + r"\] file report (?:DONE|FAILED): ."), None)]
+PIPE_END = [("[<utc>] SUMMARY: ...", re.compile(r"\[" + UTC + r"\] SUMMARY: ."), None),
+            ("nudge: ...", re.compile(r"nudge: ."), None),
+            ("status: ...", re.compile(r"status: ."), None),
+            ("report: ...", re.compile(r"report: ."), None)]
 STAMPED = re.compile(r"\[" + UTC + r"\] (?:file report (?:DONE|FAILED): |file \S+ FAILED at |deleted |WAITING |SUMMARY: )")
 STAMP_START = re.compile(r"\[\d{4}-\d\d-\d\dT")
 
@@ -148,7 +161,7 @@ def check_frame(lines, start, columns):
     """Check the frame whose title is lines[start]. Returns (errors, index of the line after the frame)."""
     errs = []
     end = start + 1
-    while end < len(lines) and end - start < 80:
+    while end < len(lines) and end - start < 5000:      # a frame has one line per group and per record
         if BOTTOM_ANY.match(lines[end]):
             end += 1
             break
@@ -257,25 +270,27 @@ def check_text(text, kind="download", complete=False, columns=None):
         errs.append("no dashboard frame found: a frame starts with the title row "
                     "'<TITLE> <run>  |  HH:MM:SS  |  elapsed ...'")
 
+    cut_at = (columns - 1) if columns else 79       # the shortest line that the driver can have cut
+
     def need(specs, what):
-        for name, rx in specs:
-            hits = [n for n, line in enumerate(lines) if rx.match(line)]
-            if not hits:
+        for name, rx, head in specs:
+            if not any(rx.match(line) or (head and len(line.rstrip()) >= cut_at and head.match(line)) for line in lines):
                 errs.append("%s: no line %r" % (what, name))
 
     def well_formed(specs, what):
         """A line that starts like one of these, but does not fit it."""
         for name, rx in specs:
             label = name.split(" <")[0]
+            dry = DRY_FORMS.get(label)
             for n, line in enumerate(lines):
-                if line.startswith(label + ":") and not rx.match(line):
+                if line.startswith(label + ":") and not rx.match(line) and not (dry and dry.match(line)):
                     errs.append("line %d: the %s line %r does not fit %r" % (n + 1, what, line[:50], name))
 
     well_formed(START_LINES, "start")
     well_formed(END_LINES[:1], "end")
     if complete:
-        need(START_LINES, "the start lines")
-        need(END_LINES, "the end lines")
+        need([(name, rx, None) for name, rx in START_LINES], "the start lines")
+        need([(name, rx, None) for name, rx in END_LINES], "the end lines")
         if not any(END_WORD.match(line) for line in lines):
             errs.append("the end lines: no 'DOWNLOAD COMPLETE', 'DOWNLOAD INCOMPLETE (...)' or 'INTERRUPTED: ...' line")
     if kind == "pipeline":
@@ -367,6 +382,19 @@ def readme_screen():
     return text[j:text.index("\n```", j)] + "\n", path
 
 
+def template_formatters():
+    """The download template itself, loaded from its file: its human(), clock(), rate_text() and bar() write the
+    values that this checker's patterns must take."""
+    import importlib.util
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.normpath(os.path.join(here, "..", "..", "templates", "download-ui", "fetch_dst.py"))
+    sys.dont_write_bytecode = True
+    spec = importlib.util.spec_from_file_location("fetch_dst_template", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def selftest():
     bad = []
 
@@ -399,10 +427,49 @@ def selftest():
     expect("the screen without its job lines, as a pipeline", "\n".join(x for x in lines if "| compute" not in x), False,
            "pipeline", must_say="start (limit")
     expect("an empty capture", "nothing here\n", False, must_say="no dashboard frame")
+
+    # The edges of the ranges. The values are written by the template's own formatters, not typed here.
+    t = template_formatters()
+    for rx, fn, args in [(HUM, t.human, (0, 1, 1023, 1024, (1 << 20) - 1, 1 << 20, (1 << 30) - 1, 1 << 30, 5 << 40)),
+                         (RATE, t.rate_text, (0, 1, 1023, 1024, (1 << 20) - 1, 1 << 20, 9e9)),
+                         (DUR, t.clock, (0, 59, 99 * 3600 + 3599, 100 * 3600, 1300 * 3600)),
+                         (BAR_REC, lambda f: t.bar(f, 20), (-1, 0, 0.5, 1, 1.7)), (BAR_REC, lambda f: t.bar(f, 10), (0, 0.5, 1)),
+                         (BAR_FILE, lambda f: t.bar(f, 16), (0, 0.5, 1)), (BAR_FILE, lambda f: t.bar(f, 6), (0, 0.5, 1))]:
+        for a in args:
+            if not re.fullmatch(rx, fn(a)):
+                bad.append("the template writes %r for %r, and the pattern %s does not take it" % (fn(a), a, rx))
+    if t.rate_text(None) != "measuring":
+        bad.append("the template's word for a rate not yet measured is %r, not 'measuring'" % t.rate_text(None))
+    long_run = screen.replace("elapsed 00:00:02", "elapsed " + t.clock(100 * 3600)).replace("ETA 00:00:01", "ETA " + t.clock(1300 * 3600))
+    if long_run.count("elapsed 100:00:00") != 1 or long_run.count("ETA 1300:00:00") != 2:
+        bad.append("the README's screen no longer has the elapsed time and the two ETAs that the 100-hour test replaces")
+    expect("the screen after 100 hours, with an ETA of 1300 hours", long_run, True, "pipeline", True)
+    rec = [k for k, x in enumerate(lines) if x.startswith("  81001 DatasetA")][0]
+    many = [lines[rec].replace("81001", str(82000 + j)) for j in range(150)]
+    expect("a frame with 150 records", "\n".join(lines[:rec] + many + lines[rec + 1:]), True, "pipeline", True)
+    dry_lines = "TOTAL FILES: %d, TOTAL BYTES: %d\nWORKERS: %d, max attempts without progress per file: %d\n" % (2, 9437184, 2, 10)
+    expect("the screen after the two lines of a dry run", dry_lines + screen, True, "pipeline", True)
+    expect("a start line that does not fit", "TOTAL FILES: two\n" + screen, False, must_say="TOTAL FILES")
+    grp = hdr + 1
+    expect("a group's bar of 15 characters", "\n".join(lines[:grp] + [lines[grp].replace("░" * 5, "", 1)] + lines[grp + 1:]),
+           False, must_say="a GROUPS line")
+    fil = [k for k, x in enumerate(lines) if x.startswith("  81001 AAAA1111")][0]
+    expect("a file's bar of 12 characters", "\n".join(lines[:fil] + [lines[fil].replace("░" * 4, "", 1)] + lines[fil + 1:]),
+           False, must_say="a DOWNLOADING NOW line")
+    wide = [x.replace("g1-AAAA1111-verify", "a-long-split-name-AAAA1111-verify")[:79] if " start (limit" in x else x for x in lines]
+    if not any(len(x) == 79 and " start (limit" in x for x in wide):
+        bad.append("the README's screen no longer has the job line that the cut-line test lengthens to 79 characters")
+    expect("a job's start line that the terminal cut at 79 characters", "\n".join(wide), True, "pipeline", True)
+    expect("a job's start line without its compute part",
+           "\n".join(x.split(" | compute")[0] if " start (limit" in x else x for x in lines), False, "pipeline",
+           must_say="start (limit")
+
     for line in bad:
         print("SELFTEST FAIL: " + line)
-    print("selftest: %s" % ("FAILED" if bad else "ok (the template README's screen and a real 80-column frame pass; the two "
-                            "frames of the incident, 6 broken copies of the screen and an empty capture fail)"))
+    print("selftest: %s" % ("FAILED" if bad else "ok (pass: the template README's screen, a real 80-column frame, and that "
+                            "screen after 100 hours, with 150 records, after a dry run's lines and with a cut job line; "
+                            "fail: the two frames of the incident, 10 broken copies of the screen and an empty capture; "
+                            "the value patterns take what the template's own formatters write at the edges of their ranges)"))
     return 1 if bad else 0
 
 

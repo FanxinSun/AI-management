@@ -193,7 +193,7 @@ If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also availa
 │   │   ├── multi-agent-dispatch/      # MULTI_AGENT_DISPATCH_RULES.md
 │   │   ├── project-planning/          # The_Project_Planning_Rule.md
 │   │   ├── regular-remote-push/       # The_Regular_Remote_Push_Rule.md
-│   │   └── script-delivery/           # The_Script_Delivery_Rule.md, check_frame.py, CLAUDE_md_section11.md
+│   │   └── script-delivery/           # The_Script_Delivery_Rule.md, check_frame.py, frame_test_server.py, CLAUDE_md_section11.md
 │   ├── templates/
 │   │   ├── chunked-pipeline/          # README.md, all_in_one.sh, pipe.py, download_one.sh, run_logged.py, verify_download.py
 │   │   └── download-ui/               # README.md, fetch_dst.py, download_wrapper.sh

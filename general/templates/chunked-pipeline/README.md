@@ -218,12 +218,22 @@ acceptance wait runs out. Add ids to `runs/<ST>/pipeline-test/tst1/accepted-file
 run deletes those files.
 
 Then prove the screen before you say that the script has the format
-([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md)). Capture one sandbox run piped
-and one in a terminal of 80 columns, check both, and paste the commands and their output with the delivery:
+([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md), "How to capture"). The tests
+above draw no dashboard, because `--test` and `PROJECT_PIPE_SANDBOX_FAKE=1` download nothing. Capture a sandbox run
+that downloads from the rule's test server, check it, and paste the commands and their output with the delivery:
 
 ```bash
-~/AI-management/general/rules/script-delivery/check_frame.py --kind pipeline capture-100.txt capture-80.txt
+T=$(mktemp -d /tmp/frame-test.XXXXXX)
+/usr/bin/python3 -I ~/AI-management/general/rules/script-delivery/frame_test_server.py "$T/srv" & SERVER=$!
+until [ -s "$T/srv/files-tst1.tsv" ]; do sleep 0.2; done
+printf '#!/bin/bash\necho "sent+enter to /dev/fake-$1"\n' > "$T/fake-send.sh"; chmod +x "$T/fake-send.sh"
+cd /path/to/project && PROJECT_PIPE_SANDBOX_TEST_ROOT="$T/srv" PROJECT_PIPE_SANDBOX_SEND="$T/fake-send.sh" PROJECT_PIPE_POLL_S=1 PROJECT_PIPE_WAIT_H=0.001 PROJECT_DL_REPORT_SECS=1 /usr/bin/python3 -I tools/pipe.py tst1 > "$T/capture-pipe.txt"
+~/AI-management/general/rules/script-delivery/check_frame.py --kind pipeline --complete "$T/capture-pipe.txt"
+kill $SERVER
 ```
+
+This run ends with exit 5 too: nobody accepts the test files. The rule also gives the two captures of the downloader
+alone, piped and in a terminal of 80 columns.
 
 ### Checked on 2026-11-27
 
