@@ -13,6 +13,7 @@ run bash general/tools/agent-bridge/install-agent-bridge-tool.sh                
 run codex/skills/agent-bridge/install-agent-bridge.sh                                             # Codex skill
 run agy/skills/cross-agent-bridge/install-cross-agent-bridge.sh                                  # agy skill
 run bash general/guides/gcp-hpc-cpu-onboarding/install-gcp-cpu-skill.sh                          # Cross-brand GCP CPU skill
+run bash general/guides/poe-cli-wsl/install-poe-cli-skill.sh                                     # Cross-brand Poe CLI skill
 run bash claude/hooks/agent-bridge/install-claude-bridge-hook.sh                                 # Claude bridge hook
 run bash claude/hooks/rules-gate/install-claude-rules-gate-hook.sh                               # Claude rules-gate hook
 run bash claude/hooks/claude-guardrails/install-claude-guardrails-hook.sh                        # Claude thought-chain & dialog guardrails
