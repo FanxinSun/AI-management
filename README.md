@@ -88,6 +88,8 @@ The repository is organized cleanly at the top level into 5 folders — **target
   WSL2 installation (`muse-cli`), zero-interruption background Windows Chrome `NetworkService` memory cookie sync (`sync_muse_cookies_wsl.sh`), token lifecycle, and agent-safe commands.
 * **[Google Cloud HPC CPU Onboarding & Co-Execution Guide](general/guides/gcp-hpc-cpu-onboarding/GCP_HPC_CPU_ONBOARDING_GUIDE.md)**  
   Colab CPU vs. Zen 5 desktop vs. GCP `H4D`/`C4D`, `$0`-upfront Ultra Developer Program credit onboarding (avoiding the `$5` Prepay trap), SKU exclusions, WSL2 multi-profile CDP human–agent break-down workflow, and cross-brand `gcp-cpu-compute` skill installer ([`install-gcp-cpu-skill.sh`](general/guides/gcp-hpc-cpu-onboarding/install-gcp-cpu-skill.sh)).
+* **[Poe.com CLI Local WSL2 Connection Guide](general/guides/poe-cli-wsl/POE_CLI_WSL_GUIDE.md)**  
+  Drive Poe.com models (Claude-Fable-5.1, Claude 3.5/4.5, Gemini 3.8/4 Flash, Grok, GPT) from the terminal via points-billed execution on `sunfxcatl@gmail.com`, zero-interruption background Windows Chrome cookie sync (`sync_poe_cookies_wsl.sh`), and cross-brand `poe-cli` skill.
 
 ---
 
@@ -206,7 +208,8 @@ If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also availa
 │       ├── chunked-pipeline-workflow/ # CHUNKED_PIPELINE_GUIDE.md
 │   │   ├── gcp-hpc-cpu-onboarding/    # GCP_HPC_CPU_ONBOARDING_GUIDE.md, SKILL.md, install-gcp-cpu-skill.sh
 │       ├── muse-cli-wsl/              # MUSE_CLI_WSL_GUIDE.md, sync_muse_cookies_wsl.sh
-│       └── planner-executor-conduct/  # PLANNER_EXECUTOR_OPERATION_GUIDE.md
+│       ├── planner-executor-conduct/  # PLANNER_EXECUTOR_OPERATION_GUIDE.md
+│       └── poe-cli-wsl/               # POE_CLI_WSL_GUIDE.md, sync_poe_cookies_wsl.sh, SKILL.md, install-poe-cli-skill.sh
 ├── claude/
 │   ├── rules/
 │   │   ├── ten-years-retention/       # The_10_Years_Rule.md
