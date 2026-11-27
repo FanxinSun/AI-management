@@ -1,11 +1,20 @@
-"""Piece B: an all-in-one, resumable, parallel downloader of the DELPHI short DSTs (plan/subplan_3/pieceB-downloader.md).
+"""Template: an all-in-one, resumable, parallel downloader with an in-place dashboard (general/templates/download-ui/).
 
-usage: python -I tools/s3b_fetch_dst.py list OUT_TSV
-       python -I tools/s3b_fetch_dst.py fetch LIST_TSV OUTDIR [--workers N] [--dashboard] [--report-seconds auto|S]
+This is e7's downloader, tools/s2_fetch.py of the user's project e7-upsilon-omega, as e7's split script runs it (sha256
+df2862667dd513eb416150cb787b3e9e0978882eb1e54676fcbbf8c39091fc18, pinned in e7's tools/s6_all_in_one.pins on 2026-11-27).
+Only the project's names differ: the dashboard title (TITLE), the workers setting named in the start line
+(WORKERS_SETTING) and the record names (RECNAME) are constants below. With e7's values, given in their comments, the code
+is e7's line for line, so the screen is e7's. When you copy it: change TITLE, WORKERS_SETTING and RECNAME (and RECORDS,
+API, URL, EOS, eos_url() and the list and probe subcommands if you use them), keep everything else, and run the tests of
+README.md through the wrapper before real use. The user-facing command is download_wrapper.sh (one list of a set);
+a pipeline calls ../chunked-pipeline/download_one.sh (one list per file).
+
+usage: python -I tools/fetch_dst.py list OUT_TSV
+       python -I tools/fetch_dst.py fetch LIST_TSV OUTDIR [--workers N] [--dashboard] [--report-seconds auto|S]
                   [--file-lines N|all] [--max-stalls N] [--max-seconds S] [--max-files N] [--only RECID]
                   [--retry-wait S] [--pause S] [--eos] [--cafile PATH] [--cafile-sha256 FP] [--dry-run]
-       python -I tools/s3b_fetch_dst.py probe URL [URL ...] [--cafile PATH] [--seconds N]
-       python -I tools/s3b_fetch_dst.py status LIST_TSV OUTDIR
+       python -I tools/fetch_dst.py probe URL [URL ...] [--cafile PATH] [--seconds N]
+       python -I tools/fetch_dst.py status LIST_TSV OUTDIR
 Standard library only. Exit codes of fetch: 0 done or budget reached, 1 failure or block, 2 refused OUTDIR,
 3 disk or another download running, 130 interrupted.
 
@@ -38,6 +47,11 @@ import urllib.error
 import urllib.request
 import zlib
 
+# ---- the project's names (change them when you copy the file; with e7's values, in the comments, the screen is e7's)
+TITLE = "PROJECT download"              # e7: "E7 download"    -> the title line "E7 download <set>  |  HH:MM:SS  |  elapsed ..."
+WORKERS_SETTING = "PROJECT_DL_WORKERS"  # e7: "E7_S2_WORKERS"  -> the start line "WORKERS: 1 (set E7_S2_WORKERS to change); ..."
+# ---- the project's records and addresses (used by the list and probe subcommands and by --eos; e7 uses none of them:
+#      each file is taken from the url column of the list, and the default CA store verifies it)
 RECORDS = [(81013, "short91_f1", 45, 4175093760), (81166, "short93_d2", 181, 17631713280),
            (81502, "short95_d2", 246, 21187031040)]
 API = "https://opendata.cern.ch/api/records/%d"
@@ -49,7 +63,7 @@ LOGHEAD = "recid\tkey\tbytes\tadler32\tsha256\tstart_utc\tend_utc\tattempts\tres
 GIB2 = 2 * (1 << 30)
 EOS = "https://eospublic.cern.ch//eos/opendata/delphi/collision-data/%s/%s"
 PROGRESS = 60.0   # seconds between progress lines in the log (--progress-seconds)
-RECNAME = {r[0]: r[1] for r in RECORDS}
+RECNAME = {}  # the record names in the RECORDS lines, {recid: "name"} (e7: {30510: "MuOnia2016G", 30543: "MuOnia2016H", 73733: "Y2S-MC-UL16"})
 LOCKNAME = ".download.lock"
 RUNLOG = "download.log"
 SUMS = "SHA256SUMS"
@@ -211,7 +225,7 @@ def check_outdir(outdir, rows):
             for g in os.listdir(os.path.join(outdir, e)):
                 if g in (SUMS, SUMS + ".tmp"):
                     continue
-                base = re.sub(r"(\.part|\.bad\d*)$", "", g)
+                base = re.sub(r"(\.part\d*|\.bad\d*)$", "", g)
                 if base not in keys[e]:
                     return "unknown file %s/%s" % (e, g)
             continue
@@ -229,6 +243,32 @@ def psize(path):
         return os.path.getsize(path)
     except OSError:
         return 0
+
+
+SPLIT_MIN = 64 << 20          # files larger than this are split into --split ranges
+
+
+def seg_files(target):
+    """the split-range files <target>.part0, .part1 ... that exist, as {index: path}."""
+    d, base = os.path.split(target)
+    out = {}
+    try:
+        names = os.listdir(d)
+    except OSError:
+        return out
+    for e in names:
+        m = re.fullmatch(re.escape(base) + r"\.part(\d+)", e)
+        if m:
+            out[int(m.group(1))] = os.path.join(d, e)
+    return out
+
+
+def partial_bytes(target, size):
+    """bytes held for an unfinished file: the split-range files if there are any, else its .part file."""
+    segs = seg_files(target)
+    if segs:
+        return min(sum(psize(p) for p in segs.values()), size)
+    return min(psize(target + ".part"), size)
 
 
 def human(n):
@@ -269,8 +309,8 @@ def ca_fingerprint(cafile):
 
 
 def other_fetchers(outdir):
-    """PIDs of other `s3b_fetch_dst.py fetch ... OUTDIR` processes, best effort from ps. Only a process whose own
-    script is s3b_fetch_dst.py and whose command is fetch counts, and never this process, an ancestor of it (a job
+    """PIDs of other `<this script> fetch ... OUTDIR` processes, best effort from ps. Only a process whose own
+    script is this one (os.path.basename(__file__)) and whose command is fetch counts, and never this process, an ancestor of it (a job
     logger, a `zsh -c "..."` shell) or a descendant of it: `caffeinate -i <utility>` execs the utility in its own PID
     and forks a helper child that keeps the whole command line."""
     try:
@@ -305,7 +345,7 @@ def other_fetchers(outdir):
             continue
         toks = command.split()
         script = next((k for k, t in enumerate(toks) if t.endswith(".py")), None)
-        if script is None or os.path.basename(toks[script]) != "s3b_fetch_dst.py":
+        if script is None or os.path.basename(toks[script]) != os.path.basename(__file__):
             continue
         if script + 1 >= len(toks) or toks[script + 1] != "fetch":
             continue
@@ -348,6 +388,8 @@ class Runner:
 
     def __init__(self, a, rows):
         self.a, self.rows, self.n, self.outdir = a, rows, len(rows), a.outdir
+        _b = os.path.basename(a.list)
+        self.setname = _b[len("files-"):-len(".tsv")] if _b.startswith("files-") and _b.endswith(".tsv") else _b
         self.nthreads = max(1, min(a.workers, self.n))
         self.lock = threading.RLock()          # claims, counters, fetch-log rows, SHA256SUMS
         self.outlock = threading.Lock()        # run log and standard output lines
@@ -458,7 +500,7 @@ class Runner:
                     self.finish_row(i, sha.hexdigest(), now, now, 0, "no", new=False)
                     return
                 move_bad(target, target)
-                self.have[i] = cur["got"] = psize(target + ".part")
+                self.have[i] = cur["got"] = partial_bytes(target, size)
             if not self.check_disk(i, tag):
                 return
             self.attempts(i, tag, cur)
@@ -467,6 +509,8 @@ class Runner:
 
     def check_disk(self, i, tag):
         size = self.rows[i][2]
+        if self.nsplit(size) > 1:
+            size *= 2                       # the ranges, and their join, are on disk at the same time
         with self.lock:
             free = shutil.disk_usage(self.outdir).free
             coming = sum(max(0, c["size"] - c["got"]) for j, c in list(self.cur.items()) if j != i)
@@ -488,7 +532,7 @@ class Runner:
         attempt = fails = 0
         while not self.stop.is_set():
             attempt += 1
-            before = psize(part)
+            before = partial_bytes(self.target(i), size)
             try:
                 outcome = self.download_once(i, tag, cur, st)
             except Stopped:
@@ -500,7 +544,7 @@ class Runner:
                 self.request_stop("blocked or protocol surprise", 1)
                 return
             except (OSError, ValueError, http.client.HTTPException) as e:
-                after = psize(part)
+                after = partial_bytes(self.target(i), size)
                 self.have[i] = cur["got"] = min(after, size)
                 fails = 0 if after > before else fails + 1      # N CONSECUTIVE attempts without added bytes
                 with self.lock:
@@ -562,6 +606,8 @@ class Runner:
         recid, key, size, want, url = self.rows[i]
         target = self.target(i)
         part = target + ".part"
+        if self.nsplit(size) > 1:
+            return self.download_split(i, tag, cur, st)
         p = psize(part)
         if p > size:
             move_bad(part, target)
@@ -642,16 +688,150 @@ class Runner:
         os.rename(part, target)
         return outcome
 
+    # ---- a large file in --split byte ranges, one connection each
+    def nsplit(self, size):
+        return self.a.split if self.a.split > 1 and size > SPLIT_MIN else 1
+
+    def download_split(self, i, tag, cur, st):
+        """One attempt for a split file: fetch each missing range into <key>.part<k> on its own connection (same resume,
+        stall and 4xx rules as a whole file), join the ranges in order into <key>.part, verify size and adler32.
+        A range answered with 200 instead of 206 is a Block (only EOS honours ranges)."""
+        recid, key, size, want, url = self.rows[i]
+        target = self.target(i)
+        part = target + ".part"
+        n = self.a.split
+        bounds = [(k * size // n, (k + 1) * size // n) for k in range(n)]
+        segs = [target + ".part%d" % k for k in range(n)]
+        for k, (lo, hi) in enumerate(bounds):           # a range file longer than its range is set aside, never deleted
+            if psize(segs[k]) > hi - lo:
+                move_bad(segs[k], target)
+        for e in list(seg_files(target)):               # a range file left over from a different --split
+            if e >= n:
+                move_bad(seg_files(target)[e], target)
+        if any(psize(segs[k]) for k in range(n)):
+            st["resumed"] = "yes"
+        self.have[i] = cur["got"] = partial_bytes(target, size)
+        t0 = time.monotonic()
+        blocks, errors, internal = [], [], []
+
+        def run_seg(k):
+            try:
+                self.fetch_range(i, "%s.s%d" % (tag, k), cur, bounds[k], segs[k], url)
+            except Stopped:
+                pass
+            except Block as e:
+                blocks.append(e)
+            except (OSError, ValueError, http.client.HTTPException) as e:
+                errors.append("range %d: %s" % (k, e))
+            except Exception as e:
+                internal.append(e)
+        threads = [threading.Thread(target=run_seg, args=(k,), daemon=True)
+                   for k in range(n) if psize(segs[k]) < bounds[k][1] - bounds[k][0]]
+        cur["live"], cur["note"] = True, "%d ranges" % len(threads)
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        cur["live"] = False
+        if internal:
+            raise internal[0]
+        if blocks:
+            raise blocks[0]
+        if self.stop.is_set():
+            raise Stopped()
+        if errors:
+            raise OSError("; ".join(errors[:2]) + (" (+%d more)" % (len(errors) - 2) if len(errors) > 2 else ""))
+        cur["note"] = "joining"
+        ad, sha, p = 1, hashlib.sha256(), 0
+        with open(part, "wb") as out:
+            for sp in segs:
+                with open(sp, "rb") as f:
+                    while True:
+                        b = f.read(CHUNK)
+                        if not b:
+                            break
+                        out.write(b)
+                        ad = zlib.adler32(b, ad)
+                        sha.update(b)
+                        p += len(b)
+        st["secs"] = time.monotonic() - t0
+        if p != size or hexad(ad) != want:
+            move_bad(part, target)                       # the joined bytes are kept as <key>.bad; the ranges are redundant
+            for sp in segs:
+                try:
+                    os.remove(sp)
+                except OSError:
+                    pass
+            self.have[i] = cur["got"] = 0
+            raise ValueError("verification failed: bytes %d (want %d), adler32 %s (want %s)" % (p, size, hexad(ad), want))
+        st["sha"] = sha.hexdigest()
+        os.rename(part, target)
+        for sp in segs:                                  # joined and verified: the range files are not needed
+            try:
+                os.remove(sp)
+            except OSError:
+                pass
+        return "split-%d" % n
+
+    def fetch_range(self, i, tag, cur, bound, path, url):
+        """Fill `path` with bytes lo..hi-1 of the file (resuming from what it holds)."""
+        a = self.a
+        recid, key = self.rows[i][0], self.rows[i][1]
+        lo, hi = bound
+        have = psize(path)
+        if have >= hi - lo:
+            return
+        start = lo + have
+        req = urllib.request.Request(url)
+        req.add_header("Range", "bytes=%d-%d" % (start, hi - 1))
+        try:
+            resp = urllib.request.urlopen(req, timeout=READ_TIMEOUT, context=CTX)
+        except urllib.error.HTTPError as e:
+            if 400 <= e.code < 500:
+                raise Block("HTTP %d for %s (range %d-%d)" % (e.code, url, start, hi - 1))
+            raise OSError("HTTP %d for %s" % (e.code, url))
+        with resp:
+            if resp.status == 200:
+                raise Block("the server answered a Range request with 200, not 206: it does not honour byte ranges "
+                            "(only EOS does) - %s" % url)
+            if resp.status != 206:
+                raise Block("HTTP status %d for a Range request" % resp.status)
+            m = re.match(r"bytes (\d+)-", resp.headers.get("Content-Range", ""))
+            if not m or int(m.group(1)) != start:
+                raise Block("206 with Content-Range %r, wanted start %d" % (resp.headers.get("Content-Range", ""), start))
+            want_end = hi - lo
+            got = have
+            tick = win = time.monotonic()
+            tick_p = win_p = got
+            with open(path, "ab", buffering=0) as f:
+                while got < want_end:
+                    if self.stop.is_set():
+                        raise Stopped()
+                    b = resp.read1(min(CHUNK, want_end - got))
+                    if not b:
+                        break
+                    f.write(b)
+                    got += len(b)
+                    with self.lock:
+                        self.have[i] += len(b)
+                        cur["got"] = min(self.have[i], self.rows[i][2])
+                    self.fail_streak = 0
+                    now = time.monotonic()
+                    if now - tick >= PROGRESS:
+                        self.emit(tag, "%d %s range progress: %d of %d bytes, %.1f %%, %.1f kB/s"
+                                  % (recid, key, got, want_end, 100.0 * got / want_end, (got - tick_p) / 1000.0 / (now - tick)))
+                        tick, tick_p = now, got
+                    if now - win >= a.stall_seconds:
+                        if got - win_p < a.stall_limit * (now - win):
+                            raise OSError("stalled: %d bytes in %.0f s" % (got - win_p, now - win))
+                        win, win_p = now, got
+        if got < want_end:
+            raise OSError("stream ended short: %d of %d bytes of the range" % (got, want_end))
+
     # ---- the dashboard
     def render(self, final=False):
         now = time.monotonic()
-        if self.tty:
-            try:
-                cols, term_rows = os.get_terminal_size(sys.stdout.fileno())
-            except OSError:
-                cols, term_rows = shutil.get_terminal_size((100, 40))
-        else:
-            cols, term_rows = (100, 40)
+        cols, term_rows = shutil.get_terminal_size((100, 40)) if self.tty else (100, 40)
 
         def cut(text):
             return text if len(text) < cols else text[:cols - 1]
@@ -696,101 +876,33 @@ class Runner:
         files_done = sum(self.done)
         fraction = have_total / grand if grand else 0.0
         per_conn = recent / live if live and recent is not None else None
-        title = "E11 piece B download  |  %s  |  elapsed %s  |  %d workers" % (
-            time.strftime("%H:%M:%S"), clock(elapsed), self.nthreads)
-        top = [("\033[1m" + cut(title) + "\033[0m") if self.tty else cut(title),
-               cut("TOTAL    %s %5.1f%%   %s / %s" % (bar(fraction, 30), fraction * 100, human(have_total), human(grand))),
-               cut("FILES    %d/%d complete   %d downloading   %d workers alive" % (files_done, self.n, len(cur), self.alive)),
-               cut("SPEED    now %s   average %s   ETA %s" % (rate_text(recent), rate_text(average), eta)),
-               cut("LINKS    %d connections open   %s each   %d stalled right now" % (live, rate_text(per_conn) if live else "-", stalled)),
-               cut("HEALTH   retries %d   errors %d%s" % (self.retries, self.errors,
-                                                          "   (+%d partial files waiting for a worker)" % waiting if waiting else ""))]
+        title = "%s %s  |  %s  |  elapsed %s  |  %d workers" % (
+            TITLE, self.setname, time.strftime("%H:%M:%S"), clock(elapsed), self.nthreads)
+        head = [("\033[1m" + cut(title) + "\033[0m") if self.tty else cut(title),
+                cut("TOTAL    %s %5.1f%%   %s / %s" % (bar(fraction, 30), fraction * 100, human(have_total), human(grand))),
+                cut("FILES    %d/%d complete   %d downloading   %d workers alive" % (files_done, self.n, len(cur), self.alive)),
+                cut("SPEED    now %s   average %s   ETA %s" % (rate_text(recent), rate_text(average), eta)),
+                cut("LINKS    %d connections open   %s each   %d stalled right now" % (live, rate_text(per_conn) if live else "-", stalled)),
+                cut("HEALTH   retries %d   errors %d%s" % (self.retries, self.errors,
+                                                           "   (+%d partial files waiting for a worker)" % waiting if waiting else ""))]
         if self.last_error:
-            top.append(cut("LASTERR  " + self.last_error))
-        bot = ["", cut("Ctrl-C stops cleanly; rerun resumes   |   log: %s" % os.path.join(self.outdir, RUNLOG))]
-
-        rec_stats = []
-        grp_map = {}
-        grp_order = []
-        present = {r[0] for r in self.rows}
-        ordered_recids = [r[0] for r in RECORDS if r[0] in present] + sorted(present - set(RECNAME))
-        for recid in ordered_recids:
+            head.append(cut("LASTERR  " + self.last_error))
+        head += ["", "RECORDS"]
+        for recid in sorted({r[0] for r in self.rows}):
             idx = [i for i, r in enumerate(self.rows) if r[0] == recid]
             total = sum(self.rows[i][2] for i in idx)
             have = sum(self.have[i] for i in idx)
-            done_c = sum(self.done[i] for i in idx)
-            name = RECNAME.get(recid, str(recid))
-            rec_stats.append((recid, name, done_c, len(idx), have, total))
-            gname = name.split("_", 1)[0]
-            if gname not in grp_map:
-                grp_map[gname] = [0, 0, 0, 0, 0]
-                grp_order.append(gname)
-            g = grp_map[gname]
-            g[0] += 1
-            g[1] += done_c
-            g[2] += len(idx)
-            g[3] += have
-            g[4] += total
-
+            frac = have / total if total else 0.0
+            head.append(cut("  %d %-11s %s %5.1f%%   %3d/%-3d files   %s / %s" % (
+                recid, RECNAME.get(recid, ""), bar(frac, rec_bar), frac * 100, sum(self.done[i] for i in idx), len(idx),
+                human(have), human(total))))
         shown_rows.sort(key=lambda t: (-t[0], t[1]))
-        want_files = len(shown_rows) if self.a.file_lines == "all" else int(self.a.file_lines)
-        max_total = max(6, term_rows - 1) if self.tty else 100000
-        min_tail = min(4 if shown_rows else 2, max(0, max_total - len(top) - len(bot)))
-        rec_budget = max(0, max_total - len(top) - len(bot) - min_tail) if self.tty else 100000
-
-        rec_lines = []
-        half = (len(rec_stats) + 1) // 2
-        if not self.tty or rec_budget >= 2 + len(rec_stats):
-            rec_lines = ["", cut("RECORDS")]
-            for recid, name, dc, tc, have, total in rec_stats:
-                frac = have / total if total else 0.0
-                rec_lines.append(cut("  %d %-11s %s %5.1f%%   %3d/%-3d files   %s / %s" % (
-                    recid, name, bar(frac, rec_bar), frac * 100, dc, tc, human(have), human(total))))
-        elif cols >= 108 and rec_budget >= 2 + half:
-            rec_lines = ["", cut("RECORDS (%d total)" % len(rec_stats))]
-            col_w = (cols - 3) // 2
-            left_cols = []
-            for recid, name, dc, tc, have, total in rec_stats:
-                frac = have / total if total else 0.0
-                gname = name.split("_", 1)[0]
-                cell = "  %d %-6s %s %5.1f%% %d/%d %s/%s" % (
-                    recid, gname[:6], bar(frac, 6), frac * 100, dc, tc, human(have), human(total))
-                left_cols.append(cell[:col_w].ljust(col_w))
-            for k in range(half):
-                if k + half < len(left_cols):
-                    rec_lines.append(cut(left_cols[k] + " | " + left_cols[k + half].lstrip()))
-                else:
-                    rec_lines.append(cut(left_cols[k].rstrip()))
-        elif len(grp_order) < len(rec_stats) and rec_budget >= 2 + len(grp_order):
-            rec_lines = ["", cut("RECORDS (by group; %d records total)" % len(rec_stats))]
-            for gname in grp_order:
-                nrec, dc, tc, have, total = grp_map[gname]
-                frac = have / total if total else 0.0
-                label = "%s (%d)" % (gname, nrec)
-                rec_lines.append(cut("  %-13s %s %5.1f%%   %3d/%-3d files   %s / %s" % (
-                    label, bar(frac, rec_bar), frac * 100, dc, tc, human(have), human(total))))
-        elif rec_budget >= 4:
-            rec_lines = ["", cut("RECORDS")]
-            items = [(gname, grp_map[gname][1], grp_map[gname][2], grp_map[gname][3], grp_map[gname][4]) for gname in grp_order] \
-                if len(grp_order) < len(rec_stats) else [(str(r[0]) + " " + r[1], r[2], r[3], r[4], r[5]) for r in rec_stats]
-            keep = max(1, rec_budget - 3)
-            for label, dc, tc, have, total in items[:keep]:
-                frac = have / total if total else 0.0
-                rec_lines.append(cut("  %-13s %s %5.1f%%   %3d/%-3d files   %s / %s" % (
-                    label[:13], bar(frac, rec_bar), frac * 100, dc, tc, human(have), human(total))))
-            if len(items) > keep:
-                rec_lines.append(cut("  … and %d more" % (len(items) - keep)))
-
-        rem_budget = max_total - len(top) - len(rec_lines) - len(bot)
+        want_lines = len(shown_rows) if self.a.file_lines == "all" else int(self.a.file_lines)
         if self.tty:
-            avail_files = max(0, rem_budget - 2)
-            if len(shown_rows) > min(want_files, avail_files) and avail_files > 0:
-                avail_files = max(0, avail_files - 1)
-            want_lines = min(want_files, avail_files)
-        else:
-            want_lines = max(1, want_files)
+            want_lines = min(want_lines, term_rows - len(head) - 6)
+        want_lines = max(1, want_lines)
         shown = shown_rows[:want_lines]
-        tail = ["", cut("DOWNLOADING NOW (showing %d of %d, nearest to done first)" % (len(shown), len(shown_rows)))]
+        tail = ["", "DOWNLOADING NOW (showing %d of %d, nearest to done first)" % (len(shown), len(shown_rows))]
         for frac, i, rate, c in shown:
             recid, key, size = self.rows[i][0], self.rows[i][1], c["size"]
             short = key if len(key) <= key_w else "…" + key[-(key_w - 1):]
@@ -805,16 +917,14 @@ class Runner:
             tail.append(cut("  %d %-*s %s %3.0f%%  %s / %s  %s" % (
                 recid, key_w, short, bar(frac, file_bar), frac * 100, human(c["got"]).rjust(0 if narrow else 9),
                 human(size).ljust(0 if narrow else 9), speed)))
-        if len(shown_rows) > len(shown) and (not self.tty or len(top) + len(rec_lines) + len(tail) + len(bot) < max_total):
-            tail.append(cut("  … and %d more" % (len(shown_rows) - len(shown))))
-        all_lines = top + rec_lines + tail + bot
-        if self.tty and len(all_lines) > max_total:
-            all_lines = all_lines[:max_total]
-        block = "\n".join(all_lines)
+        if len(shown_rows) > len(shown):
+            tail.append("  … and %d more" % (len(shown_rows) - len(shown)))
+        tail += ["", cut("Ctrl-C stops cleanly; rerun resumes   |   log: %s" % os.path.join(self.outdir, RUNLOG))]
+        block = "\n".join(head + tail)
         with self.outlock:
             if self.tty:
                 if self.prev_lines:
-                    sys.stdout.write("\033[%dA\r\033[J" % self.prev_lines)
+                    sys.stdout.write("\033[%dA\033[J" % self.prev_lines)
                 sys.stdout.write(block + "\n")
                 self.prev_lines = block.count("\n") + 1
             else:
@@ -834,7 +944,7 @@ class Runner:
                 self.have[i] = min(os.path.getsize(t), size)
                 self.done[i] = self.done_log.get((recid, key)) == (size, want) and os.path.getsize(t) == size
             else:
-                self.have[i] = min(psize(t + ".part"), size)
+                self.have[i] = partial_bytes(t, size)
         self.baseline = sum(self.have)
         self.emit("", "RUN START workers=%d dashboard=%s max_stalls=%d retry_wait=%s stall=%s B/s over %s s"
                   % (self.nthreads, a.dashboard, a.max_stalls, a.retry_wait, a.stall_limit, a.stall_seconds), show=False)
@@ -848,7 +958,7 @@ class Runner:
             self.say("TOTAL FILES: %d" % self.n)
             self.say("TOTAL BYTES: %d" % total_b)
             self.say("ON DISK AT START: %d files complete, %d bytes of %d" % (sum(self.done), self.baseline, total_b))
-            self.say("WORKERS: %d (set E11_PIECEB_WORKERS to change); refresh every %.0f s" % (self.nthreads, self.report))
+            self.say("WORKERS: %d (set %s to change); refresh every %.0f s" % (self.nthreads, WORKERS_SETTING, self.report))
         threads = []
         for w in range(self.nthreads):
             t = threading.Thread(target=self.worker, args=(w,), daemon=True)
@@ -922,9 +1032,9 @@ def dry_run(a, rows, fp):
         if os.path.exists(t) and done.get((recid, key)) == (size, want):
             n_done += 1
             on_disk += size
-        elif os.path.exists(t + ".part"):
+        elif os.path.exists(t + ".part") or seg_files(t):
             n_part += 1
-            on_disk += min(psize(t + ".part"), size)
+            on_disk += partial_bytes(t, size)
     for recid in sorted({r[0] for r in rows}):
         rr = [r for r in rows if r[0] == recid]
         print("record %d %s: %d files, %d bytes; first URL %s" % (recid, RECNAME.get(recid, ""), len(rr), sum(r[2] for r in rr), rr[0][4]))
@@ -942,6 +1052,9 @@ def dry_run(a, rows, fp):
 def cmd_fetch(a):
     global CTX, PROGRESS, READ_TIMEOUT
     sys.stdout.reconfigure(errors="replace")
+    if a.split < 1:
+        print("--split must be at least 1")
+        return 2
     PROGRESS = a.progress_seconds
     READ_TIMEOUT = a.read_timeout
     a.report = None if a.report_seconds == "auto" else float(a.report_seconds)
@@ -970,8 +1083,8 @@ def cmd_fetch(a):
     os.makedirs(a.outdir, exist_ok=True)
     others = other_fetchers(a.outdir)
     if others:
-        print("refused: another s3b_fetch_dst.py fetch (PID %s) is using this directory; stop it first (Ctrl-C in its "
-              "terminal), then run again" % ", ".join(map(str, others)))
+        print("refused: another %s fetch (PID %s) is using this directory; stop it first (Ctrl-C in its "
+              "terminal), then run again" % (os.path.basename(__file__), ", ".join(map(str, others))))
         return 3
     lock, owner = acquire_lock(a.outdir)
     if lock is None:
@@ -1011,9 +1124,9 @@ def cmd_status(list_path, outdir):
             k = "done" if done.get((recid, key)) == (size, want) else "present, not verified"
             s[k][0] += 1
             s[k][1] += size
-        elif os.path.exists(t + ".part"):
+        elif os.path.exists(t + ".part") or seg_files(t):
             s["partial"][0] += 1
-            s["partial"][1] += os.path.getsize(t + ".part")
+            s["partial"][1] += partial_bytes(t, size)
         else:
             s["missing"][0] += 1
             s["missing"][1] += size
@@ -1074,6 +1187,7 @@ def main(argv):
     f.add_argument("list")
     f.add_argument("outdir")
     f.add_argument("--workers", type=int, default=1, help="download threads (default 1)")
+    f.add_argument("--split", type=int, default=1, help="a file over 64 MiB is fetched in N equal byte ranges on N connections, then joined (default 1; needs a server that honours Range)")
     f.add_argument("--dashboard", action="store_true", help="progress dashboard on the terminal, detail in OUTDIR/download.log")
     f.add_argument("--report-seconds", default="auto", help="dashboard refresh: seconds, or auto (5 on a terminal, 30 piped)")
     f.add_argument("--file-lines", default="8", help="active files listed in the dashboard (a number, or all)")

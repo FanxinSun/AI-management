@@ -1,6 +1,18 @@
 # Chunked Download–Process–Delete Pipeline Guide (AI-Free Execution)
 
-Recorded on **2026-11-25** and updated on **2026-11-26** from the two production pipelines developed by **e6 Committee** (`~/e6-emu-below-z`, `claude:57721`) and **e7 Committee** (`~/e7-upsilon-omega`, `claude:90804`), reflecting **per-file manager acceptance before deletion** (E7 D21 / E6 D23).
+Recorded on **2026-11-25** and updated on **2026-11-26** from the two production pipelines developed by **e6 Committee** (`~/e6-emu-below-z`, `claude:57721`) and **e7 Committee** (`~/e7-upsilon-omega`, `claude:90804`), reflecting **per-file manager acceptance before deletion** (E7 D21 / E6 D23). Updated on **2026-11-27**: the templates now carry e7's screen exactly, and e6's screen is recorded in §3.
+
+> [!IMPORTANT]
+> **Templates (2026-11-27).** Build a pipeline from [`general/templates/chunked-pipeline/`](../../templates/chunked-pipeline/README.md)
+> (e7's split script: driver, wrapper, per-file downloader, job logger, independent verify) and
+> [`general/templates/download-ui/`](../../templates/download-ui/README.md) (e7's downloader). They are e7's files as e7
+> runs them (the versions pinned in e7's `tools/s6_all_in_one.pins`), with e7's project names turned into constants
+> and e7's physics jobs turned into tables.
+> - **What is e7's:** every screen line, bridge line, `report.md`, `status` table, gate, wait and exit code. This was
+>   checked on 2026-11-27 by running e7's own test modes on e7's driver and on the template with e7's names; the
+>   outputs were identical.
+> - **e6's form** (§3) has no template: its downloader reads branches in steps and draws its own dashboard. §3 records
+>   that screen line by line from e6's code.
 
 ---
 
@@ -39,7 +51,7 @@ download file ──► verify ──► process / skim ──► tool checks �
 | **Granularity of delete** | **Per file, after Committee acceptance (D23):** `deletion_pass` runs at start, pre-step, every 60 s, and at end for files in `CTL/accepted-files.tsv` | **Per file, after Manager acceptance (D21):** `deletion_pass` runs at start of each file, every 300 s wait poll, and at split end for `DONE` files in `accepted-files.tsv` |
 | **Kept footprint** | 1–2 files at a time until accepted (deleted 10–70 s after acceptance); skims/books on external disk | ~2 sources + v1 skims (2.7–4.2 GB + 0.48–0.68 GB each) until prompt acceptance; lean skim (6.8% of v1) on internal Mac disk |
 | **Entry point** | `tools/e6_download_kplus.sh` → `tools/e6_fetch_kplus.py` + `tools/e6_follow.py` | `tools/s6_all_in_one.sh <split>` → `tools/s6_pipe.py` + `tools/s6_download.sh` (`s2_fetch.py`) |
-| **Downloader base** | Adapted from `general/templates/download-ui/` (in-place dashboard, `<100`-col layout, `status`, Range resume, lock, `caffeinate`) | Calls `tools/s6_download.sh` (`s2_fetch.py`, copied from `general/templates/download-ui/`) per file |
+| **Downloader base** | Its own branch-read fetcher, built to the `general/templates/download-ui/` rules (in-place dashboard, `<100`-col layout, `status`, Range resume, lock, `caffeinate`), with its own dashboard (§3) | Calls `tools/s6_download.sh` (`tools/s2_fetch.py`) per file; since 2026-11-27 these are the templates `chunked-pipeline/download_one.sh` and `download-ui/fetch_dst.py` |
 | **Governance gates** | `CTL = runs/E6-6/read-control/` (`accepted-files.tsv`, `accepted-groups.tsv`, `HOLD`); `steps-plan.tsv` matches `runs/E6-6/e6-6-8-steps.tsv`; group gate (M3 milestone required before next group) | SHA-256 pins on 25 tools (`s6_all_in_one.pins`); `g1` pilot pause; `accepted-files.tsv`, `accepted.tsv`, `HOLD` (exit 4); next split refuses while an earlier split keeps files |
 | **Waking AI** | **Per-file + event bridge lines** (`[E6 READ file\|wait\|stop]`) to `"e6 Committee"` via installed bridge (failed send never stops run) | **Per-file + end-of-split bridge lines** (`[PIPELINE s6 <split> file]` to `"e7 Committee"`, end nudge to `"e7 executor,e7 Committee"`) via `~/.claude/agy-bridge/send_to_tty.sh` (`timeout=180`, caught) |
 
@@ -73,6 +85,45 @@ download file ──► verify ──► process / skim ──► tool checks �
 3. **Resilience & library traps:**
    * **Hidden library network calls:** `uproot`'s `HTTPSource.num_bytes` sends an HTTP `HEAD` outside the caller's retrying wrapper; E6 moves the size request inside `Ctx.open()` so TLS/network retry logic covers it too.
    * **Retries & hard stops:** transient network/HTTP errors (15 s wait) and TLS cert hostname mismatches (refused, logged to `cert-events.tsv`, 600 s wait, cert verification **never** disabled) retry without limit. Only HTTP `403`/`429`, failed checks, `HOLD` (`4`), 24 h wait limit (`5`), and `Ctrl-C` (`130`) stop the run.
+4. **Screen** (recorded 2026-11-27 from `tools/e6_fetch_kplus.py`, its `render()` and its report lines; e6's own layout, not the template's):
+   * **The frame** is redrawn in place (`\033[<n>A\033[J`), every 5 s on a terminal and every 30 s when piped. Before a line is printed, the frame is erased, and it is drawn again below the line. Lines in `[...]` appear only in that state:
+     ```text
+     E6 K+ read in steps  |  HH:MM:SS  |  elapsed HH:MM:SS  |  <N> workers  |  time-out <S> s
+     STEP     <n> of <N>  group <G>  |  downloading <a>, processing <b>, finished <c> of <d> files
+     [WAITING  <what>  since HH:MM:SS  next check in <s> s]
+     [PHASE    follow-up (<phase>) running HH:MM:SS]
+     THIS STEP <20-character bar> <p>%  moved <X> of ~<Y>
+     TO DOWNLOAD (estimate)  <X> in all   moved <Y>
+     TOTAL    <30-character bar> <p>%   ETA HH:MM:SS
+     SPEED    last 60 s <rate>   since start <rate>
+     KEPT     <X> kept so far   <Y> held by this step (downloads not yet deleted)
+     HEALTH   failed attempts <a>   stalls dropped <b>   certificate events <c>[   LASTERR <text>][   NETWORK DOWN? waiting, retrying]
+
+     GROUPS (moved / estimate)
+       <G>    <bar> <p>%  <d>/<n>   files  <moved> / <estimate>
+
+     IN PROGRESS (showing <a> of <b>)
+       <G>    <name> <bar> step <i>/<n>  <bytes>[  retrying|  waiting (certificate)]
+
+     Ctrl-C stops cleanly; rerun resumes   |   log: <folder>/download.log
+     ```
+   * **Widths:** a file being processed shows `processing` in place of `step <i>/<n>`. Below 100 columns the group bars are 10 characters, the file bars 6 and the names 14 (else 20, 16 and 20), and every line is cut at the width minus one.
+   * **The frame never gets taller than the window.** e6 draws the first of these that fits:
+     1. the full frame;
+     2. the frame with 2 file lines;
+     3. compact groups (`GROUPS: G 12%  H 40%  …`, wrapped) with 2 file lines;
+     4. compact groups with 1 file line and no foot line;
+     5. compact groups only;
+     6. the top lines only;
+     7. three lines: the title, `TO DOWNLOAD (estimate) <X>, moved <Y>  <12-character bar> <p>%` and
+        `STEP <n> of <N>  <done>/<all> files  |  <rate>  ETA <eta>`;
+     8. one line rewritten in place: `E6 K+ step <n>/<N>  <p>%  moved <X> of ~<Y>  <rate>  ETA <eta>`.
+   * **Screen lines around the frame:** `[<utc>] WAITING <what>: <why>`, and at the end `[<utc>] SUMMARY: steps finished in this run <a> of <b>, files processed <c>, failed <d>, moved <X>, kept <Y>, <h> h; …`. Then `DOWNLOAD COMPLETE`, or `NOT COMPLETE (<reason>); rerun the wrapper to continue. Details: <folder>/download.log`.
+   * **Bridge lines to `e6 Committee`:**
+     * after each file: `[E6 READ file] <file> step <n> group <G> PROCESSED: entries <e>, skim <s>; step <n>: <a> of <b> files processed; kept until accepted: <k> files; failed: <files or none>; Committee: check per runs/E6-6/handover-file.md`
+     * a failed file: `… FAILED: <message>; its download stays; …`
+     * a wait: `[E6 READ wait] <what>: <why>; polling every <s> s, up to <span>`
+     * at the end: `[E6 READ stop] <reason>; kept until accepted: <k> files`
 
 ---
 
@@ -81,7 +132,7 @@ download file ──► verify ──► process / skim ──► tool checks �
 1. **Splitting (`tools/s6_splits.py`) & Wrapper (`tools/s6_all_in_one.sh`):**
    * Cuts remaining files in byte order into 8 week-sized splits (`g1..g4`, `h1..h4`) in `runs/S6/splits/`.
    * `tools/s6_all_in_one.sh <split>` runs `exec caffeinate -i /usr/bin/python3 -I tools/s6_pipe.py <split>` (stdlib only); `status [split]` shows `DONE kept` / progress with no network and creates nothing.
-   * Every subprocess runs through `tools/run_logged.py` (`runs/log.jsonl`), enforcing the per-split compute cap (`840 min`).
+   * Every job after the download (verify to eval, the analysis, the facts) runs through `tools/run_logged.py` (`runs/log.jsonl`), enforcing the per-split compute cap (`840 min`). The download itself runs as `tools/s6_download.sh`, outside the logger.
 2. **Per-file lifecycle & manager acceptance (`s6_pipe.py`, D21):**
    * Space check → download into `downloads/s6-<split>/<id>/` → verify (size, adler32, SHA-256) → probe → full v1 skim (`data/s6/v1tmp`) → 8 v1 checks → manager independent `recheck1` → trigger-menu check → lean v2 skim (`data/s6/lean`, 6.8% of v1) → lean checks (K1–K7 + bit-for-bit `mgrlean`) → `eval` (E1–E9) → **record lean manifest + `DONE` while keeping source and v1 skim on disk**.
    * **Per-file report:** sends one bridge line to `e7 Committee` (`E7_PIPE_FILE_NUDGE`, logged in `runs/S6/<split>/nudges.tsv`) using `~/.claude/agy-bridge/send_to_tty.sh` with `timeout=180` inside `try/except (OSError, subprocess.TimeoutExpired)`:
@@ -96,6 +147,29 @@ download file ──► verify ──► process / skim ──► tool checks �
    * **Gates (exit `4`):** `runs/S6/HOLD` stops immediately (`STOPPED (HOLD)`) with nothing more deleted; next split refuses if any prior split still keeps files or lacks `runs/S6/accepted.tsv`; `g1` pauses after its first finished file for `g1-pilot` acceptance.
    * **End nudge & standing orders:** runs `m1`, `m6`, `m6fit`, `m1cum`, `s6_facts.py`, writes `report.md` (with `source` column `kept|deleted|-`) and `status.tsv`, and sends `[PIPELINE s6 <split>] ... now carry out runs/S6/handover-split.md`. Neither `handover-file.md` nor `handover-split.md` starts/resumes splits or deletes files manually.
    * **Atomic driver swap under pins:** edit a copy (`tools/s6_pipe_next.py`), test in offline sandbox, manager verifies diff/outputs, replace via `mv`, stage pins as `.partial` → `mv` → `shasum -a 256 -c`, then user presses `Ctrl-C` and re-runs the same command to resume mid-download `.part` files cleanly.
+4. **Screen** (recorded 2026-11-27 from `tools/s6_pipe.py` and `tools/s2_fetch.py`; the templates print the same lines with the project's names):
+   * **One file:**
+     ```text
+     file <id> (<i> of <n>)
+     download <id> (<bytes> bytes) into downloads/s6-<split>/<id>
+     list <list>, folder <folder>, 1 file(s) at once, 8 range(s) per file
+     DOWNLOAD START UTC: …   DOWNLOAD ROOT: …   DOWNLOAD LOG: …   TOTAL FILES: …   TOTAL BYTES: …   ON DISK AT START: …   WORKERS: … (one line each)
+     E7 download <list name>  |  HH:MM:SS  |  elapsed HH:MM:SS  |  <N> workers      (the download-ui dashboard, redrawn in place)
+     SHA256SUMS written for record <recid>: …   DOWNLOAD END UTC: …   done <n> of <N> files, …; exit reason: …   DOWNLOAD COMPLETE (one line each)
+     S2 <split>-<id>-verify start (limit 600 s) | compute <x> of 840 min
+     S2 <split>-<id>-verify exit 0 <t> s | compute <x> of 840 min
+     …  (S3 probe and skim1, S4 check1, S5 recheck1, S7 menus, S6 lean, leancheck, mgrlean and eval, the same two lines each)
+     file report DONE: <the send result, cut at 60 characters: delivered to 'e7 Committee': sent+enter to /dev/ttysNNN>
+     deleted <path> (<bytes> bytes)                                          (in a deletion pass, one line per path)
+     ```
+   * **On a terminal** a running job's line `S<k> <job id> running <s> s | compute …` is rewritten every 5 s and cleared
+     with spaces when the job ends, so a copied `exit` line ends in spaces.
+   * **A failed file:** `file <id> FAILED at <step>: its source and version-1 skim stay`, then `file report FAILED: …`.
+   * **The end:** `nudge: delivered to '<target>': …`, `status: <status>` and `report: runs/S6/<split>/report[-<n>].md`.
+     After Ctrl-C: `interrupted: the job's group was ended; a rerun resumes`.
+   * **`status`:** one line per split, `<split>  status: <status> files DONE <a> of <b>, kept <k>, failed <f>; compute
+     <x> of 840 min`, then `accepted by the manager: …`, `hold: …`, `pins: …` and `free space: …`. `status <split>`
+     prints one line per file under the header `id  state  last job`.
 
 ---
 
@@ -103,7 +177,7 @@ download file ──► verify ──► process / skim ──► tool checks �
 
 When designing a new chunked all-in-one pipeline in any project:
 
-1. **Downloader UI compliance:** follow [`general/templates/download-ui/README.md`](../../templates/download-ui/README.md) (`fetch_dst.py` + `download_wrapper.sh`: in-place `\033[<n>A\033[J` dashboard, `<100`-col layout, `status` creates nothing, automatic default folder, `caffeinate -i`, single-instance lock, HTTP Range resume, size/checksum verification).
+1. **Downloader UI compliance:** follow [`general/templates/download-ui/README.md`](../../templates/download-ui/README.md) (`fetch_dst.py` + `download_wrapper.sh`: in-place `\033[<n>A\033[J` dashboard, `<100`-col layout, `status` creates nothing, automatic default folder, `caffeinate -i`, single-instance lock, HTTP Range resume, size/checksum verification). **Build the driver from [`general/templates/chunked-pipeline/`](../../templates/chunked-pipeline/README.md)** (e7's split script): it already has e7's screen, bridge lines, report, status, waits, gates and exit codes, and invariants 2 to 6 below.
 2. **Accept-then-delete + audit log:**
    * Never delete raw downloads until automated checks pass **and** the Manager/Committee's independent check records that file in `accepted-files.tsv` (and verify manifest SHA-256 matches before `os.remove`).
    * Never delete when a `HOLD` file exists; stop cleanly (`exit 4`) with nothing more deleted.

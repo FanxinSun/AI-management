@@ -63,7 +63,9 @@ The repository is organized cleanly at the top level into 5 folders — **target
 
 ### Templates (`general/templates/`)
 * **[Download UI Template](general/templates/download-ui/README.md)**  
-  Mandatory parallel threaded download interface: [`fetch_dst.py`](general/templates/download-ui/fetch_dst.py) and [`download_wrapper.sh`](general/templates/download-ui/download_wrapper.sh) with in-place dashboard redraw, `<100`-col narrow layout, `status` mode, HTTP Range resume, verification, `caffeinate`-safe single-instance guard, and exit codes `0`/`1`/`2`/`3`.
+  Mandatory parallel threaded download interface: [`fetch_dst.py`](general/templates/download-ui/fetch_dst.py) and [`download_wrapper.sh`](general/templates/download-ui/download_wrapper.sh) with in-place dashboard redraw, `<100`-col narrow layout, `status` mode, HTTP Range resume (and byte ranges on parallel connections), verification, `caffeinate`-safe single-instance guard, and exit codes `0`/`1`/`2`/`3`. Since 2026-11-27 it is e7's downloader, with only the project's names changed.
+* **[Chunked Pipeline Template](general/templates/chunked-pipeline/README.md)**  
+  The AI-free all-in-one split script in e7's form (2026-11-27): [`all_in_one.sh`](general/templates/chunked-pipeline/all_in_one.sh), [`pipe.py`](general/templates/chunked-pipeline/pipe.py), [`download_one.sh`](general/templates/chunked-pipeline/download_one.sh), [`run_logged.py`](general/templates/chunked-pipeline/run_logged.py) and [`verify_download.py`](general/templates/chunked-pipeline/verify_download.py). File by file it runs the download, the logged jobs, the keep until the manager accepts the file, and the logged deletion, with one bridge line per file; at the end of a split come the report and the nudge. Its screen, bridge lines, report, status, gates and exit codes are e7's, checked against e7's own driver.
 
 ### Tools (`general/tools/`)
 * **[Agent Bridge (`send_to_tty.sh`)](general/tools/agent-bridge/send_to_tty.sh)**  
@@ -190,6 +192,7 @@ If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also availa
 │   │   ├── project-planning/          # The_Project_Planning_Rule.md
 │   │   └── regular-remote-push/       # The_Regular_Remote_Push_Rule.md
 │   ├── templates/
+│   │   ├── chunked-pipeline/          # README.md, all_in_one.sh, pipe.py, download_one.sh, run_logged.py, verify_download.py
 │   │   └── download-ui/               # README.md, fetch_dst.py, download_wrapper.sh
 │   ├── tools/
 │   │   ├── agent-bridge/              # send_to_tty.sh, conin_inject.ps1, install-agent-bridge-tool.sh

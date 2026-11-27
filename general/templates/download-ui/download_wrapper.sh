@@ -1,84 +1,100 @@
 #!/bin/bash
-# Piece B download: the DELPHI short DSTs of the off-peak years, from CERN's EOS storage.
+# PROJECT download: the files of one set, from their URLs, resumable, with the template's in-place dashboard.
 #
-# What it downloads: 472 files, 43.0 GB in all, from CERN Open Data records 81013 (short91_f1), 81166 (short93_d2)
-# and 81502 (short95_d2). The list is runs/S3/pieceB-files.tsv. Many files are fetched at once (worker threads, one
-# connection each; a slow link gives a slow connection, and connections add up). Every file is checked by size and
-# adler32 before it counts as done; a file that fails is renamed *.bad, never deleted. When a record is complete a
-# SHA256SUMS file is written in its folder.
+# Template (general/templates/download-ui/): e7's tools/s2_download.sh of the user's project e7-upsilon-omega, with only the project's names
+# changed (they are marked PROJECT below; e7's values are in the comments). Copy it with fetch_dst.py into <project>/tools/ and change:
+# the sets, the list folder, the default folder, the settings' prefix PROJECT_DL_ (e7: E7_S2_) and the Python. Keep everything else.
 #
-# The terminal shows a dashboard redrawn in place every 5 s (every 30 s when the output is piped): overall progress
-# and ETA, speeds, one bar per record, and the files being fetched. All detail goes to <folder>/download.log.
+# What it downloads: the files of one set, listed in runs/download/files-<SET>.tsv (a tab-separated list with the header
+# recid key size adler32 url). Every file is checked by size and adler32 before it counts as done; a file that fails is renamed *.bad,
+# never deleted. When a record is complete a SHA256SUMS file is written in its folder. A file over 64 MiB is fetched in PROJECT_DL_SPLIT
+# byte ranges on as many connections (the server must honour Range), then joined and verified.
 #
-# Running it again resumes: finished files are skipped and a half-finished file continues from where it stopped (HTTP
-# Range). Ctrl-C is safe at any moment; the partial files (*.part) are kept. Do not run two copies on one folder (the
-# script refuses). A connection that stalls is dropped and resumed; a file is given up on only after several attempts
-# in a row that added no bytes, and a run whose every connection fails stops at once ("the network seems down").
-# On macOS the download runs under `caffeinate -i`, so the Mac does not idle-sleep while it runs (closing the lid still
-# sleeps it).
+# Running it again resumes: finished files are skipped and a half-finished file continues where it stopped (HTTP Range).
+# Ctrl-C is safe at any moment; the partial files (*.part) are kept. Do not run two copies on one folder (the script
+# refuses). A stalled connection is dropped and resumed; a file is given up on only after several attempts in a row that
+# added no bytes. On macOS the download runs under `caffeinate -i` (closing the lid still sleeps the Mac). The terminal
+# shows a dashboard; the detail is in <DEST>/download.log.
 #
-# Usage:   tools/pieceB_download.sh                 download (or resume) into the default folder
-#          tools/pieceB_download.sh status          what is done, partial, bad or missing there (no network)
-#          tools/pieceB_download.sh DEST [status]   the same with the folder DEST (a relative DEST is taken from the
-#                                                   folder you run this in)
-# Default folder: ~/Downloads/e11-delphi-sidereal-lineshape/2026-11-18-pieceB, or E11_PIECEB_DOWNLOAD_ROOT if set.
-# The project keeps bulk data outside the repository (on an external drive when one is attached:
-# /Volumes/<drive>/e11-delphi-sidereal-lineshape/<one folder per download>; MIGRATION-M1-MACBOOK.md, section 3).
-#
+# Usage:   tools/download_wrapper.sh [SET] [DEST] [status]
+#            SET   set1 (default) or set2: picks runs/download/files-<SET>.tsv
+#            DEST  the folder; default: downloads/download-<SET> in this repository (git-ignored); a relative DEST is
+#                  taken from the folder you run this in. Another disk: /Volumes/<drive>/<project>/<folder>
+#            status  what is done, partial, bad or missing in DEST, and the free space (no network)
+#          Examples:  tools/download_wrapper.sh                        (set1, into downloads/download-set1)
+#                     tools/download_wrapper.sh set2
+#                     tools/download_wrapper.sh set2 /Volumes/MyDisk/project/download-set2
+#                     tools/download_wrapper.sh set1 status
 # Settings, as environment variables (all optional):
-#   E11_PIECEB_DOWNLOAD_ROOT the folder, when no DEST argument is given
-#   E11_PIECEB_WORKERS       parallel connections, default 32 (raise only while the overall rate keeps growing)
-#   E11_PIECEB_MAX_ATTEMPTS  consecutive attempts without progress before a file is given up, default 10
-#   E11_PIECEB_REPORT_SECS   dashboard refresh in seconds, default auto (5 on a terminal, 30 when piped)
-#   E11_PIECEB_FILE_LINES    active files listed in the dashboard, default 8 ("all" lists every one)
-#   E11_PIECEB_DRY_RUN=1     check the list, the CA file and the disk; fetch nothing, create nothing
-#   E11_PIECEB_CAFFEINATE=0  do not run under caffeinate
-#   E11_PIECEB_PYTHON        the Python to use, default /usr/bin/python3
+#   PROJECT_DL_WORKERS      files fetched at once, default 1
+#   PROJECT_DL_SPLIT        a file over 64 MiB is fetched in this many byte ranges on this many connections, default 8.
+#                           Do not change it while a set has partial files: the range files (*.part0, *.part1, ...) do not
+#                           record the split, so after an increase the old ones are resumed at the wrong offsets; the
+#                           checksum then fails and that file is downloaded again. PROJECT_DL_WORKERS can be changed at any time.
+#   PROJECT_DL_MAX_ATTEMPTS consecutive attempts without progress before a file is given up, default 10
+#   PROJECT_DL_REPORT_SECS  dashboard refresh in seconds, default auto (5 on a terminal, 30 when piped)
+#   PROJECT_DL_FILE_LINES   active files listed in the dashboard, default 8 ("all" lists every one)
+#   PROJECT_DL_DRY_RUN=1    check the list and the disk; fetch nothing, create nothing
+#   PROJECT_DL_CAFFEINATE=0 do not run under caffeinate
+#   PROJECT_DL_PYTHON       the Python to use, default /usr/bin/python3 (fetch_dst.py needs only the standard library)
 #
 # Exit status (passed through from the Python script):
-#   0    all files done, or a stop that was asked for (nothing went wrong)
-#   1    stopped: a 4xx answer from the server, the network seems down, or some files were given up (rerun resumes)
-#   2    wrong usage or settings, or the folder holds something that is not this download's own files
-#   3    not enough free disk space for the next file (its size plus 2 GiB), or another download is using the folder
-#   130  interrupted with Ctrl-C (rerun resumes)
+#   0 all files done (or a stop that was asked for); 1 stopped: a 4xx answer from the server, the network seems down,
+#   or some files were given up (rerun resumes); 2 wrong usage or settings, or DEST holds something that is not this
+#   download's own files; 3 not enough free disk space for the next file (its size plus 2 GiB), or another download
+#   is using the folder; 130 interrupted with Ctrl-C (rerun resumes).
 set -euo pipefail
 
-CA_FP='18:7F:4F:7B:13:15:EB:D2:B7:25:47:C1:AC:CF:2E:C4:07:7D:51:C1:4A:0C:E5:74:90:4A:9F:DA:EA:8A:32:0C'
-default_root=$HOME/Downloads/e11-delphi-sidereal-lineshape/2026-11-18-pieceB
-workers=${E11_PIECEB_WORKERS:-32}
-max_attempts=${E11_PIECEB_MAX_ATTEMPTS:-10}
-report_secs=${E11_PIECEB_REPORT_SECS:-auto}
-file_lines=${E11_PIECEB_FILE_LINES:-8}
-dry_run=${E11_PIECEB_DRY_RUN:-0}
-caffeinate_on=${E11_PIECEB_CAFFEINATE:-1}
-py=${E11_PIECEB_PYTHON:-/usr/bin/python3}
+workers=${PROJECT_DL_WORKERS:-1}
+split=${PROJECT_DL_SPLIT:-8}
+max_attempts=${PROJECT_DL_MAX_ATTEMPTS:-10}
+report_secs=${PROJECT_DL_REPORT_SECS:-auto}
+file_lines=${PROJECT_DL_FILE_LINES:-8}
+dry_run=${PROJECT_DL_DRY_RUN:-0}
+caffeinate_on=${PROJECT_DL_CAFFEINATE:-1}
+py=${PROJECT_DL_PYTHON:-/usr/bin/python3}                 # PROJECT (e7: $HOME/system-env/e7/bin/python)
 
 die() { echo "ERROR: $*" >&2; exit 2; }
-usage() { echo "usage: $0 [DEST] [status]   (default folder: \${E11_PIECEB_DOWNLOAD_ROOT:-$default_root})" >&2; exit 2; }
+usage() { echo "usage: $0 [set1|set2] [DEST] [status]   (default: set1 into <repository>/downloads/download-set1)" >&2; exit 2; }
 
-mode=fetch
+set_name=set1                                             # PROJECT: the default set (e7: step2)
 dest=
-case $# in
+mode=fetch
+args=("$@")
+if [ ${#args[@]} -gt 0 ] && [ "${args[${#args[@]}-1]}" = status ]; then
+    mode=status
+    unset 'args[${#args[@]}-1]'
+fi
+if [ ${#args[@]} -gt 0 ]; then
+    case "${args[0]}" in
+        set1|set2) set_name=${args[0]}; args=("${args[@]:1}") ;;   # PROJECT: the sets (e7: step2|step3|step4a|step4b)
+    esac
+fi
+case ${#args[@]} in
     0) ;;
-    1) if [ "$1" = status ]; then mode=status; else dest=$1; fi ;;
-    2) [ "$2" = status ] || usage; dest=$1; mode=status ;;
+    1) dest=${args[0]} ;;
     *) usage ;;
 esac
-dest=${dest:-${E11_PIECEB_DOWNLOAD_ROOT:-$default_root}}
-case "$dest" in /*) ;; *) dest="$PWD/$dest" ;; esac       # relative to where the user is, not to the repository
 
-case "$workers" in ''|*[!0-9]*|0) die "E11_PIECEB_WORKERS must be a positive integer" ;; esac
-case "$max_attempts" in ''|*[!0-9]*|0) die "E11_PIECEB_MAX_ATTEMPTS must be a positive integer" ;; esac
-case "$file_lines" in all) ;; ''|*[!0-9]*|0) die "E11_PIECEB_FILE_LINES must be a positive integer or all" ;; esac
-case "$report_secs" in auto) ;; ''|*[!0-9.]*|.|*.*.*) die "E11_PIECEB_REPORT_SECS must be auto or a number of seconds" ;; esac
+case "$workers" in ''|*[!0-9]*|0) die "PROJECT_DL_WORKERS must be a positive integer" ;; esac
+case "$split" in ''|*[!0-9]*|0) die "PROJECT_DL_SPLIT must be a positive integer" ;; esac
+case "$max_attempts" in ''|*[!0-9]*|0) die "PROJECT_DL_MAX_ATTEMPTS must be a positive integer" ;; esac
+case "$file_lines" in all) ;; ''|*[!0-9]*|0) die "PROJECT_DL_FILE_LINES must be a positive integer or all" ;; esac
+case "$report_secs" in auto) ;; ''|*[!0-9.]*|.|*.*.*) die "PROJECT_DL_REPORT_SECS must be auto or a number of seconds" ;; esac
 [ -x "$py" ] || die "Python not found or not executable: $py"
 
 repo=$(cd "$(dirname "$0")/.." && pwd)                    # the repository, from this script's own path
+case "$dest" in
+    '') dest=$repo/downloads/download-$set_name ;;        # PROJECT: the default folder (e7: downloads/s2-miniaod-<SET>)
+    /*) ;;
+    *) dest="$PWD/$dest" ;;                              # relative to where the user is, not to the repository
+esac
 cd "$repo"
-[ -s runs/S3/pieceB-files.tsv ] || die "file list missing: $repo/runs/S3/pieceB-files.tsv"
+list=runs/download/files-$set_name.tsv                    # PROJECT: the list of a set (e7: runs/S2/files-<SET>.tsv)
+[ -s "$list" ] || die "file list missing: $repo/$list"
 
 if [ "$mode" = status ]; then
-    exec "$py" -I tools/s3b_fetch_dst.py status runs/S3/pieceB-files.tsv "$dest"
+    exec "$py" -I tools/fetch_dst.py status "$list" "$dest"
 fi
 case "$dest/" in
     "$repo"/downloads/*|"$repo"/data/*) ;;
@@ -91,7 +107,7 @@ if [ "$dry_run" = 1 ]; then
 elif [ "$caffeinate_on" != 0 ] && command -v caffeinate >/dev/null 2>&1; then
     wrap=(caffeinate -i)                                  # no idle sleep while it runs; exit status passes through
 fi
-exec ${wrap[@]+"${wrap[@]}"} "$py" -I tools/s3b_fetch_dst.py fetch runs/S3/pieceB-files.tsv "$dest" \
-    --eos --cafile tools/certs/cern-root-ca-2.pem --cafile-sha256 "$CA_FP" \
-    --workers "$workers" --dashboard --report-seconds "$report_secs" --file-lines "$file_lines" \
+echo "set $set_name: list $list, folder $dest, $workers file(s) at once, $split range(s) per file"
+exec ${wrap[@]+"${wrap[@]}"} "$py" -I tools/fetch_dst.py fetch "$list" "$dest" \
+    --workers "$workers" --split "$split" --dashboard --report-seconds "$report_secs" --file-lines "$file_lines" \
     --max-stalls "$max_attempts" ${extra[@]+"${extra[@]}"}
