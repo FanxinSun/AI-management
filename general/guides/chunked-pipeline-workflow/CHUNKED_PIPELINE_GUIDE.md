@@ -1,18 +1,17 @@
 # Chunked Download–Process–Delete Pipeline Guide (AI-Free Execution)
 
-Recorded on **2026-11-25** and updated on **2026-11-26** from the two production pipelines developed by **e6 Committee** (`~/e6-emu-below-z`, `claude:57721`) and **e7 Committee** (`~/e7-upsilon-omega`, `claude:90804`), reflecting **per-file manager acceptance before deletion** (E7 D21 / E6 D23). Updated on **2026-11-27**: the templates now carry e7's screen exactly, and e6's screen is recorded in §3.
+Recorded on **2026-11-25** and updated on **2026-11-26** from the two production pipelines developed by **e6 Committee** (`~/e6-emu-below-z`, `claude:57721`) and **e7 Committee** (`~/e7-upsilon-omega`, `claude:90804`), reflecting **per-file manager acceptance before deletion** (E7 D21 / E6 D23). Updated on **2026-11-27**: e6's and e7's screens are recorded from their code (§3, §4), and the templates carry the merged format that the user chose from the two (§7).
 
 > [!IMPORTANT]
 > **Templates (2026-11-27).** Build a pipeline from [`general/templates/chunked-pipeline/`](../../templates/chunked-pipeline/README.md)
 > (e7's split script: driver, wrapper, per-file downloader, job logger, independent verify) and
-> [`general/templates/download-ui/`](../../templates/download-ui/README.md) (e7's downloader). They are e7's files as e7
-> runs them (the versions pinned in e7's `tools/s6_all_in_one.pins`), with e7's project names turned into constants
-> and e7's physics jobs turned into tables.
-> - **What is e7's:** every screen line, bridge line, `report.md`, `status` table, gate, wait and exit code. This was
->   checked on 2026-11-27 by running e7's own test modes on e7's driver and on the template with e7's names; the
->   outputs were identical.
-> - **e6's form** (§3) has no template: its downloader reads branches in steps and draws its own dashboard. §3 records
->   that screen line by line from e6's code.
+> [`general/templates/download-ui/`](../../templates/download-ui/README.md) (the downloader). They are built from e7's
+> files as e7 runs them (the versions pinned in e7's `tools/s6_all_in_one.pins`), with e7's project names turned into
+> constants and e7's physics jobs turned into tables.
+> - **Before the merge** the templates matched e7 exactly. This was checked on 2026-11-27 by running e7's own test
+>   modes on e7's driver and on the template with e7's names: the outputs were identical.
+> - **The merge:** the user then chose, row by row, one format from e6's and e7's. The templates carry that merged
+>   format (§7). e6 and e7 themselves were not changed.
 
 ---
 
@@ -147,7 +146,7 @@ download file ──► verify ──► process / skim ──► tool checks �
    * **Gates (exit `4`):** `runs/S6/HOLD` stops immediately (`STOPPED (HOLD)`) with nothing more deleted; next split refuses if any prior split still keeps files or lacks `runs/S6/accepted.tsv`; `g1` pauses after its first finished file for `g1-pilot` acceptance.
    * **End nudge & standing orders:** runs `m1`, `m6`, `m6fit`, `m1cum`, `s6_facts.py`, writes `report.md` (with `source` column `kept|deleted|-`) and `status.tsv`, and sends `[PIPELINE s6 <split>] ... now carry out runs/S6/handover-split.md`. Neither `handover-file.md` nor `handover-split.md` starts/resumes splits or deletes files manually.
    * **Atomic driver swap under pins:** edit a copy (`tools/s6_pipe_next.py`), test in offline sandbox, manager verifies diff/outputs, replace via `mv`, stage pins as `.partial` → `mv` → `shasum -a 256 -c`, then user presses `Ctrl-C` and re-runs the same command to resume mid-download `.part` files cleanly.
-4. **Screen** (recorded 2026-11-27 from `tools/s6_pipe.py` and `tools/s2_fetch.py`; the templates print the same lines with the project's names):
+4. **Screen** (recorded 2026-11-27 from `tools/s6_pipe.py` and `tools/s2_fetch.py`; the templates' lines differ where §7 chose e6's form or a merge):
    * **One file:**
      ```text
      file <id> (<i> of <n>)
@@ -177,7 +176,7 @@ download file ──► verify ──► process / skim ──► tool checks �
 
 When designing a new chunked all-in-one pipeline in any project:
 
-1. **Downloader UI compliance:** follow [`general/templates/download-ui/README.md`](../../templates/download-ui/README.md) (`fetch_dst.py` + `download_wrapper.sh`: in-place `\033[<n>A\033[J` dashboard, `<100`-col layout, `status` creates nothing, automatic default folder, `caffeinate -i`, single-instance lock, HTTP Range resume, size/checksum verification). **Build the driver from [`general/templates/chunked-pipeline/`](../../templates/chunked-pipeline/README.md)** (e7's split script): it already has e7's screen, bridge lines, report, status, waits, gates and exit codes, and invariants 2 to 6 below.
+1. **Downloader UI compliance:** follow [`general/templates/download-ui/README.md`](../../templates/download-ui/README.md) (`fetch_dst.py` + `download_wrapper.sh`: in-place `\033[<n>A\033[J` dashboard, `<100`-col layout, `status` creates nothing, automatic default folder, `caffeinate -i`, single-instance lock, HTTP Range resume, size/checksum verification). **Build the driver from [`general/templates/chunked-pipeline/`](../../templates/chunked-pipeline/README.md)** (the split script): it already has the merged screen of §7, the bridge lines, report, status, waits, gates and exit codes, and invariants 2 to 6 below.
 2. **Accept-then-delete + audit log:**
    * Never delete raw downloads until automated checks pass **and** the Manager/Committee's independent check records that file in `accepted-files.tsv` (and verify manifest SHA-256 matches before `os.remove`).
    * Never delete when a `HOLD` file exists; stop cleanly (`exit 4`) with nothing more deleted.
@@ -210,3 +209,53 @@ When designing a new chunked all-in-one pipeline in any project:
 6. **Never make an untrusted downloads folder the interpreter's `cwd`:** always run from the repository root and pass target download paths as explicit CLI arguments.
 7. **Update live pinned splits atomically & isolate sandbox logs:** test changes offline in a copy, swap binary + `.partial` pins atomically, and let `Ctrl-C` + rerun resume in-flight `.part` files; ensure `--test` runs keep their `log.jsonl` records out of production `runs/`.
 8. **Avoid `git push` timeouts during heavy parallel downloads:** if concurrent multi-stream downloads cause `HTTP 408` / sideband disconnects on `git push`, `git -c http.postBuffer=52428800 push` resolves the push cleanly.
+
+---
+
+## 7. The merged format of the templates (the user's choices, 2026-11-27)
+
+The user compared e6's and e7's formats row by row and chose, for each row, the form the templates use. Neither e6 nor
+e7 was changed. Under "Choice", "trivial" and "same" mean that the templates keep what both already share.
+
+| # | Item | The templates use | Choice |
+|---|---|---|---|
+| 1 | Command | the templates' own: `download_wrapper.sh [SET] [DEST] [status]`, `all_in_one.sh <split> \| status [split]` | trivial |
+| 2 | Redraw | in place `\033[<n>A\033[J`; 5 s on a terminal, 30 s piped | same |
+| 3 | Title | e6's, with e7's run name: `<TITLE> <run>  \|  HH:MM:SS  \|  elapsed …  \|  N workers  \|  time-out S s` | e6 |
+| 4 | Label column | 9 characters | same |
+| 5 | Step rows | e6's `STEP` and `THIS STEP`; a wait is e6's `WAITING` row, drawn by the driver; no `PHASE` row (e7's job lines show the running job) | e6 |
+| 6 | Estimate row | e6's `TO DOWNLOAD (estimate)  X in all   moved Y` | e6 |
+| 7 | `TOTAL` | e7's: bar, %, got / size | e7 |
+| 8 | `FILES` | e7's | e7 |
+| 9 | `SPEED` | e7's: now, average, ETA | e7 |
+| 10 | `LINKS` | e7's | e7 |
+| 11 | `KEPT` | none | e7 |
+| 12 | `HEALTH` | e6's: failed attempts, stalls dropped, certificate events | e6 |
+| 13 | `LASTERR` | on the `HEALTH` line (60 characters), with `NETWORK DOWN? waiting, retrying` | e6 |
+| 14 | Group section | both: `GROUPS (moved / estimate)` (e6) and `RECORDS` (e7) | both |
+| 15 | Files section | e7's `DOWNLOADING NOW`, with e6's `retrying` / `waiting (certificate)` notes | merged |
+| 16 | Bottom line | `Ctrl-C stops cleanly; rerun resumes   \|   log: …` | same |
+| 17 | Narrow layout | below 100 columns: bars 10 / 6, names 14 | same |
+| 18 | Short window | e7's: only the file lines shrink | e7 |
+| 19 | Start lines | e7's | e7 |
+| 20 | Job lines | e7's | e7 |
+| 21 | Per-file lines | e7's (`file report`, `FAILED`, `deleted`), with e6's `[<utc>]` stamp | merged |
+| 22 | End lines | the downloader's (e7); at the split end e6's `[<utc>] SUMMARY: …`, then e7's `nudge:`, `status:`, `report:` | merged |
+| 23 | Bridge per file | e7's line with e6's `step <i> of <n> group <G>` and the kept count | merged |
+| 24 | Bridge wait / end | one line per wait (e6's), e7's end line with the kept count | merged |
+| 25 | Recipients | file and wait lines: the Committee; the end line: every target (executor and Committee) | merged |
+| 26 | `status` | e7's, with e6's bytes on disk per file | merged |
+| 27 | Deletion | after acceptance, logged first, never under `HOLD` | same |
+| 28 | Exit codes | e6's, with 5 for a wait that reached its limit | e6 |
+| 29 | Settings prefix | the project's | trivial |
+
+The user's answers on the open points (2026-11-27):
+- **Step and group:** in a split, a STEP is one file and the group is the file's dataset; the split's name is in the
+  title. For a plain download of one set, the step is 1 of 1 and the group is the set.
+- **`processing`** in the `STEP` row reads 0 in the download frame, because the jobs run after the download.
+- **Waits:** a wait is shown as e6's `WAITING` row, rewritten in place, and there is no `PHASE` row.
+- **`time-out`** is the downloader's read time-out (300 s).
+
+The templates' READMEs show the screen and list each line:
+[`chunked-pipeline/README.md`](../../templates/chunked-pipeline/README.md) and
+[`download-ui/README.md`](../../templates/download-ui/README.md).

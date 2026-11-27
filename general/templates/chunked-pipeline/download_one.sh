@@ -12,7 +12,9 @@
 # The driver tools/pipe.py calls it once per file, with a one-file list and a folder of its own for that file.
 # Settings, as environment variables (all optional): PROJECT_DL_WORKERS (default 1), PROJECT_DL_SPLIT (byte ranges per file, default 8; do not change it
 #   while a folder has partial files), PROJECT_DL_MAX_ATTEMPTS (10), PROJECT_DL_REPORT_SECS (auto), PROJECT_DL_FILE_LINES (8), PROJECT_DL_DRY_RUN=1 (check
-#   the list and the disk; fetch nothing, create nothing), PROJECT_DL_CAFFEINATE=0, PROJECT_DL_PYTHON (default /usr/bin/python3).
+#   the list and the disk; fetch nothing, create nothing), PROJECT_DL_CAFFEINATE=0, PROJECT_DL_PYTHON (default /usr/bin/python3), PROJECT_DL_CONTEXT (a
+#   JSON file with the run, written by tools/pipe.py for each file: the split, the file's step and group, the run's totals; the dashboard's STEP,
+#   TO DOWNLOAD and GROUPS rows read it; added with the merged e6/e7 screen of 2026-11-27).
 #
 # Usage:   tools/download_one.sh LIST DEST [status]
 #            LIST    a tab-separated list with the header recid key size adler32 url
@@ -27,6 +29,7 @@ report_secs=${PROJECT_DL_REPORT_SECS:-auto}
 file_lines=${PROJECT_DL_FILE_LINES:-8}
 dry_run=${PROJECT_DL_DRY_RUN:-0}
 caffeinate_on=${PROJECT_DL_CAFFEINATE:-1}
+context=${PROJECT_DL_CONTEXT:-}
 py=${PROJECT_DL_PYTHON:-/usr/bin/python3}                 # PROJECT (e7: $HOME/system-env/e7/bin/python)
 
 die() { echo "ERROR: $*" >&2; exit 2; }
@@ -64,6 +67,10 @@ case "$dest/" in
 esac
 extra=()
 wrap=()
+if [ -n "$context" ]; then
+    [ -s "$context" ] || die "PROJECT_DL_CONTEXT is not a file: $context"
+    extra+=(--context "$context")
+fi
 if [ "$dry_run" = 1 ]; then
     extra+=(--dry-run)
 elif [ "$caffeinate_on" != 0 ] && command -v caffeinate >/dev/null 2>&1; then

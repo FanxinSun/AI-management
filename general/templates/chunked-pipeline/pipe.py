@@ -5,9 +5,15 @@
 This is e7's step-6 driver, tools/s6_pipe.py of the user's project e7-upsilon-omega (sha256
 027c887a06a0a57d263b765ba438966189ef60674855909d3d69f2f802234449, pinned in e7's tools/s6_all_in_one.pins on 2026-11-27), with e7's own
 work taken out: e7's chain of jobs per file is the table JOBS below, its end-of-split analysis is END_JOBS and FACTS_JOB, its version-1
-skim is TEMP_OUTPUTS, its lean skim is KEPT_OUTPUTS, and its names are the constants below. What it prints, the bridge lines, report.md,
-status.tsv, files.tsv, nudges.tsv, deletions.tsv, the status command, the lock, the pins, the gates, the waits, the exit codes and the
-test modes are e7's: with e7's values (in the comments) the lines are e7's. README.md lists what differs from e7 and how to test a copy.
+skim is TEMP_OUTPUTS, its lean skim is KEPT_OUTPUTS, and its names are the constants below. Its lines are the merged e6/e7 format that the user chose
+row by row on 2026-11-27 (README.md):
+- e7's: the start, download and job lines, report.md, status.tsv, files.tsv, nudges.tsv, deletions.tsv, the lock, the pins, the
+  gates and the test modes;
+- e6's (tools/e6_fetch_kplus.py of e6-emu-below-z): the [<utc>] stamp on the per-file lines, the WAITING row and line, the SUMMARY
+  line, one bridge line per wait, and exit code 5 when a wait reaches its limit;
+- merged: the bridge lines (e7's, with e6's step and group), the end nudge to every target, and the status command.
+Each download gets the run (the split, the file's step and group, the run's totals) as --context for the dashboard's e6 rows.
+README.md lists what differs from e7 and how to test a copy.
 Standard library only; run as /usr/bin/python3 -I tools/pipe.py, normally through tools/all_in_one.sh.
 
 usage: pipe.py SPLIT          run, or resume, one split (SPLITS, in their order), file by file: space check, download, the JOBS (each
@@ -21,9 +27,10 @@ ENV+FILE_NUDGE (the file reports' targets, default FILE_NUDGE_DEFAULT), ENV+POLL
 ENV+WAIT_H (hours a wait lasts, default 24), ENV+CAP_MIN (the split's compute cap, default 840), ENV+RETRY=1 (retry a failed job as
 <id>-r2, then -r3), ENV+FLOOR_GIB (free space kept beyond the file's size, default 10); the downloader's settings (download_one.sh).
 Exit status: 0 the split is DONE (or PAUSED after the pilot file) and the nudge was delivered; 1 stopped or failed, or the split ended
-with failed files ('DONE, <n> file(s) failed: <ids>') or with files kept until accepted (report written, nudge sent), or the nudge
-failed; 2 wrong usage, or a pinned tool changed; 3 another copy is running, or the downloader's own 3; 4 the split may not start (the
-gates); 130 Ctrl-C (no nudge; a rerun resumes). Tests only: pipe.py --test fail|partial|pilot|disk|cap|error|sleep (a made-up file
+with failed files ('DONE, <n> file(s) failed: <ids>') (report written, nudge sent), or the nudge reached no target; 2 wrong usage, or a
+pinned tool changed; 3 another copy is running, or the downloader's own 3; 4 the split may not start (the gates); 5 a wait reached its
+limit (ENV+WAIT_H hours): disk space before a file, or the manager's acceptance at the end of the split (e6's code); 130 Ctrl-C (no
+nudge; a rerun resumes). Tests only: pipe.py --test fail|partial|pilot|disk|cap|error|sleep (a made-up file
 list, job ids TEST_PREFIX-...), and the setting TESTENV+TEST_ROOT=<folder> with a split named tst<anything> (list
 <folder>/files-<split>.tsv, downloads under <folder>/downloads, job ids TEST_PREFIX-<split>-..., outputs under runs/<ST>/pipeline-test/;
 no gates); with it TESTENV+FAKE=1 (made-up files, no download, no END_JOBS and no facts) and TESTENV+SEND=<path> (another bridge
@@ -71,6 +78,9 @@ PY = ["/usr/bin/python3", "-I"]       # e7: [HOME + "/system-env/e7/bin/python",
 PREFLIGHT_IMPORTS = ""                # e7: "import uproot, awkward, numpy, scipy" (checked with PY before a run; "" = no check)
 LONG_OK = ""                          # e7: the user's approval, in the user's words, for jobs over 1800 s (run_logged.py --long-ok)
 JOB_MEM_MB = 6000                     # e7: 6000       the logger's --mem
+DL_CONTEXT = "PROJECT_DL_CONTEXT"     # e7: none (added with the merged screen): the setting that hands each download its --context
+GROUP_NAMES = {}                      # the dataset of each record, {"recid": "name"}, for the STEP and GROUPS rows and the bridge lines
+                                      #   (e7's records: {"30510": "MuOnia2016G", "30543": "MuOnia2016H", "73733": "Y2S-MC-UL16"})
 
 # ---- the project's work (e7's own jobs are named in the comments)
 # JOBS: the jobs of one file after its download, in order; each must exit 0 (a failed job fails the file; its source stays).
@@ -112,9 +122,10 @@ FAKE_STEPS = ("verify", "skim1")
 
 
 class Stop(Exception):
-    def __init__(self, status):
+    def __init__(self, status, code=1):
         Exception.__init__(self, status)
         self.status = status
+        self.code = code
 
 
 class FileFail(Exception):
@@ -141,6 +152,25 @@ def sha256(path):
 
 def now():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def human(n):
+    for unit, size in (("GB", 1 << 30), ("MB", 1 << 20), ("KB", 1 << 10)):
+        if n >= size:
+            return "%.2f %s" % (n / size, unit)
+    return "%d B" % int(n)
+
+
+def wrap_text(text, cols, indent="  "):
+    """e6's: the lines of text, none longer than cols - 1 characters (a long word, such as a path, is broken)."""
+    import textwrap
+    return textwrap.wrap(text, width=max(10, cols - 1), subsequent_indent=indent, break_long_words=True, break_on_hyphens=False,
+                         replace_whitespace=False, drop_whitespace=False) or [""]
+
+
+def span_text(s):
+    """seconds as text, as e6 writes them: 86400 -> '24 h', 30 -> '30 s'"""
+    return ("%g h" % (s / 3600.0)) if s >= 3600 and s % 3600 == 0 else ("%g s" % s)
 
 
 def read_tsv(path):
@@ -267,6 +297,13 @@ class Pipe:
         self.deleted = []
         self.file_rows = []       # (id, outcome, failed step, output bytes) of this run
         self._report = None
+        self.run_todo = []        # the split's files not DONE when this run started (e6's run: the estimate and the groups)
+        self.run_done = set()     # files DONE in this run
+        self.run_failed = set()   # files FAILED in this run
+        self.moved_run = 0        # bytes downloaded in this run
+        self.moved_group = {}     # the same, per group
+        self.wait_limit_hit = False
+        self.stop_code = 1
 
     # ---------- the split's list and places
     def list_rows(self):
@@ -291,6 +328,13 @@ class Pipe:
 
     def out(self, s):
         print(s[:self.width()], flush=True)
+
+    def say6(self, s):
+        """A line that comes from e6 (the stamped WAITING and SUMMARY lines): wrapped on a terminal as e6's say() does, whole when piped."""
+        if self.tty:
+            print("\n".join(w.rstrip() for w in wrap_text(s, shutil.get_terminal_size((100, 24)).columns)), flush=True)
+        else:
+            print(s, flush=True)
 
     def compute_min(self):
         pre = self.jp + "-"
@@ -510,6 +554,41 @@ class Pipe:
         dest = self.dl_dir(key[:8])
         return ("%s/%s/%s" % (dest, r["recid"], key), dest, self.temp_paths(r))
 
+    def group_of(self, r):
+        return str(GROUP_NAMES.get(r["recid"], r["recid"]))
+
+    def on_disk(self, r):
+        """bytes of a file of the list on disk: the source, or its .part files"""
+        src = P(self.paths_of(r)[0])
+        if os.path.exists(src):
+            return os.path.getsize(src)
+        return sum(os.path.getsize(x) for x in glob.glob(src + ".part*") if os.path.isfile(x))
+
+    def write_context(self, r):
+        """The run, for the download's dashboard (--context): the split, this file's step and group, the run's totals."""
+        rows = self.list_rows()
+        st = self.file_states()
+        groups, order = {}, []
+        for x in self.run_todo:
+            g = self.group_of(x)
+            if g not in groups:
+                groups[g] = [g, 0, 0, self.moved_group.get(g, 0), 0]
+                order.append(g)
+            groups[g][1] += 1
+            groups[g][4] += int(x["size"])
+            if x["key"][:8] in self.run_done:
+                groups[g][2] += 1
+        ctx = {"run": self.split, "step": rows.index(r) + 1, "steps": len(rows), "files": len(rows),
+               "finished": sum(1 for x in rows if st.get(x["key"][:8], ("", ""))[0] == "DONE"), "group": self.group_of(r),
+               "todo_bytes": sum(int(x["size"]) for x in self.run_todo), "moved": self.moved_run,
+               "names": {x["recid"]: self.group_of(x) for x in rows}, "groups": [groups[g] for g in order]}
+        path = "%s/%s/download-context.json" % (self.rundir, r["key"][:8])
+        os.makedirs(os.path.dirname(P(path)), exist_ok=True)
+        with open(P(path + ".partial"), "w", encoding="utf-8") as g:
+            json.dump(ctx, g)
+        os.replace(P(path + ".partial"), P(path))
+        return path
+
     def is_kept(self, r):
         src, _, temps = self.paths_of(r)
         return os.path.exists(P(src)) or bool(glob.glob(P(src) + ".part*")) or any(os.path.exists(P(t)) for t in temps)
@@ -540,22 +619,14 @@ class Pipe:
         if os.path.exists(P(self.hold_path)):
             raise Stop("STOPPED (HOLD)")
 
-    def poll_sleep(self, secs):
-        end = time.time() + secs
-        while True:
-            if self.interrupted:
-                raise Interrupted()
-            left = end - time.time()
-            if left <= 0:
-                return
-            time.sleep(min(0.2, left))
-
-    def bridge_send(self, kind, fid, targets, msg):
-        """Send msg to the first target that takes it (timeout 180 s, an exception means not delivered and never raises). Every attempt is appended to
-        <run folder>/nudges.tsv. Returns (delivered, result text)."""
+    def bridge_send(self, kind, fid, targets, msg, every=False):
+        """Send msg to the first target that takes it, or with every=True to every target (timeout 180 s, an exception means not delivered and
+        never raises). Every attempt is appended to <run folder>/nudges.tsv. Returns (delivered, result text), or with every=True (delivered to
+        at least one, [result text of each target])."""
         if self.sandbox and kind != "end":
             msg = msg.replace(FILE_TAIL, TEST_TAIL)
         result = "no target"
+        results, any_ok = [], False
         for t in targets:
             try:
                 r = subprocess.run([self.send_path, t, msg], capture_output=True, text=True, timeout=SEND_TIMEOUT)
@@ -577,8 +648,13 @@ class Pipe:
                 if new:
                     g.write("utc\tkind\tid\ttarget\tresult\n")
                 g.write("%s\t%s\t%s\t%s\t%s\n" % (now(), kind, fid, t, res.replace("\t", " ").replace("\n", " ")))
+            results.append(result)
             if ok:
-                return True, result
+                if not every:
+                    return True, result
+                any_ok = True
+        if every:
+            return any_ok, results
         return False, result
 
     def file_report(self, fid, state, step=None):
@@ -586,15 +662,17 @@ class Pipe:
         rows = self.list_rows()
         st = self.file_states()
         p = sum(1 for r in rows if st.get(r["key"][:8], ("", ""))[0] == "DONE")
-        kept = ", ".join(self.kept_ids(rows)) or "none"
+        kept_ids = self.kept_ids(rows)
+        kept = "%d files (%s)" % (len(kept_ids), ", ".join(kept_ids) or "none")
         fw = ", ".join(self.failed_waiting()) or "none"
-        head = "[PIPELINE %s %s file] " % (ST.lower(), self.split)
+        r = [x for x in rows if x["key"][:8] == fid][0]
+        head = "[PIPELINE %s %s file] %s step %d of %d group %s " % (ST.lower(), self.split, fid, rows.index(r) + 1, len(rows), self.group_of(r))
         if state == "DONE":
-            msg = "%s%s DONE (%d of %d passed); kept until accepted: %s; failed waiting: %s; %s" % (head, fid, p, len(rows), kept, fw, FILE_TAIL)
+            msg = "%sDONE (%d of %d passed); kept until accepted: %s; failed waiting: %s; %s" % (head, p, len(rows), kept, fw, FILE_TAIL)
         else:
-            msg = "%s%s FAILED at %s, its source stays; kept until accepted: %s; failed waiting: %s; %s" % (head, fid, step, kept, fw, FILE_TAIL)
+            msg = "%sFAILED at %s, its source stays; kept until accepted: %s; failed waiting: %s; %s" % (head, step, kept, fw, FILE_TAIL)
         ok, res = self.bridge_send("file-" + state.lower(), fid, self.file_targets, msg)
-        self.out("file report %s: %s" % (state, res[:60]))
+        self.out("[%s] file report %s: %s" % (now(), state, res[:60]))
         return ok
 
     def deletion_pass(self, rows=None):
@@ -615,29 +693,60 @@ class Pipe:
             self.check_hold()
             self.delete_file(fid, src, dest, temps, sums)
 
+    def wait_start(self, kind, fid, what, why):
+        """The start of a wait (e6): one stamped line on the screen and one bridge line to the manager."""
+        self.say6("[%s] WAITING %s: %s" % (now(), what, why))
+        msg = "[PIPELINE %s %s wait] %s: %s; polling every %g s, up to %s; kept until accepted: %s; %s" % (
+            ST.lower(), self.split, what, why, self.poll_s, span_text(self.wait_h * 3600.0), ", ".join(self.kept_ids()) or "none", FILE_TAIL)
+        self.bridge_send(kind, fid, self.file_targets, msg)
+
+    def wait_poll(self, secs, what, since):
+        """One poll of a wait, with e6's WAITING row: rewritten in place every 5 s on a terminal, printed once when piped."""
+        end = time.time() + secs
+        nxt = None
+        while True:
+            if self.interrupted:
+                raise Interrupted()
+            left = end - time.time()
+            if nxt is None or (self.tty and time.time() >= nxt):
+                line = "WAITING  %s  since %s  next check in %d s" % (what, since, max(0, int(left + 0.999)))
+                if self.tty:
+                    w = self.width()
+                    sys.stdout.write("\r" + line[:w].ljust(w))
+                    sys.stdout.flush()
+                else:
+                    print(line[:self.width()], flush=True)
+                nxt = time.time() + 5.0
+            if left <= 0:
+                break
+            time.sleep(min(0.2, left))
+        if self.tty:
+            sys.stdout.write("\r" + " " * self.width() + "\r")
+            sys.stdout.flush()
+
     def wait_for_space(self, fid, size):
         """The space check before a download, with a wait for the manager's acceptances (they free the space)."""
         need = size / float(1 << 30) + self.floor
         if self.free_gib() >= need:
             return
-        ids = ", ".join(self.kept_ids()) or "none"
-        msg = "[PIPELINE %s %s file] waiting for disk space before %s (free %.1f GiB, need %.1f GiB); kept until accepted: %s; %s" % (
-            ST.lower(), self.split, fid, self.free_gib(), need, ids, FILE_TAIL)
-        ok, res = self.bridge_send("disk-wait", fid, self.file_targets, msg)
+        what = "disk space before %s" % fid
+        self.wait_start("disk-wait", fid, what, "free %.1f GiB, need %.1f GiB" % (self.free_gib(), need))
+        since = time.strftime("%H:%M:%S")
         deadline = time.time() + self.wait_h * 3600.0
         while True:
-            self.out("waiting for disk space before %s: free %.1f GiB, need %.1f GiB; kept: %s" % (fid, self.free_gib(), need, ", ".join(self.kept_ids()) or "none"))
             if time.time() >= deadline:
-                raise Stop("STOPPED at %s (disk; kept until accepted: %s)" % (fid, ", ".join(self.kept_ids()) or "none"))
-            self.poll_sleep(min(self.poll_s, max(0.0, deadline - time.time())))
+                raise Stop("STOPPED at %s (disk; kept until accepted: %s)" % (fid, ", ".join(self.kept_ids()) or "none"), 5)
+            self.wait_poll(min(self.poll_s, max(0.0, deadline - time.time())), what, since)
             self.check_hold()
             self.deletion_pass()
             if self.free_gib() >= need:
                 return
 
     def end_wait(self):
-        """After the facts stage, while a DONE file is kept, poll (hold, deletion pass) for up to ENV+WAIT_H hours."""
+        """After the facts stage, while a DONE file is kept, poll (hold, deletion pass) for up to ENV+WAIT_H hours; at the limit, exit 5."""
+        what = "the manager's acceptance"
         deadline = time.time() + self.wait_h * 3600.0
+        since = None
         while True:
             self.check_hold()
             self.deletion_pass()
@@ -645,9 +754,12 @@ class Pipe:
             if not k:
                 return
             if time.time() >= deadline:
+                self.wait_limit_hit = True
                 return
-            self.out("end of the split: waiting for the manager's acceptance of %s" % ", ".join(k))
-            self.poll_sleep(min(self.poll_s, max(0.0, deadline - time.time())))
+            if since is None:
+                since = time.strftime("%H:%M:%S")
+                self.wait_start("end-wait", "-", what, "end of the split")
+            self.wait_poll(min(self.poll_s, max(0.0, deadline - time.time())), what, since)
 
     def step_keep(self, fid):
         """The keep step: the file is DONE; nothing is deleted (the deletion comes in a deletion pass, after the manager accepted the file)."""
@@ -658,9 +770,12 @@ class Pipe:
         probe = P("downloads") if os.path.isdir(P("downloads")) else ROOT
         return shutil.disk_usage(probe).free / float(1 << 30)
 
-    def download(self, fid, r, lst, dest):
+    def download(self, fid, r, lst, dest, ctx=None):
         self.child_forward = False
-        self.child = subprocess.Popen([DOWNLOADER, lst, dest], cwd=ROOT)
+        env = dict(os.environ)
+        if ctx:
+            env[DL_CONTEXT] = P(ctx)
+        self.child = subprocess.Popen([DOWNLOADER, lst, dest], cwd=ROOT, env=env)
         forwarded = False
         while self.child.poll() is None:
             time.sleep(0.2)
@@ -701,7 +816,14 @@ class Pipe:
         with open(P(lst), "w", encoding="utf-8") as g:
             g.write("recid\tkey\tsize\tadler32\turl\n%s\t%s\t%s\t%s\t%s\n" % (recid, key, r["size"], r["adler32"], r["url"]))
         self.out("download %s (%s bytes) into %s" % (fid, r["size"], dest))
-        rc = self.download(fid, r, lst, dest)
+        before = self.on_disk(r)
+        ctx = self.write_context(r)
+        try:
+            rc = self.download(fid, r, lst, dest, ctx)
+        finally:
+            gained = max(0, self.on_disk(r) - before)
+            self.moved_run += gained
+            self.moved_group[self.group_of(r)] = self.moved_group.get(self.group_of(r), 0) + gained
         if rc == 3:
             raise Stop("STOPPED at %s (download exit 3: disk space, or another download uses the folder)" % fid)
         if rc == 2:
@@ -756,7 +878,7 @@ class Pipe:
                 os.fsync(g.fileno())
             os.remove(full)
             self.deleted.append((pth, size))
-            self.out("deleted %s (%d bytes)" % (pth, size))
+            self.out("[%s] deleted %s (%d bytes)" % (now(), pth, size))
 
     # ---------- the split
     def failed_waiting(self, except_id=None):
@@ -764,6 +886,8 @@ class Pipe:
 
     def process_files(self):
         rows = self.list_rows()
+        st0 = self.file_states()
+        self.run_todo = [r for r in rows if st0.get(r["key"][:8], ("", ""))[0] != "DONE"]
         for r in rows:
             fid = r["key"][:8]
             states = self.file_states()
@@ -782,11 +906,13 @@ class Pipe:
             try:
                 self.do_test_file(r) if self.test else (self.do_fake_file(r) if self.fake else self.do_file(r))
                 self.file_rows.append((fid, "DONE", "", ""))
+                self.run_done.add(fid)
                 self.file_report(fid, "DONE")
             except FileFail as e:
                 self.record_file(fid, "FAILED " + e.step, e.step)
                 self.file_rows.append((fid, "FAILED", e.step, ""))
-                self.out("file %s FAILED at %s: its source and %s stay" % (fid, e.step, KEPT_WORD))
+                self.run_failed.add(fid)
+                self.out("[%s] file %s FAILED at %s: its source and %s stay" % (now(), fid, e.step, KEPT_WORD))
                 self.file_report(fid, "FAILED", e.step)
                 if self.pilot and PILOT_NAME not in accepted_names():
                     # before the pilot is accepted, a failed file stops the split at once
@@ -992,14 +1118,16 @@ class Pipe:
 
     def nudge(self, fn, facts_made):
         kind = "%s %s" % (ST.lower(), ("test " + self.test) if self.test else self.split)
-        msg = ("[PIPELINE %s] %s; report %s/%s; facts %s; compute %.1f of %g min; %s"
-               % (kind, self.status, self.rundir, fn, ("%s/facts.md" % self.rundir) if facts_made else "not made", self.compute_min(), self.cap, NUDGE_TAIL))
+        msg = ("[PIPELINE %s] %s; report %s/%s; facts %s; compute %.1f of %g min; kept until accepted: %d files; %s"
+               % (kind, self.status, self.rundir, fn, ("%s/facts.md" % self.rundir) if facts_made else "not made", self.compute_min(), self.cap,
+                  len(self.kept_ids()), NUDGE_TAIL))
         if self.sandbox:
             msg = msg.replace(NUDGE_TAIL, SANDBOX_NUDGE_TAIL)
-        ok, res = self.bridge_send("end", "-", self.nudge_targets, msg)
-        self.nudge_result = res
-        if ok:
+        ok, results = self.bridge_send("end", "-", self.nudge_targets, msg, every=True)
+        self.nudge_result = "; ".join(results) or "no target"
+        for res in results:
             self.out("nudge: %s" % res[:60])
+        if ok:
             return True
         print("NUDGE NOT DELIVERED to any target; pass this on yourself:\n" + msg, flush=True)
         self.nudge_result = "not delivered to any of %s; message: %s" % (self.nudge_targets, msg)
@@ -1055,6 +1183,7 @@ class Pipe:
                 self.status += ", %d file(s) kept until accepted: %s" % (len(kept), ", ".join(kept))
         except Stop as s:
             self.status = s.status
+            self.stop_code = s.code
         except Interrupted:
             raise
         except Exception as e:
@@ -1070,12 +1199,16 @@ class Pipe:
             self.notes.append("download records could not be copied: %s" % e)
         fn = self.write_report(facts_made)
         self.update_status_tsv()
+        self.say6("[%s] SUMMARY: files finished in this run %d of %d, failed %d, moved %s, kept until accepted %d; %s" % (
+            now(), len(self.run_done), len(self.run_todo), len(self.run_failed), human(self.moved_run), len(self.kept_ids()), self.status))
         delivered = self.nudge(fn, facts_made)
         self.finish_report(fn)
         self.out("status: %s" % self.status)
         self.out("report: %s/%s" % (self.rundir, fn))
         ok_status = self.status == "DONE" or self.status.startswith("PAUSED") or (self.status.startswith("DONE, ") and "file(s) failed" not in self.status
                                                                                   and "kept until accepted" not in self.status)
+        if self.stop_code == 5 or self.wait_limit_hit:
+            return 5
         return 0 if (ok_status and delivered) else 1
 
 
@@ -1109,7 +1242,7 @@ def status_cmd(split=None):
     for r in read_tsv_rows("%s/%s/files.tsv" % (RUNS, split)):
         st[r["id"]] = (r["status"], r.get("step", ""), r["utc"])
     print("%s %s split script: status of split %s (no network; nothing is created)" % (PROJECT, STEP_WORD, split))
-    print("%-9s %-18s %s" % ("id", "state", "last job"))
+    print("%-9s %-18s %-10s %s" % ("id", "state", "on disk", "last job"))
     pp = Pipe(split)
     for r in lst:
         fid = r["key"][:8]
@@ -1120,7 +1253,8 @@ def status_cmd(split=None):
         s = st.get(fid, ("not started", "", ""))[0]
         if s == "DONE" and pp.is_kept(r):
             s = "DONE kept"
-        print("%-9s %-18s %s" % (fid, s[:18], ("%s %s" % (last["id"], last["outcome"])) if last else "-"))
+        b = pp.on_disk(r)
+        print("%-9s %-18s %-10s %s" % (fid, s[:18], human(b) if b else "-", ("%s %s" % (last["id"], last["outcome"])) if last else "-"))
     return 0
 
 

@@ -12,7 +12,8 @@
 #       PROJECT_PIPE_FLOOR_GIB (10); the downloader's PROJECT_DL_*.
 # Exit: 0 the split is DONE (or PAUSED after the pilot file) and the nudge was delivered; 1 stopped or failed (report written, nudge sent); 2 wrong usage or a pinned
 #       tool changed; 3 another copy is running (or the downloader's 3); 4 the split may not start (an earlier split is not DONE or not accepted, or runs/S1/HOLD);
-#       130 interrupted by Ctrl-C (no nudge; the same command resumes).
+#       5 a wait reached its limit (24 h): disk space before a file, or the manager's acceptance at the end of the split; 130 interrupted by Ctrl-C (no
+#       nudge; the same command resumes).
 set -u
 cd "$(dirname "$0")/.." || exit 2
 if [ "$#" -lt 1 ] || [ "$#" -gt 2 ] || { [ "$#" -eq 2 ] && [ "$1" != status ]; }; then

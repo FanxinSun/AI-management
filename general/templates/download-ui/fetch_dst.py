@@ -1,18 +1,24 @@
 """Template: an all-in-one, resumable, parallel downloader with an in-place dashboard (general/templates/download-ui/).
 
-This is e7's downloader, tools/s2_fetch.py of the user's project e7-upsilon-omega, as e7's split script runs it (sha256
+Built from e7's downloader, tools/s2_fetch.py of the user's project e7-upsilon-omega (sha256
 df2862667dd513eb416150cb787b3e9e0978882eb1e54676fcbbf8c39091fc18, pinned in e7's tools/s6_all_in_one.pins on 2026-11-27).
-Only the project's names differ: the dashboard title (TITLE), the workers setting named in the start line
-(WORKERS_SETTING) and the record names (RECNAME) are constants below. With e7's values, given in their comments, the code
-is e7's line for line, so the screen is e7's. When you copy it: change TITLE, WORKERS_SETTING and RECNAME (and RECORDS,
-API, URL, EOS, eos_url() and the list and probe subcommands if you use them), keep everything else, and run the tests of
-README.md through the wrapper before real use. The user-facing command is download_wrapper.sh (one list of a set);
-a pipeline calls ../chunked-pipeline/download_one.sh (one list per file).
+Its dashboard is the merged e6/e7 format that the user chose row by row on 2026-11-27 (README.md, "The dashboard"):
+- from e6 (tools/e6_fetch_kplus.py of e6-emu-below-z): the title with the read time-out, and the STEP, THIS STEP,
+  TO DOWNLOAD (estimate), HEALTH (with LASTERR and NETWORK DOWN?) and GROUPS rows;
+- from e7: the TOTAL, FILES, SPEED and LINKS rows, RECORDS, the file rows (with e6's "retrying" and "waiting
+  (certificate)" notes), the start and end lines, and the height rule (only the file lines shrink).
+A pipeline passes its run with --context (the split, this file's step and group, the run's totals). Without it, the
+step is the whole list (1 of 1) and the group is the set.
+When you copy it: change TITLE, WORKERS_SETTING and RECNAME (and RECORDS, API, URL, EOS, eos_url() and the list and probe
+subcommands if you use them), keep everything else, and run the tests of README.md through the wrapper before real use.
+The user-facing command is download_wrapper.sh (one list of a set); a pipeline calls ../chunked-pipeline/download_one.sh
+(one list per file, with --context).
 
 usage: python -I tools/fetch_dst.py list OUT_TSV
        python -I tools/fetch_dst.py fetch LIST_TSV OUTDIR [--workers N] [--dashboard] [--report-seconds auto|S]
                   [--file-lines N|all] [--max-stalls N] [--max-seconds S] [--max-files N] [--only RECID]
-                  [--retry-wait S] [--pause S] [--eos] [--cafile PATH] [--cafile-sha256 FP] [--dry-run]
+                  [--retry-wait S] [--pause S] [--eos] [--cafile PATH] [--cafile-sha256 FP] [--split N]
+                  [--context JSON] [--dry-run]
        python -I tools/fetch_dst.py probe URL [URL ...] [--cafile PATH] [--seconds N]
        python -I tools/fetch_dst.py status LIST_TSV OUTDIR
 Standard library only. Exit codes of fetch: 0 done or budget reached, 1 failure or block, 2 refused OUTDIR,
@@ -48,7 +54,7 @@ import urllib.request
 import zlib
 
 # ---- the project's names (change them when you copy the file; with e7's values, in the comments, the screen is e7's)
-TITLE = "PROJECT download"              # e7: "E7 download"    -> the title line "E7 download <set>  |  HH:MM:SS  |  elapsed ..."
+TITLE = "PROJECT download"              # e7: "E7 download"    -> "E7 download <run>  |  HH:MM:SS  |  elapsed ...  |  time-out 300 s"
 WORKERS_SETTING = "PROJECT_DL_WORKERS"  # e7: "E7_S2_WORKERS"  -> the start line "WORKERS: 1 (set E7_S2_WORKERS to change); ..."
 # ---- the project's records and addresses (used by the list and probe subcommands and by --eos; e7 uses none of them:
 #      each file is taken from the url column of the list, and the default CA store verifies it)
@@ -68,6 +74,7 @@ LOCKNAME = ".download.lock"
 RUNLOG = "download.log"
 SUMS = "SHA256SUMS"
 RETRY_AFTER_PROGRESS = 2.0   # seconds to wait before resuming after an attempt that added bytes
+DOWN_WINDOW = 900.0          # seconds with no byte received, while attempts fail, before HEALTH says NETWORK DOWN? (e6's default)
 CTX = None   # set by --cafile: an ssl.create_default_context(cafile=...), verification and hostname check on
 
 
@@ -297,6 +304,13 @@ def rate_text(value):
     return "%.0f KB/s" % (value / 1024.0)
 
 
+def is_cert_error(e):
+    """A TLS certificate refusal, directly or inside a URLError (or in the text of a joined range error)."""
+    reason = getattr(e, "reason", None)
+    return (isinstance(e, ssl.SSLCertVerificationError) or isinstance(reason, ssl.SSLCertVerificationError)
+            or "CERTIFICATE_VERIFY_FAILED" in str(e))
+
+
 def ca_fingerprint(cafile):
     """SHA-256 fingerprint (AA:BB:...) of the single certificate in a PEM file."""
     with open(cafile) as f:
@@ -406,6 +420,14 @@ class Runner:
         self.retries = self.errors = self.give_ups = self.newly = 0
         self.fail_streak = 0                   # files given up on in a row with no byte received by anyone between
         self.last_error = ""
+        self.stalls = self.cert_events = 0     # e6's HEALTH: connections dropped for stalling, certificate refusals
+        self.last_ok = time.monotonic()        # when the last byte arrived (e6's NETWORK DOWN? note)
+        self.ctx = None                        # a pipeline's run (--context): split, step, group, the run's totals
+        if a.context:
+            with open(a.context, encoding="utf-8") as cf:
+                self.ctx = json.load(cf)
+        self.run_label = str(self.ctx["run"]) if self.ctx else self.setname
+        self.todo_idx, self.have0 = [], []     # the files still to do at the start, and their bytes then
         self.logf = None
         self.t0 = time.monotonic()
         self.wall0 = time.time()
@@ -547,9 +569,13 @@ class Runner:
                 after = partial_bytes(self.target(i), size)
                 self.have[i] = cur["got"] = min(after, size)
                 fails = 0 if after > before else fails + 1      # N CONSECUTIVE attempts without added bytes
+                cert = is_cert_error(e)
                 with self.lock:
                     self.retries += 1
                     self.last_error = "%d/%s: %s" % (recid, key, e)
+                    if cert and self.nsplit(size) <= 1:   # a split file's ranges count their own refusals (run_seg)
+                        self.cert_events += 1
+                cur["kind"] = "cert" if cert else "fail"
                 self.emit(tag, "%d %s attempt %d: %s (part %d -> %d bytes, attempts without progress: %d)"
                           % (recid, key, attempt, e, before, after, fails))
                 if fails >= a.max_stalls:
@@ -661,6 +687,7 @@ class Runner:
                             p += len(b)
                             self.have[i] = cur["got"] = min(p, size)
                             self.fail_streak = 0
+                            self.last_ok, cur["kind"] = time.monotonic(), "ok"
                             now = time.monotonic()
                             if now - tick >= PROGRESS:
                                 self.emit(tag, "%d %s progress: %d of %d bytes, %.1f %%, %.1f kB/s"
@@ -669,6 +696,8 @@ class Runner:
                                 tick, tick_p = now, p
                             if now - win >= a.stall_seconds:
                                 if p - win_p < a.stall_limit * (now - win):
+                                    with self.lock:
+                                        self.stalls += 1
                                     raise OSError("stalled: %d bytes in %.0f s" % (p - win_p, now - win))
                                 win, win_p = now, p
                             if p > size:
@@ -722,6 +751,9 @@ class Runner:
             except Block as e:
                 blocks.append(e)
             except (OSError, ValueError, http.client.HTTPException) as e:
+                if is_cert_error(e):
+                    with self.lock:
+                        self.cert_events += 1
                 errors.append("range %d: %s" % (k, e))
             except Exception as e:
                 internal.append(e)
@@ -816,6 +848,7 @@ class Runner:
                         self.have[i] += len(b)
                         cur["got"] = min(self.have[i], self.rows[i][2])
                     self.fail_streak = 0
+                    self.last_ok, cur["kind"] = time.monotonic(), "ok"
                     now = time.monotonic()
                     if now - tick >= PROGRESS:
                         self.emit(tag, "%d %s range progress: %d of %d bytes, %.1f %%, %.1f kB/s"
@@ -823,10 +856,49 @@ class Runner:
                         tick, tick_p = now, got
                     if now - win >= a.stall_seconds:
                         if got - win_p < a.stall_limit * (now - win):
+                            with self.lock:
+                                self.stalls += 1
                             raise OSError("stalled: %d bytes in %.0f s" % (got - win_p, now - win))
                         win, win_p = now, got
         if got < want_end:
             raise OSError("stream ended short: %d of %d bytes of the range" % (got, want_end))
+
+    # ---- e6's step, estimate and group rows (with a pipeline's --context the run is the split, and the step one file of it)
+    def step_view(self, have_total):
+        """(step, steps, group, finished files, files, bytes to download, bytes moved) for the STEP and TO DOWNLOAD rows."""
+        gained = max(0, have_total - self.baseline)
+        new_done = sum(1 for i in self.todo_idx if self.done[i])
+        if self.ctx:
+            c = self.ctx
+            return (int(c["step"]), int(c["steps"]), str(c["group"]), int(c["finished"]) + new_done, int(c["files"]),
+                    int(c["todo_bytes"]), int(c["moved"]) + gained)
+        return 1, 1, self.setname, sum(self.done), self.n, sum(self.rows[i][2] for i in self.todo_idx), gained
+
+    def group_of(self, i):
+        recid = self.rows[i][0]
+        names = self.ctx.get("names", {}) if self.ctx else {}
+        return str(names.get(str(recid)) or RECNAME.get(recid) or recid)
+
+    def group_view(self):
+        """e6's GROUPS: per group of the files still to do at the start of the run: (name, done in this run, files, moved in
+        this run, estimate). A pipeline's --context gives the run's groups before this download; this list's files add to them."""
+        rows, order = {}, []
+        if self.ctx:
+            for name, files, done, moved, est in self.ctx.get("groups", []):
+                rows[str(name)] = [int(done), int(files), int(moved), int(est)]
+                order.append(str(name))
+        for i in self.todo_idx:
+            g = self.group_of(i)
+            if g not in rows:
+                rows[g] = [0, 0, 0, 0]
+                order.append(g)
+            r = rows[g]
+            if not self.ctx:                    # the run is this list: its files and its estimate come from the list
+                r[1] += 1
+                r[3] += self.rows[i][2]
+            r[0] += 1 if self.done[i] else 0
+            r[2] += max(0, self.have[i] - self.have0[i])
+        return [(g, rows[g][0], rows[g][1], rows[g][2], rows[g][3]) for g in order]
 
     # ---- the dashboard
     def render(self, final=False):
@@ -876,17 +948,28 @@ class Runner:
         files_done = sum(self.done)
         fraction = have_total / grand if grand else 0.0
         per_conn = recent / live if live and recent is not None else None
-        title = "%s %s  |  %s  |  elapsed %s  |  %d workers" % (
-            TITLE, self.setname, time.strftime("%H:%M:%S"), clock(elapsed), self.nthreads)
+        title = "%s %s  |  %s  |  elapsed %s  |  %d workers  |  time-out %g s" % (
+            TITLE, self.run_label, time.strftime("%H:%M:%S"), clock(elapsed), self.nthreads, READ_TIMEOUT)
+        step, steps, group, finished, nfiles, todo, moved = self.step_view(have_total)
+        health = "HEALTH   failed attempts %d   stalls dropped %d   certificate events %d%s%s" % (
+            self.retries, self.stalls, self.cert_events, ("   LASTERR " + self.last_error[:60]) if self.last_error else "",
+            "   NETWORK DOWN? waiting, retrying" if cur and now - self.last_ok > DOWN_WINDOW and self.retries else "")
         head = [("\033[1m" + cut(title) + "\033[0m") if self.tty else cut(title),
+                cut("STEP     %d of %d  group %s  |  downloading %d, processing 0, finished %d of %d files" % (
+                    step, steps, group, len(cur), finished, nfiles)),
+                cut("THIS STEP %s %5.1f%%  moved %s of %s" % (bar(fraction, 20), fraction * 100, human(have_total), human(grand))),
+                cut("TO DOWNLOAD (estimate)  %s in all   moved %s" % (human(todo), human(moved))),
                 cut("TOTAL    %s %5.1f%%   %s / %s" % (bar(fraction, 30), fraction * 100, human(have_total), human(grand))),
                 cut("FILES    %d/%d complete   %d downloading   %d workers alive" % (files_done, self.n, len(cur), self.alive)),
                 cut("SPEED    now %s   average %s   ETA %s" % (rate_text(recent), rate_text(average), eta)),
                 cut("LINKS    %d connections open   %s each   %d stalled right now" % (live, rate_text(per_conn) if live else "-", stalled)),
-                cut("HEALTH   retries %d   errors %d%s" % (self.retries, self.errors,
-                                                           "   (+%d partial files waiting for a worker)" % waiting if waiting else ""))]
-        if self.last_error:
-            head.append(cut("LASTERR  " + self.last_error))
+                cut(health)]
+        groups = self.group_view()
+        gw = max([4] + [len(g[0]) for g in groups])
+        head += ["", "GROUPS (moved / estimate)"]
+        for g, d, nf, m, e in groups:
+            gf = 1.0 if nf and d == nf else (min(0.999, m / e) if e else 0.0)
+            head.append(cut("  %-*s %s %5.1f%%  %3d/%-3d files  %s / %s" % (gw, g, bar(gf, rec_bar), gf * 100, d, nf, human(m), human(e))))
         head += ["", "RECORDS"]
         for recid in sorted({r[0] for r in self.rows}):
             idx = [i for i, r in enumerate(self.rows) if r[0] == recid]
@@ -916,7 +999,7 @@ class Runner:
                 speed = "no data right now (will resume)"
             tail.append(cut("  %d %-*s %s %3.0f%%  %s / %s  %s" % (
                 recid, key_w, short, bar(frac, file_bar), frac * 100, human(c["got"]).rjust(0 if narrow else 9),
-                human(size).ljust(0 if narrow else 9), speed)))
+                human(size).ljust(0 if narrow else 9), speed + {"fail": "  retrying", "cert": "  waiting (certificate)"}.get(c.get("kind"), ""))))
         if len(shown_rows) > len(shown):
             tail.append("  … and %d more" % (len(shown_rows) - len(shown)))
         tail += ["", cut("Ctrl-C stops cleanly; rerun resumes   |   log: %s" % os.path.join(self.outdir, RUNLOG))]
@@ -946,6 +1029,8 @@ class Runner:
             else:
                 self.have[i] = partial_bytes(t, size)
         self.baseline = sum(self.have)
+        self.todo_idx = [i for i in range(self.n) if not self.done[i]]
+        self.have0 = list(self.have)
         self.emit("", "RUN START workers=%d dashboard=%s max_stalls=%d retry_wait=%s stall=%s B/s over %s s"
                   % (self.nthreads, a.dashboard, a.max_stalls, a.retry_wait, a.stall_limit, a.stall_seconds), show=False)
         if a.dashboard:
@@ -1204,6 +1289,7 @@ def main(argv):
     f.add_argument("--eos", action="store_true", help="take each URL from the EOS rule, not from the list")
     f.add_argument("--cafile", default=None, help="CA file for every HTTPS request (verification stays on)")
     f.add_argument("--cafile-sha256", default=None, help="refuse to run unless the CA file has this SHA-256 fingerprint")
+    f.add_argument("--context", default=None, help="a pipeline's run, as JSON: the split, this file's step and group, the run's totals (STEP, TO DOWNLOAD, GROUPS rows)")
     f.add_argument("--dry-run", action="store_true", help="check the list, CA file and disk; fetch nothing, create nothing")
     pr = sub.add_parser("probe")
     pr.add_argument("urls", nargs="+")

@@ -6,25 +6,27 @@
 > 1. **You MUST deliver a runnable script** built by copying and adapting `fetch_dst.py` and `download_wrapper.sh` from this folder.
 > 2. **NEVER** invent an ad-hoc `curl`/`wget`/`tqdm`/line-by-line `print` downloader, and **NEVER** drop the in-place `\033[<n>A\033[J` dashboard, the `<100`-column narrow layout, the `status` subcommand, the automatic default folder, HTTP Range resume, size/checksum verification, the `caffeinate`-safe single-instance guard, or exit codes `0`/`1`/`2`/`3`.
 > 3. **Always test** through the exact launch wrapper (including `status` and `<100` col width) and place the **complete, exact, copy-paste-ready runnable command at the very end** of your closing message (Rule 14).
-> 4. **Chain downstream processing when the task processes data (amended 2026-11-27):** `download-ui/` supplies the download/verify layer; whenever the dataset is to be skimmed, filtered, validated, or processed after download, follow [`CHUNKED_PIPELINE_GUIDE.md`](../../guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md) (`download -> verify -> process -> tool checks -> bridge line to Manager/Committee`), keeping raw files until Manager acceptance on bounded disk rather than stopping silently after `SHA256SUMS`. The script for that is built from [`../chunked-pipeline/`](../chunked-pipeline/README.md) (e7's split script).
+> 4. **Chain downstream processing when the task processes data (amended 2026-11-27):** `download-ui/` supplies the download/verify layer; whenever the dataset is to be skimmed, filtered, validated, or processed after download, follow [`CHUNKED_PIPELINE_GUIDE.md`](../../guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md) (`download -> verify -> process -> tool checks -> bridge line to Manager/Committee`), keeping raw files until Manager acceptance on bounded disk rather than stopping silently after `SHA256SUMS`. The script for that is built from [`../chunked-pipeline/`](../chunked-pipeline/README.md) (the split script).
 
-Aligned on 2026-11-27 with what e7 (`e7-upsilon-omega`) runs, at the user's request: "align the UI/format in the repo
-WITH WHAT e6/e7 ARE USING STRICTLY". The files are e7's downloader, with only the project's names changed:
-- `fetch_dst.py` is e7's `tools/s2_fetch.py`, the version pinned in e7's `tools/s6_all_in_one.pins` (sha256
-  `df2862667dd513eb416150cb787b3e9e0978882eb1e54676fcbbf8c39091fc18`). It needs only the standard library.
-  - Its dashboard title (`TITLE`), the workers setting named in the start line (`WORKERS_SETTING`) and the record
-    names (`RECNAME`) are constants. With e7's values, given in their comments, the code is e7's line for line.
+Recorded 2026-11-27. On that day the user asked to "align the UI/format in the repo WITH WHAT e6/e7 ARE USING STRICTLY".
+The user then chose, row by row, one merged format from e6's and e7's dashboards; the guide's §7 holds that table.
+The files:
+- `fetch_dst.py` is built from e7's downloader `tools/s2_fetch.py` (sha256
+  `df2862667dd513eb416150cb787b3e9e0978882eb1e54676fcbbf8c39091fc18`, pinned in e7's `tools/s6_all_in_one.pins`). It
+  needs only the standard library.
+  - Its download code, start lines, end lines and exit codes are e7's.
+  - Its dashboard is the merged one (below).
+  - Its title (`TITLE`), the workers setting named in the start line (`WORKERS_SETTING`) and the record names
+    (`RECNAME`) are constants.
   - `RECORDS`, `API`, `URL`, `EOS`, `eos_url()` and the `list` and `probe` subcommands are a project's too. e7 uses
     none of them: each file is taken from the `url` column of the list.
 - `download_wrapper.sh` is e7's user-facing `tools/s2_download.sh`, with the project's names marked `PROJECT`. They
   are the sets, the list folder, the default folder, the settings' prefix (`PROJECT_DL_`, e7: `E7_S2_`) and the
   Python.
 
-A pipeline calls the same downloader once per file through [`../chunked-pipeline/download_one.sh`](../chunked-pipeline/download_one.sh)
-(e7's `tools/s6_download.sh`).
-
-e6 (`e6-emu-below-z`) reads branches in steps and has its own dashboard. The guide describes it (§3); it is not a
-template here.
+A pipeline calls the same downloader once per file through
+[`../chunked-pipeline/download_one.sh`](../chunked-pipeline/download_one.sh) (e7's `tools/s6_download.sh`). It passes
+the run as `--context`: the split, the file's step and group, and the run's totals.
 
 ## The interface (what the user sees and types)
 
@@ -39,21 +41,11 @@ template here.
     as many connections.
   - `PROJECT_DL_MAX_ATTEMPTS` (10), `PROJECT_DL_REPORT_SECS` (auto), `PROJECT_DL_FILE_LINES` (8 or `all`),
     `PROJECT_DL_DRY_RUN`, `PROJECT_DL_CAFFEINATE` and `PROJECT_DL_PYTHON`.
-- **The start line** is `set <SET>: list <list>, folder <DEST>, <N> file(s) at once, <M> range(s) per file`
+- **The start lines** (e7) are `set <SET>: list <list>, folder <DEST>, <N> file(s) at once, <M> range(s) per file`
   (`download_one.sh`: `list <list>, folder <DEST>, …`). Then come `DOWNLOAD START UTC`, `DOWNLOAD ROOT`,
   `DOWNLOAD LOG`, `TOTAL FILES`, `TOTAL BYTES`, `ON DISK AT START` and `WORKERS: <N> (set <WORKERS_SETTING> to
   change); refresh every <s> s`.
-- **The dashboard** is redrawn in place (`\033[<n>A\033[J`) every 5 s on a terminal, and printed every 30 s when piped:
-  - the bold title `<TITLE> <set>  |  HH:MM:SS  |  elapsed HH:MM:SS  |  <N> workers`, where `<set>` is the list's name
-    without `files-` and `.tsv`;
-  - the lines `TOTAL` (a 30-character bar), `FILES`, `SPEED`, `LINKS` and `HEALTH`, and `LASTERR` after an error;
-  - `RECORDS`, one bar per record, by record number;
-  - `DOWNLOADING NOW (showing a of b, nearest to done first)`;
-  - `Ctrl-C stops cleanly; rerun resumes   |   log: <folder>/download.log`.
-
-  Every line is cut at the terminal's width minus one. Below 100 columns the narrow layout uses 10-character record
-  bars, 6-character file bars and 14-character names. All detail goes to `<folder>/download.log`.
-- **The end lines** are:
+- **The end lines** (e7) are:
   - `SHA256SUMS written for record <recid>: …`, `DOWNLOAD END UTC: …` and `done <n> of <N> files, <b> of <B> bytes;
     exit reason: …`;
   - then `DOWNLOAD COMPLETE`, or `DOWNLOAD INCOMPLETE (<reason>); rerun the script to resume. Details: …`, or, after
@@ -64,6 +56,54 @@ template here.
   - `1`: a failure, a block, give-ups or the network down.
   - `2`: usage, a foreign folder or a CA pin mismatch.
   - `3`: disk space, or another download on the folder.
+
+## The dashboard (the merged e6/e7 format)
+
+Redrawn in place (`\033[<n>A\033[J`) every 5 s on a terminal, printed every 30 s when piped. The source of each row
+is in brackets:
+
+```text
+<TITLE> <run>  |  HH:MM:SS  |  elapsed HH:MM:SS  |  <N> workers  |  time-out <S> s                     [e6, plus e7's run name]
+STEP     <i> of <n>  group <G>  |  downloading <a>, processing 0, finished <c> of <d> files             [e6]
+THIS STEP <20-character bar> <p>%  moved <X> of <Y>                                                   [e6]
+TO DOWNLOAD (estimate)  <X> in all   moved <Y>                                                        [e6]
+TOTAL    <30-character bar> <p>%   <got> / <size>                                                     [e7]
+FILES    <n>/<N> complete   <d> downloading   <w> workers alive                                       [e7]
+SPEED    now <rate>   average <rate>   ETA HH:MM:SS                                                    [e7]
+LINKS    <c> connections open   <rate> each   <s> stalled right now                                    [e7]
+HEALTH   failed attempts <a>   stalls dropped <b>   certificate events <c>[   LASTERR <60 characters>][   NETWORK DOWN? waiting, retrying]   [e6]
+
+GROUPS (moved / estimate)                                                                              [e6]
+  <G>  <bar> <p>%  <d>/<n>   files  <moved> / <estimate>
+
+RECORDS                                                                                                [e7]
+  <recid> <name> <bar> <p>%   <d>/<n>   files   <got> / <size>
+
+DOWNLOADING NOW (showing a of b, nearest to done first)                                               [e7, with e6's notes]
+  <recid> <key> <bar> <p>%  <got> / <size>  <rate>  ETA HH:MM:SS[  retrying|  waiting (certificate)]
+
+Ctrl-C stops cleanly; rerun resumes   |   log: <folder>/download.log                                  [both]
+```
+
+- **With a pipeline's `--context`:**
+  - `<run>` is the split.
+  - `STEP` is this file within the split; its group is the file's dataset, and `finished` counts the split's DONE
+    files.
+  - `TO DOWNLOAD (estimate)` and `GROUPS` cover the run: the split's files not DONE when the run started, and the
+    bytes moved in this run.
+- **Without `--context`:** the run is the list. The step is 1 of 1, the group is the set, and `GROUPS` lists the
+  list's datasets.
+- **This download only:** `THIS STEP`, `TOTAL`, `FILES`, `RECORDS` and the file rows.
+- **`HEALTH`:**
+  - it counts failed attempts, connections dropped for stalling, and certificate refusals (certificate checks are never
+    switched off);
+  - `LASTERR` is the last error's first 60 characters;
+  - `NETWORK DOWN? waiting, retrying` appears after `DOWN_WINDOW` (900 s, e6's value) with no byte while attempts fail.
+- **A file's row** ends in `retrying` after a failed attempt, or `waiting (certificate)` after a certificate refusal,
+  until bytes flow again.
+- **Widths:** every line is cut at the terminal's width minus one. Below 100 columns the record and group bars are 10
+  characters, the file bars 6 and the names 14. Only the file lines shrink to fit the window's height (e7's rule; see
+  pitfall 6). All detail goes to `<folder>/download.log`.
 
 ## The mechanics worth keeping
 
@@ -96,12 +136,15 @@ template here.
 4. **Terminals of 80 columns need the narrow layout,** or the speeds get cut.
 5. **Make the first-run default folder automatic:** the user ran the wrapper with no argument and got usage.
 6. **The frame's height.**
-   - e7's frame, kept here, limits the file lines to the terminal (`term_rows - len(head) - 6`) but not the record
-     lines. A run with more records than a short window holds draws a frame taller than the window. Then
-     `\033[<n>A` stops at the top row and old lines stay in the scrollback.
-   - e6's dashboard avoids this with a cascade of smaller layouts (guide §3).
+   - The frame limits the file lines to the terminal (`term_rows - len(head) - 6`, e7's rule, which the user kept)
+     but not the other lines. A run with more records or groups than a short window holds draws a frame taller than
+     the window. Then `\033[<n>A` stops at the top row and old lines stay in the scrollback.
+   - e6's own dashboard shrinks in steps instead (guide §3).
    - This folder carried an adaptive RECORDS layout from 2026-11-22 (two columns or per group) that neither e6 nor e7
-     runs. It was removed on 2026-11-27 to align with e7.
+     runs. It was removed on 2026-11-27.
+7. **e6's rows are long.** The `HEALTH` line with `LASTERR` is wider than 99 characters, so on a terminal of 100
+   columns or fewer its end, `NETWORK DOWN?` included, is cut off. In 80 columns the ends of the title (`time-out …`)
+   and of the `STEP` row are cut too. e6 cuts the same rows the same way.
 
 ## To reuse
 
@@ -116,13 +159,23 @@ When processing follows the download, take the driver from [`../chunked-pipeline
 
 ### Checked on 2026-11-27
 
-- **`fetch_dst.py`:** with e7's three names put back, its code (docstrings and comments aside) is e7's
-  `tools/s2_fetch.py` line for line.
-- **`download_wrapper.sh`:** its code is e7's `tools/s2_download.sh` except e7's set names and its refusal of retired
-  sets.
-- **A live run of both copies against one local server:** the same start lines and the same frame layout.
-- **The template with its own names, through the wrapper:**
-  - `status` created nothing;
-  - in an 80×30 terminal, frame lines were at most 79 characters, with the narrow bars;
-  - Ctrl-C exited 130 with the `.part` files kept;
-  - the rerun resumed (`ON DISK AT START: 0 files complete, 52428800 bytes of 167772160`) and finished with exit 0.
+**Before the merge:**
+- With e7's three names put back, the code of `fetch_dst.py` (docstrings and comments aside) was e7's `tools/s2_fetch.py`
+  line for line.
+- `download_wrapper.sh` has e7's `tools/s2_download.sh` code, except e7's set names and its refusal of retired sets.
+- A live run of both copies against one local server gave the same start lines and the same frame layout.
+
+**After the merge, with the template's own names:**
+- **Through the wrapper:** `status` created nothing. The frame had every row above, `STEP 1 of 1 group set1`, and lines
+  within the terminal's width.
+- **In an 80×30 terminal** every frame line was at most 79 characters and the tallest frame 22 lines, with the narrow
+  bars. Ctrl-C exited 130 with the `.part` files kept. The rerun resumed (`ON DISK AT START: 1 files complete,
+  83886080 bytes of 167772160`) and finished with exit 0.
+- **With a pipeline's `--context`:** `STEP 1 of 2 group DatasetA`, and both groups of the split.
+- **`HEALTH`** counted:
+  - failed attempts, against a closed port;
+  - stalls dropped (1, matching the 1 stall line in `download.log`);
+  - certificate events (3, against a local HTTPS server with a self-signed certificate; the file's row read `waiting
+    (certificate)`).
+- **`NETWORK DOWN? waiting, retrying`** appeared with a 1-second window in a test copy.
+- **The row for a file waiting to retry** read `retry in 1 s  retrying`.
