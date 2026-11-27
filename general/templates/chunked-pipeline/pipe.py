@@ -25,7 +25,12 @@ usage: pipe.py SPLIT          run, or resume, one split (SPLITS, in their order)
 Settings (environment, all optional; ENV is the prefix below): ENV+NUDGE (end-of-split targets in order, default NUDGE_DEFAULT),
 ENV+FILE_NUDGE (the file reports' targets, default FILE_NUDGE_DEFAULT), ENV+POLL_S (seconds between polls of a wait, default 300),
 ENV+WAIT_H (hours a wait lasts, default 24), ENV+CAP_MIN (the split's compute cap, default 840), ENV+RETRY=1 (retry a failed job as
-<id>-r2, then -r3), ENV+FLOOR_GIB (free space kept beyond the file's size, default 10); the downloader's settings (download_one.sh).
+<id>-r2, then -r3), ENV+FLOOR_GIB (free space kept beyond the file's size, default 10), ENV+WORKERS (files worked on at once, default
+WORKERS; the --test modes use 1); the downloader's settings (download_one.sh).
+The screen (the user, 2026-11-27: "I need a stable UI refresh itself, not keep on outputing"): on a terminal one dashboard for the whole
+split, redrawn in place every 5 s and when a file changes state, and nothing else is printed until the end lines; the downloads report to
+it (download_one.sh with DL_STATUS) and draw no frame of their own. Every line of the run goes to <run folder>/pipeline.log. Piped, the
+lines are printed as they come and a frame every 30 s.
 Exit status: 0 the split is DONE (or PAUSED after the pilot file) and the nudge was delivered; 1 stopped or failed, or the split ended
 with failed files ('DONE, <n> file(s) failed: <ids>') (report written, nudge sent), or the nudge reached no target; 2 wrong usage, or a
 pinned tool changed; 3 another copy is running, or the downloader's own 3; 4 the split may not start (the gates); 5 a wait reached its
@@ -33,14 +38,17 @@ limit (ENV+WAIT_H hours): disk space before a file, or the manager's acceptance 
 nudge; a rerun resumes). Tests only: pipe.py --test fail|partial|pilot|disk|cap|error|sleep (a made-up file
 list, job ids TEST_PREFIX-...), and the setting TESTENV+TEST_ROOT=<folder> with a split named tst<anything> (list
 <folder>/files-<split>.tsv, downloads under <folder>/downloads, job ids TEST_PREFIX-<split>-..., outputs under runs/<ST>/pipeline-test/;
-no gates); with it TESTENV+FAKE=1 (made-up files, no download, no END_JOBS and no facts) and TESTENV+SEND=<path> (another bridge
-script). The TESTENV settings are read only in a sandbox run.
+no gates); with it TESTENV+FAKE=1 (made-up files, no download, no END_JOBS and no facts), TESTENV+SEND=<path> (another bridge
+script) and TESTENV+JOB_S=<seconds> (each file's jobs are the first of JOBS and a wait of that many seconds, so that a capture of the
+screen shows files processing at once, as in a real run whose jobs take minutes). The TESTENV settings are read only in a sandbox run.
 Deletions: a file that passed every job is KEPT (its source, its .part files and its TEMP_OUTPUTS stay) until the manager has put its
 8-character id in runs/<ST>/<split>/accepted-files.tsv. Only then, in a deletion pass (at the start of each file, in each poll of a
 wait, and at the end of the split), the script deletes that file's source, its .part files and its TEMP_OUTPUTS, each by its full path,
 each logged in runs/<ST>/<split>/deletions.tsv before it is removed. Never while runs/<ST>/HOLD exists. Nothing else is deleted or
 moved, except a retry's partial output (the outputs of a JOBS entry), which is renamed *.failed-N, and the lock folder at the end."""
+import collections
 import datetime
+import fcntl
 import glob
 import hashlib
 import json
@@ -49,6 +57,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import threading
 import time
 import traceback
 
@@ -81,6 +90,9 @@ JOB_MEM_MB = 6000                     # e7: 6000       the logger's --mem
 DL_CONTEXT = "PROJECT_DL_CONTEXT"     # e7: none (added with the merged screen): the setting that hands each download its --context
 GROUP_NAMES = {}                      # the dataset of each record, {"recid": "name"}, for the STEP and GROUPS rows and the bridge lines
                                       #   (e7's records: {"30510": "MuOnia2016G", "30543": "MuOnia2016H", "73733": "Y2S-MC-UL16"})
+TITLE = "PROJECT pipeline"            # e7: "E7 pipeline"  -> the dashboard's title "E7 pipeline <split>  |  HH:MM:SS  |  elapsed ...  |  time-out 300 s"
+WORKERS = 4                           # files worked on at once (ENV+WORKERS); e7 worked on one at a time. The pilot file runs alone
+DL_STATUS = "PROJECT_DL_STATUS_FILE"  # the setting that tells each download where to report its state for the dashboard (download_one.sh)
 
 # ---- the project's work (e7's own jobs are named in the comments)
 # JOBS: the jobs of one file after its download, in order; each must exit 0 (a failed job fails the file; its source stays).
@@ -114,6 +126,7 @@ BY = "%s all-in-one script" % ST.lower()
 RUNS = "runs/%s" % ST
 PILOT_NAME = "%s-pilot" % SPLITS[0]
 MAXW = 99
+DL_TIMEOUT = 300                      # the downloader's read time-out (fetch_dst.py --read-timeout), shown until a download reports its own
 NUDGE_TAIL = "now carry out %s/handover-split.md" % RUNS
 FILE_TAIL = "now carry out %s/handover-file.md" % RUNS
 SEND_TIMEOUT = 180
@@ -161,6 +174,34 @@ def human(n):
     return "%d B" % int(n)
 
 
+def clock(seconds):
+    seconds = int(max(0, seconds))
+    return "%02d:%02d:%02d" % (seconds // 3600, seconds % 3600 // 60, seconds % 60)
+
+
+def bar(fraction, width):
+    fraction = max(0.0, min(1.0, fraction))
+    filled = int(fraction * width + 0.5)
+    return "\u2588" * filled + "\u2591" * (width - filled)
+
+
+def rate_text(value):
+    if value is None:
+        return "measuring"
+    if value >= 1 << 20:
+        return "%.2f MB/s" % (value / (1 << 20))
+    return "%.0f KB/s" % (value / 1024.0)
+
+
+def limit_rows(rows, m):
+    """At most m lines: the first m-1 rows and "… and N more" when the rows do not fit."""
+    if m <= 0:
+        return []
+    if len(rows) <= m:
+        return rows
+    return rows[:m - 1] + ["  \u2026 and %d more" % (len(rows) - (m - 1))]
+
+
 def wrap_text(text, cols, indent="  "):
     """e6's: the lines of text, none longer than cols - 1 characters (a long word, such as a path, is broken)."""
     import textwrap
@@ -186,10 +227,15 @@ def read_log():
     if not os.path.exists(P("runs/log.jsonl")):
         return recs
     with open(P("runs/log.jsonl"), encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                recs.append(json.loads(line))
+        fcntl.flock(f, fcntl.LOCK_SH)
+        try:
+            text = f.read()
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+    for line in text.split("\n"):
+        line = line.strip()
+        if line:
+            recs.append(json.loads(line))
     return recs
 
 
@@ -250,6 +296,14 @@ def gate_problem(split):
     return None
 
 
+def sandbox_jobs(secs):
+    """A sandbox capture of a run whose jobs take a while (TESTENV+JOB_S): each file's jobs are the first of JOBS (the independent
+    check) and a wait of secs seconds."""
+    global JOBS
+    secs = max(0.0, secs)
+    JOBS = JOBS[:1] + [("S9", "wait", int(2 * secs) + 60, ["/bin/sleep", "%g" % secs], [])]
+
+
 class Pipe:
     def __init__(self, split, test=None):
         self.split = split
@@ -281,6 +335,9 @@ class Pipe:
         # test-only settings, read only in a sandbox run: made-up files without a download, and another bridge script
         self.fake = bool(self.test_root and os.environ.get(TESTENV + "FAKE") == "1")
         self.send_path = os.environ.get(TESTENV + "SEND") if (self.test_root or test) and os.environ.get(TESTENV + "SEND") else SEND
+        job_s = os.environ.get(TESTENV + "JOB_S", "") if self.test_root else ""
+        if job_s:
+            sandbox_jobs(float(job_s))
         self.hold_path = ("%s/pipeline-test/HOLD" % RUNS) if (self.test_root or test) else ("%s/HOLD" % RUNS)
         self.tty = sys.stdout.isatty()
         self.interrupted = False
@@ -304,6 +361,33 @@ class Pipe:
         self.moved_group = {}     # the same, per group
         self.wait_limit_hit = False
         self.stop_code = 1
+        # the workers and the dashboard (one frame for the whole split; files worked on at once)
+        self.n_workers = max(1, int(os.environ.get(ENV + "WORKERS", "1" if test else str(WORKERS))))
+        self.mx = threading.RLock()          # files.tsv, nudges.tsv, the counters, the table of files in flight
+        self.dlock = threading.Lock()        # one deletion pass at a time
+        self.space_lock = threading.Lock()   # one space check at a time (a file is admitted with its bytes reserved)
+        self.outlock = threading.Lock()      # standard output and pipeline.log
+        self.tl = threading.local()          # the file a worker thread works on
+        self.flight = {}                     # id -> the file in flight: {"r", "phase", "t0", "status", "job", "jobs", "step", "job_t0"}
+        self.jobs_live = {}                  # job id -> {"stage", "t0", "fid"} of the jobs running now
+        self.children = {}                   # running child process -> whether Ctrl-C is passed on to it
+        self.events = collections.deque(maxlen=3)   # the last stamped lines: the RECENT rows on a terminal
+        self.waits = {}                      # what -> (since, epoch of the next check): the WAITING row
+        self.started = []                    # ids in the order they were started (the STEP row shows the latest)
+        self.dl_last = {}                    # id -> the last state its download reported (DL_STATUS)
+        self.state_mem = {}                  # id -> (status, step): files.tsv, kept in memory for the dashboard
+        self.rows_all = []
+        self.todo_move = 0                   # bytes this run has to download (TO DOWNLOAD (estimate))
+        self.reserved_min = 0.0              # the limits of the jobs running now, in minutes (the compute cap counts them)
+        self.workers_alive = 0
+        self.stop_exc = None                 # the first Stop, Interrupted or error of a worker
+        self.stop_tb = None
+        self.dash_on = False
+        self.dash_t0 = time.monotonic()
+        self.prev_lines = 0
+        self.renderer = None
+        self.render_stop = threading.Event()
+        self.dirty = threading.Event()
 
     # ---------- the split's list and places
     def list_rows(self):
@@ -326,15 +410,50 @@ class Pipe:
             return max(20, min(MAXW, shutil.get_terminal_size((100, 24)).columns - 1))
         return MAXW
 
+    def log_line(self, s):
+        """One line for <run folder>/pipeline.log (call it with the output lock held)."""
+        try:
+            os.makedirs(P(self.rundir), exist_ok=True)
+            with open(P("%s/pipeline.log" % self.rundir), "a", encoding="utf-8") as g:
+                g.write("%s %s\n" % (now(), s))
+        except OSError:
+            pass
+
     def out(self, s):
-        print(s[:self.width()], flush=True)
+        """A line of the run. It always goes to <run folder>/pipeline.log. On a terminal, while the dashboard owns the screen, nothing is
+        printed: a stamped line shows in the dashboard's RECENT rows. Piped, and before and after the dashboard, the line is printed."""
+        with self.outlock:
+            self.log_line(s)
+            if self.tty and self.dash_on:
+                if s.startswith("["):
+                    self.events.append(s)
+                    self.dirty.set()
+                return
+            print(s[:self.width()], flush=True)
 
     def say6(self, s):
-        """A line that comes from e6 (the stamped WAITING and SUMMARY lines): wrapped on a terminal as e6's say() does, whole when piped."""
-        if self.tty:
-            print("\n".join(w.rstrip() for w in wrap_text(s, shutil.get_terminal_size((100, 24)).columns)), flush=True)
-        else:
-            print(s, flush=True)
+        """A line that comes from e6 (the stamped WAITING and SUMMARY lines): wrapped on a terminal as e6's say() does, whole when piped.
+        While the dashboard owns a terminal it goes to the RECENT rows and the log, like out()."""
+        with self.outlock:
+            self.log_line(s)
+            if self.tty and self.dash_on:
+                self.events.append(s)
+                self.dirty.set()
+                return
+            if self.tty:
+                print("\n".join(w.rstrip() for w in wrap_text(s, shutil.get_terminal_size((100, 24)).columns)), flush=True)
+            else:
+                print(s, flush=True)
+
+    def out_block(self, text):
+        """A download's own lines (its start and end lines): into the log always, printed when piped."""
+        lines = [l for l in text.split("\n") if l.strip()]
+        with self.outlock:
+            for l in lines:
+                self.log_line(l)
+            if not (self.tty and self.dash_on):
+                for l in lines:
+                    print(l[:self.width()], flush=True)
 
     def compute_min(self):
         pre = self.jp + "-"
@@ -343,14 +462,288 @@ class Pipe:
     def jline(self, stage, jid, what):
         self.out("%s %s %s | compute %.1f of %g min" % (stage, jid, what, self.compute_min(), self.cap))
 
+    # ---------- the dashboard: one frame for the whole split, redrawn in place
+    def dash_start(self):
+        self.dash_t0 = time.monotonic()
+        with self.outlock:
+            self.dash_on = True
+        self.draw()
+        self.renderer = threading.Thread(target=self.dash_loop, daemon=True)
+        self.renderer.start()
+
+    def dash_loop(self):
+        period = 5.0 if self.tty else 30.0
+        last = time.monotonic()
+        while True:
+            left = max(0.0, period - (time.monotonic() - last))
+            (self.dirty if self.tty else self.render_stop).wait(timeout=left)
+            if self.render_stop.is_set():
+                return
+            gap = time.monotonic() - last
+            if gap < 0.5 and self.render_stop.wait(0.5 - gap):
+                return
+            self.dirty.clear()
+            try:
+                self.draw()
+            except Exception as e:      # the dashboard never stops the run
+                with self.outlock:
+                    self.log_line("dashboard error: %r" % (e,))
+            last = time.monotonic()
+
+    def dash_stop(self):
+        """The last frame stays on the screen; what is printed after it comes below it."""
+        if not self.dash_on:
+            return
+        self.render_stop.set()
+        self.dirty.set()
+        if self.renderer is not None:
+            self.renderer.join(timeout=10)
+        try:
+            self.draw()
+        except Exception as e:
+            with self.outlock:
+                self.log_line("dashboard error: %r" % (e,))
+        with self.outlock:
+            self.dash_on = False
+            self.prev_lines = 0
+
+    def draw(self):
+        lines = self.frame_lines()
+        with self.outlock:
+            if not self.dash_on:
+                return
+            if self.tty:
+                if self.prev_lines:
+                    sys.stdout.write("\033[%dA\033[J" % self.prev_lines)
+                sys.stdout.write("\n".join(lines) + "\n")
+                self.prev_lines = len(lines)
+            else:
+                sys.stdout.write("\n".join(lines) + "\n\n")
+            sys.stdout.flush()
+
+    def read_status(self, fid, path):
+        """The state a download last reported (DL_STATUS), kept for the HEALTH row after the download ended."""
+        try:
+            with open(path, encoding="utf-8") as f:
+                state = json.load(f)
+        except (OSError, ValueError):
+            with self.mx:
+                return self.dl_last.get(fid)
+        with self.mx:
+            self.dl_last[fid] = state
+        return state
+
+    def frame_lines(self):
+        """The dashboard: the download template's rows (README), counted for the whole split, then the files in flight. Every line is
+        cut at the terminal's width minus one; below 100 columns the bars are 10 and 6 characters and the names 14; on a terminal the
+        frame never gets taller than the window (RECENT goes first, then the file rows shrink, then the records and the groups)."""
+        cols, term_rows = shutil.get_terminal_size((100, 40)) if self.tty else (100, 40)
+
+        def cut(text):
+            return text if len(text) < cols else text[:cols - 1]
+
+        narrow = cols < 100
+        rec_bar, file_bar, key_w = (10, 6, 14) if narrow else (20, 16, 20)
+        with self.mx:
+            rows = list(self.rows_all)
+            st = dict(self.state_mem)
+            flight = [(f, dict(i)) for f, i in self.flight.items()]
+            live_jobs = dict(self.jobs_live)
+            waits = dict(self.waits)
+            events = list(self.events)
+            started = list(self.started)
+            alive = self.workers_alive
+            run_done = set(self.run_done)
+            moved_done = self.moved_run
+        size = {r["key"][:8]: int(r["size"]) for r in rows}
+        total = sum(size.values())
+        done_ids = {f for f in size if st.get(f, ("", ""))[0] == "DONE"}
+        failed_ids = {f for f in size if st.get(f, ("", ""))[0].startswith("FAILED")}
+        snaps = {}
+        for f, i in flight:
+            if i.get("phase") == "download" and i.get("status"):
+                state = self.read_status(f, i["status"])
+                if state:
+                    snaps[f] = state
+        with self.mx:
+            history = list(self.dl_last.values())
+        downloading = [(f, i) for f, i in flight if i.get("phase") == "download"]
+        processing = [(f, i) for f, i in flight if i.get("phase") == "jobs"]
+        elapsed = time.monotonic() - self.dash_t0
+        moved = moved_done + sum(int(x.get("moved", 0)) for x in snaps.values())
+        fl_size = sum(size.get(f, 0) for f, _ in flight)
+        fl_got = 0
+        for f, i in flight:
+            if i.get("phase") == "download":
+                fl_got += min(size.get(f, 0), int(snaps[f].get("got", 0))) if f in snaps else 0
+            elif i.get("phase") in ("jobs", "keep"):
+                fl_got += size.get(f, 0)
+        timeout = next((x.get("timeout") for x in history if x.get("timeout")), DL_TIMEOUT)
+        latest = next((r for r in rows if started and r["key"][:8] == started[-1]), None)
+        if latest is None:
+            latest = next((r for r in rows if r["key"][:8] not in done_ids), rows[0] if rows else None)
+        step_no = rows.index(latest) + 1 if latest is not None else 0
+        group = self.group_of(latest) if latest is not None else "-"
+        this_f = fl_got / fl_size if fl_size else 0.0
+        done_b = sum(size[f] for f in done_ids)
+        tot_f = done_b / total if total else 0.0
+        now_rate = sum(float(x.get("rate") or 0.0) for x in snaps.values())
+        avg = moved / elapsed if elapsed > 0 else 0.0
+        run_b = sum(size.get(f, 0) for f in run_done)
+        rem_b = sum(b for f, b in size.items() if f not in done_ids and f not in failed_ids)
+        if rem_b == 0:
+            eta = clock(0)
+        elif run_b > 0 and elapsed > 0:
+            eta = clock(rem_b / (run_b / elapsed))
+        else:
+            eta = "unknown"
+        live = sum(int(x.get("live", 0)) for x in snaps.values())
+        stalled = sum(int(x.get("stalled", 0)) for x in snaps.values())
+        errs = sorted((x.get("t", 0), x.get("last_error", "")) for x in history if x.get("last_error"))
+        lasterr = errs[-1][1] if errs else ""
+        netdown = any(x.get("net_down") for x in snaps.values())
+        head = [
+            cut("%s %s  |  %s  |  elapsed %s  |  %d workers  |  time-out %g s" % (
+                TITLE, self.split, time.strftime("%H:%M:%S"), clock(elapsed), self.n_workers, timeout)),
+            cut("STEP     %d of %d  group %s  |  downloading %d, processing %d, finished %d of %d files" % (
+                step_no, len(rows), group, len(downloading), len(processing), len(done_ids), len(rows))),
+            cut("THIS STEP %s %5.1f%%  moved %s of %s" % (bar(this_f, 20), this_f * 100, human(fl_got), human(fl_size))),
+            cut("TO DOWNLOAD (estimate)  %s in all   moved %s" % (human(self.todo_move), human(moved))),
+            cut("TOTAL    %s %5.1f%%   %s / %s" % (bar(tot_f, 30), tot_f * 100, human(done_b), human(total))),
+            cut("FILES    %d/%d complete   %d downloading   %d workers alive" % (len(done_ids), len(rows), len(downloading), alive)),
+            cut("SPEED    now %s   average %s   ETA %s" % (rate_text(now_rate), rate_text(avg), eta)),
+            cut("LINKS    %d connections open   %s each   %d stalled right now" % (live, rate_text(now_rate / live) if live else "-", stalled)),
+            cut("HEALTH   failed attempts %d   stalls dropped %d   certificate events %d%s%s" % (
+                sum(int(x.get("retries", 0)) for x in history), sum(int(x.get("stalls", 0)) for x in history),
+                sum(int(x.get("cert", 0)) for x in history), ("   LASTERR " + lasterr[:60]) if lasterr else "",
+                "   NETWORK DOWN? waiting, retrying" if netdown else "")),
+        ]
+        for what, (since, nxt) in waits.items():
+            head.append(cut("WAITING  %s  since %s  next check in %d s" % (what, since, max(0, int(nxt - time.time() + 0.999)))))
+        order, gi = [], {}
+        for r in rows:
+            g = self.group_of(r)
+            if g not in gi:
+                gi[g] = [0, 0, 0, 0]
+                order.append(g)
+            x = gi[g]
+            x[1] += 1
+            x[3] += int(r["size"])
+            if r["key"][:8] in done_ids:
+                x[0] += 1
+                x[2] += int(r["size"])
+        gw = max([4] + [len(g) for g in order])
+        g_rows = []
+        for g in order:
+            d, n, db, tb = gi[g]
+            gf = db / tb if tb else (1.0 if d == n else 0.0)
+            g_rows.append(cut("  %-*s %s %5.1f%%  %3d/%-3d files  %s / %s" % (gw, g, bar(gf, rec_bar), gf * 100, d, n, human(db), human(tb))))
+        recs, rorder = {}, []
+        for r in rows:
+            if r["recid"] not in recs:
+                recs[r["recid"]] = []
+                rorder.append(r["recid"])
+            recs[r["recid"]].append(r)
+        r_rows = []
+        for recid in rorder:
+            rr = recs[recid]
+            d = sum(1 for x in rr if x["key"][:8] in done_ids)
+            tb = sum(int(x["size"]) for x in rr)
+            db = sum(int(x["size"]) for x in rr if x["key"][:8] in done_ids)
+            rf = db / tb if tb else 0.0
+            r_rows.append(cut("  %s %-11s %s %5.1f%%   %3d/%-3d files   %s / %s" % (
+                recid, GROUP_NAMES.get(recid, ""), bar(rf, rec_bar), rf * 100, d, len(rr), human(db), human(tb))))
+        dls = []
+        for f, i in downloading:
+            r = i["r"]
+            sz = int(r["size"])
+            got, rate, note, kind = 0, None, "connecting", ""
+            state = snaps.get(f)
+            if state and state.get("rows"):
+                x = state["rows"][0]
+                got, sz, rate, note, kind = int(x.get("got", 0)), int(x.get("size", sz)) or sz, x.get("rate"), x.get("note", ""), x.get("kind", "")
+            elif state:
+                got, note = min(sz, int(state.get("got", 0))), "checking"
+            dls.append((got / sz if sz else 0.0, r, got, sz, rate, note, kind))
+        dls.sort(key=lambda t: -t[0])
+        dl_rows = []
+        for frac, r, got, sz, rate, note, kind in dls:
+            key = r["key"]
+            short = key if len(key) <= key_w else "\u2026" + key[-(key_w - 1):]
+            if note:
+                speed = note
+            elif rate is None:
+                speed = "measuring"
+            elif rate > 0:
+                speed = "%s  ETA %s" % (rate_text(rate), clock((sz - got) / rate))
+            else:
+                speed = "no data right now (will resume)"
+            dl_rows.append(cut("  %s %-*s %s %3.0f%%  %s / %s  %s" % (
+                r["recid"], key_w, short, bar(frac, file_bar), frac * 100, human(got).rjust(0 if narrow else 9),
+                human(sz).ljust(0 if narrow else 9), speed + {"fail": "  retrying", "cert": "  waiting (certificate)"}.get(kind, ""))))
+        nowt = time.time()
+        prs = []
+        for f, i in processing:
+            r = i["r"]
+            jobs = max(1, i.get("jobs", 1))
+            j = min(jobs, max(1, i.get("job", 1)))
+            prs.append((nowt - (i.get("job_t0") or i.get("t0") or nowt), r, (j - 1) / float(jobs), j, jobs, i.get("step", "")))
+        ends = [(nowt - v["t0"], jid) for jid, v in live_jobs.items() if v.get("fid") is None]
+        prs.sort(key=lambda t: -t[0])
+        pr_rows = []
+        for secs, r, frac, j, jobs, step in prs:
+            key = r["key"]
+            short = key if len(key) <= key_w else "\u2026" + key[-(key_w - 1):]
+            pr_rows.append(cut("  %s %-*s %s %3.0f%%  job %d of %d  %s running %d s" % (
+                r["recid"], key_w, short, bar(frac, file_bar), frac * 100, j, jobs, step, secs)))
+        for secs, jid in sorted(ends, reverse=True):
+            pr_rows.append(cut("  %s running %d s   (the end of the split)" % (jid, secs)))
+        recent = (["", "RECENT"] + [cut("  " + e) for e in events]) if events else []
+        bottom = ["", cut("Ctrl-C stops cleanly; rerun resumes   |   log: %s/pipeline.log" % self.rundir)]
+
+        def assemble(gr, rc, dn, pn, rec):
+            n_dl = sum(1 for x in dn if not x.startswith("  \u2026"))
+            n_pr = sum(1 for x in pn if not x.startswith("  \u2026"))
+            return (head + ["", "GROUPS (done / total)"] + gr + ["", "RECORDS"] + rc
+                    + ["", "DOWNLOADING NOW (showing %d of %d, nearest to done first)" % (n_dl, len(dl_rows))] + dn
+                    + ["", "PROCESSING NOW (showing %d of %d, longest running first)" % (n_pr, len(pr_rows))] + pn + rec + bottom)
+
+        lines = assemble(g_rows, r_rows, dl_rows, pr_rows, recent)
+        if not self.tty:
+            return lines
+        avail = max(1, term_rows - 1)
+        if len(lines) > avail:
+            recent = []
+            lines = assemble(g_rows, r_rows, dl_rows, pr_rows, recent)
+        over = len(lines) - avail
+        m_dn, m_pn = len(dl_rows), len(pr_rows)
+        while over > 0 and (m_dn > 1 or m_pn > 1):
+            if m_dn >= m_pn and m_dn > 1:
+                m_dn -= 1
+            else:
+                m_pn -= 1
+            over -= 1
+        m_rc, m_gr = len(r_rows), len(g_rows)
+        while over > 0 and (m_rc > 1 or m_gr > 1):
+            if m_rc >= m_gr and m_rc > 1:
+                m_rc -= 1
+            else:
+                m_gr -= 1
+            over -= 1
+        lines = assemble(limit_rows(g_rows, m_gr), limit_rows(r_rows, m_rc), limit_rows(dl_rows, m_dn), limit_rows(pr_rows, m_pn), recent)
+        return lines[:avail]
+
     def on_sigint(self, signum, frame):
         self.interrupted = True
         self.sigint_time = time.time()
-        if self.child is not None and self.child_forward and self.child.poll() is None:
-            try:
-                os.kill(self.child.pid, signal.SIGINT)
-            except OSError:
-                pass
+        with self.mx:
+            kids = list(self.children.items())
+        for child, forward in kids:
+            if forward and child.poll() is None:
+                try:
+                    os.kill(child.pid, signal.SIGINT)
+                except OSError:
+                    pass
 
     # ---------- lock
     def take_lock(self):
@@ -425,24 +818,29 @@ class Pipe:
         argv += ["--"] + cmd
         self.jline(stage, jid, "start (limit %d s)" % limit)
         t0 = time.time()
-        self.child = subprocess.Popen(argv, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        step = 5.0 if self.tty else 60.0
-        nxt = t0 + step
-        while self.child.poll() is None:
-            time.sleep(0.2)
-            if time.time() >= nxt:
-                nxt += step
-                w = self.width()
-                line = ("%s %s running %d s | compute %.1f of %g min" % (stage, jid, time.time() - t0, self.compute_min(), self.cap))[:w]
-                if self.tty:
-                    sys.stdout.write("\r" + line.ljust(w))
-                    sys.stdout.flush()
-                else:
-                    print(line, flush=True)
-        txt = self.child.stdout.read()
-        self.child = None
-        if self.tty:
-            sys.stdout.write("\r" + " " * self.width() + "\r")
+        fid = getattr(self.tl, "fid", None)
+        base = jid[:-3] if jid[-3:] in ("-r2", "-r3") else jid
+        child = subprocess.Popen(argv, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        with self.mx:
+            self.children[child] = True
+            self.jobs_live[jid] = {"stage": stage, "t0": t0, "fid": fid}
+            if fid in self.flight:
+                fl = self.flight[fid]
+                fl["phase"], fl["job"], fl["step"], fl["job_t0"] = "jobs", fl.get("job", 0) + 1, base.rsplit("-", 1)[-1], t0
+            self.dirty.set()
+        nxt = t0 + 60.0
+        try:
+            while child.poll() is None:
+                time.sleep(0.2)
+                if not self.tty and time.time() >= nxt:
+                    nxt += 60.0
+                    self.out("%s %s running %d s | compute %.1f of %g min" % (stage, jid, time.time() - t0, self.compute_min(), self.cap))
+            txt = child.stdout.read()
+        finally:
+            with self.mx:
+                self.children.pop(child, None)
+                self.jobs_live.pop(jid, None)
+                self.dirty.set()
         rec = None
         for r in read_log():
             if r["step"] == ST and r["id"] == jid:
@@ -494,11 +892,17 @@ class Pipe:
             else:
                 sfx = ""
             jid = base + sfx
-            if self.compute_min() + limit / 60.0 > self.cap:
-                return "nocap", jid, sfx
-            if prepare and sfx:
-                prepare(sfx)
-            outcome = self.run_logger(stage, jid, limit, cmdf(sfx))
+            with self.mx:
+                if self.compute_min() + self.reserved_min + limit / 60.0 > self.cap:
+                    return "nocap", jid, sfx
+                self.reserved_min += limit / 60.0
+            try:
+                if prepare and sfx:
+                    prepare(sfx)
+                outcome = self.run_logger(stage, jid, limit, cmdf(sfx))
+            finally:
+                with self.mx:
+                    self.reserved_min -= limit / 60.0
             if outcome == "exit 0":
                 return "ok", jid, sfx
             if not self.retry and outcome != "interrupted":
@@ -524,12 +928,15 @@ class Pipe:
         return st
 
     def record_file(self, fid, status, step=""):
-        os.makedirs(P(self.rundir), exist_ok=True)
-        new = not os.path.exists(P(self.files_path()))
-        with open(P(self.files_path()), "a", encoding="utf-8") as g:
-            if new:
-                g.write("id\tstatus\tstep\tutc\n")
-            g.write("%s\t%s\t%s\t%s\n" % (fid, status, step, now()))
+        with self.mx:
+            os.makedirs(P(self.rundir), exist_ok=True)
+            new = not os.path.exists(P(self.files_path()))
+            with open(P(self.files_path()), "a", encoding="utf-8") as g:
+                if new:
+                    g.write("id\tstatus\tstep\tutc\n")
+                g.write("%s\t%s\t%s\t%s\n" % (fid, status, step, now()))
+            self.state_mem[fid] = (status, step)
+            self.dirty.set()
 
     # ---------- keeping, acceptance, hold, bridge
     def q(self, path):
@@ -641,13 +1048,14 @@ class Pipe:
                 ok = False
                 res = "failed (%s: %s)" % (type(e).__name__, str(e)[:100])
                 result = "target '%s' failed (%s: %s)" % (t, type(e).__name__, str(e)[:100])
-            os.makedirs(P(self.rundir), exist_ok=True)
-            npath = P("%s/nudges.tsv" % self.rundir)
-            new = not os.path.exists(npath)
-            with open(npath, "a", encoding="utf-8") as g:
-                if new:
-                    g.write("utc\tkind\tid\ttarget\tresult\n")
-                g.write("%s\t%s\t%s\t%s\t%s\n" % (now(), kind, fid, t, res.replace("\t", " ").replace("\n", " ")))
+            with self.mx:
+                os.makedirs(P(self.rundir), exist_ok=True)
+                npath = P("%s/nudges.tsv" % self.rundir)
+                new = not os.path.exists(npath)
+                with open(npath, "a", encoding="utf-8") as g:
+                    if new:
+                        g.write("utc\tkind\tid\ttarget\tresult\n")
+                    g.write("%s\t%s\t%s\t%s\t%s\n" % (now(), kind, fid, t, res.replace("\t", " ").replace("\n", " ")))
             results.append(result)
             if ok:
                 if not every:
@@ -676,22 +1084,25 @@ class Pipe:
         return ok
 
     def deletion_pass(self, rows=None):
-        """Delete, in the list's order, each DONE, kept and accepted file. Never under the hold."""
-        self.check_hold()
-        rows = rows or self.list_rows()
-        acc = self.accepted_files(rows)
-        st = self.file_states()
-        for r in rows:
-            fid = r["key"][:8]
-            if fid not in acc or st.get(fid, ("", ""))[0] != "DONE" or not self.is_kept(r):
-                continue
-            src, dest, temps = self.paths_of(r)
-            sums = "%s/%s/SHA256SUMS" % (dest, r["recid"])
-            if not os.path.exists(P(sums)):
-                self.notes.append("%s: accepted, but %s is missing: nothing deleted" % (fid, sums))
-                continue
+        """Delete, in the list's order, each DONE, kept and accepted file. Never under the hold. One pass at a time."""
+        with self.dlock:
             self.check_hold()
-            self.delete_file(fid, src, dest, temps, sums)
+            rows = rows or self.list_rows()
+            acc = self.accepted_files(rows)
+            st = self.file_states()
+            for r in rows:
+                fid = r["key"][:8]
+                if fid not in acc or st.get(fid, ("", ""))[0] != "DONE" or not self.is_kept(r):
+                    continue
+                src, dest, temps = self.paths_of(r)
+                sums = "%s/%s/SHA256SUMS" % (dest, r["recid"])
+                if not os.path.exists(P(sums)):
+                    note = "%s: accepted, but %s is missing: nothing deleted" % (fid, sums)
+                    if note not in self.notes:
+                        self.notes.append(note)
+                    continue
+                self.check_hold()
+                self.delete_file(fid, src, dest, temps, sums)
 
     def wait_start(self, kind, fid, what, why):
         """The start of a wait (e6): one stamped line on the screen and one bridge line to the manager."""
@@ -701,8 +1112,25 @@ class Pipe:
         self.bridge_send(kind, fid, self.file_targets, msg)
 
     def wait_poll(self, secs, what, since):
-        """One poll of a wait, with e6's WAITING row: rewritten in place every 5 s on a terminal, printed once when piped."""
+        """One poll of a wait, with e6's WAITING row: drawn by the dashboard on a terminal, printed once when piped."""
         end = time.time() + secs
+        if self.tty and self.dash_on:
+            with self.mx:
+                self.waits[what] = (since, end)
+                self.dirty.set()
+            try:
+                while True:
+                    if self.interrupted:
+                        raise Interrupted()
+                    left = end - time.time()
+                    if left <= 0:
+                        break
+                    time.sleep(min(0.2, left))
+            finally:
+                with self.mx:
+                    self.waits.pop(what, None)
+                    self.dirty.set()
+            return
         nxt = None
         while True:
             if self.interrupted:
@@ -724,13 +1152,34 @@ class Pipe:
             sys.stdout.write("\r" + " " * self.width() + "\r")
             sys.stdout.flush()
 
+    def reserved_gib(self, except_fid):
+        """The bytes still to come of the other files admitted for download (they will take the space)."""
+        with self.mx:
+            fl = [i["r"] for f, i in self.flight.items() if f != except_fid and i.get("phase") == "download"]
+        return sum(max(0, int(r["size"]) - self.on_disk(r)) for r in fl) / float(1 << 30)
+
     def wait_for_space(self, fid, size):
-        """The space check before a download, with a wait for the manager's acceptances (they free the space)."""
+        """The space check before a download, with a wait for the manager's acceptances (they free the space). With several workers the
+        check counts the bytes still to come of the files admitted before, and one check runs at a time."""
         need = size / float(1 << 30) + self.floor
-        if self.free_gib() >= need:
+
+        def free():
+            return self.free_gib() - self.reserved_gib(fid)
+
+        def admit():
+            with self.space_lock:
+                if free() >= need:
+                    with self.mx:
+                        if fid in self.flight:
+                            self.flight[fid]["phase"] = "download"
+                        self.dirty.set()
+                    return True
+            return False
+
+        if admit():
             return
         what = "disk space before %s" % fid
-        self.wait_start("disk-wait", fid, what, "free %.1f GiB, need %.1f GiB" % (self.free_gib(), need))
+        self.wait_start("disk-wait", fid, what, "free %.1f GiB, need %.1f GiB" % (free(), need))
         since = time.strftime("%H:%M:%S")
         deadline = time.time() + self.wait_h * 3600.0
         while True:
@@ -739,7 +1188,7 @@ class Pipe:
             self.wait_poll(min(self.poll_s, max(0.0, deadline - time.time())), what, since)
             self.check_hold()
             self.deletion_pass()
-            if self.free_gib() >= need:
+            if admit():
                 return
 
     def end_wait(self):
@@ -771,23 +1220,48 @@ class Pipe:
         return shutil.disk_usage(probe).free / float(1 << 30)
 
     def download(self, fid, r, lst, dest, ctx=None):
-        self.child_forward = False
+        """One file's download (download_one.sh). It reports its state to <run folder>/<id>/download-status.json for the dashboard and
+        draws no frame; its own lines (start and end) go to <run folder>/<id>/download-screen.log, and are printed after it when piped.
+        Ctrl-C reaches it from the terminal; if it still runs 3 s later, the script passes it on."""
         env = dict(os.environ)
         if ctx:
             env[DL_CONTEXT] = P(ctx)
-        self.child = subprocess.Popen([DOWNLOADER, lst, dest], cwd=ROOT, env=env)
-        forwarded = False
-        while self.child.poll() is None:
-            time.sleep(0.2)
-            if self.interrupted and not forwarded and time.time() - self.sigint_time > 3.0:
-                forwarded = True
-                try:
-                    os.kill(self.child.pid, signal.SIGINT)
-                except OSError:
-                    pass
-        rc = self.child.returncode
-        self.child = None
-        self.child_forward = True
+        status = P("%s/%s/download-status.json" % (self.rundir, fid))
+        env[DL_STATUS] = status
+        logp = P("%s/%s/download-screen.log" % (self.rundir, fid))
+        os.makedirs(os.path.dirname(logp), exist_ok=True)
+        try:
+            os.remove(status)
+        except OSError:
+            pass
+        with self.mx:
+            if fid in self.flight:
+                self.flight[fid]["phase"], self.flight[fid]["status"] = "download", status
+            self.dirty.set()
+        with open(logp, "w", encoding="utf-8") as lf:
+            child = subprocess.Popen([DOWNLOADER, lst, dest], cwd=ROOT, env=env, stdout=lf, stderr=subprocess.STDOUT)
+            with self.mx:
+                self.children[child] = False
+            forwarded = False
+            try:
+                while child.poll() is None:
+                    time.sleep(0.2)
+                    if self.interrupted and not forwarded and time.time() - self.sigint_time > 3.0:
+                        forwarded = True
+                        try:
+                            os.kill(child.pid, signal.SIGINT)
+                        except OSError:
+                            pass
+            finally:
+                with self.mx:
+                    self.children.pop(child, None)
+        rc = child.returncode
+        self.read_status(fid, status)
+        try:
+            with open(logp, encoding="utf-8", errors="replace") as lf:
+                self.out_block(lf.read())
+        except OSError:
+            pass
         if self.interrupted or rc == 130:
             raise Interrupted()
         return rc
@@ -803,6 +1277,9 @@ class Pipe:
         dest = self.dl_dir(fid)
         src = "%s/%s/%s" % (dest, recid, key)
         J = lambda step: self.jid(fid, step)
+        with self.mx:
+            if fid in self.flight:
+                self.flight[fid]["jobs"] = len(JOBS)
         if JOBS:
             last_att = self.attempts(J(JOBS[-1][1]))
             if last_att and last_att[-1][1] and last_att[-1][1]["outcome"] == "exit 0":
@@ -822,8 +1299,9 @@ class Pipe:
             rc = self.download(fid, r, lst, dest, ctx)
         finally:
             gained = max(0, self.on_disk(r) - before)
-            self.moved_run += gained
-            self.moved_group[self.group_of(r)] = self.moved_group.get(self.group_of(r), 0) + gained
+            with self.mx:
+                self.moved_run += gained
+                self.moved_group[self.group_of(r)] = self.moved_group.get(self.group_of(r), 0) + gained
         if rc == 3:
             raise Stop("STOPPED at %s (download exit 3: disk space, or another download uses the folder)" % fid)
         if rc == 2:
@@ -885,47 +1363,126 @@ class Pipe:
         return [i for i, (s, _) in self.file_states().items() if s.startswith("FAILED") and i != except_id]
 
     def process_files(self):
+        """The split's files, in the list's order, by ENV+WORKERS worker threads (the pilot file runs alone). A worker checks the gates
+        before each file (the pilot pause, 3 failed files, the hold); a Stop, Ctrl-C or an error in one worker stops every worker before
+        its next file, and the first one is raised here when all have ended."""
+        rows = self.rows_all
+        with self.mx:
+            st0 = dict(self.state_mem)
+        queue = []
+        for r in rows:
+            if st0.get(r["key"][:8], ("", ""))[0] == "DONE":
+                self.file_rows.append((r["key"][:8], "DONE (earlier run)", "", ""))
+            else:
+                queue.append(r)
+        n = self.n_workers
+        if self.pilot and PILOT_NAME not in accepted_names():
+            n = 1
+        n = max(1, min(n, len(queue)))
+        self.n_workers = n
+        with self.mx:
+            self.workers_alive = n
+            self.dirty.set()
+        threads = [threading.Thread(target=self.worker, args=(queue,), daemon=True) for _ in range(n)]
+        for t in threads:
+            t.start()
+        while any(t.is_alive() for t in threads):
+            for t in threads:
+                t.join(timeout=0.2)
+        if self.stop_exc is not None:
+            if not isinstance(self.stop_exc, (Stop, Interrupted)) and self.stop_tb:
+                self.traceback_text = self.stop_tb
+            raise self.stop_exc
+        if self.interrupted:
+            raise Interrupted()
+
+    def load_rows(self):
+        """The split's list and its states, read before the dashboard's first frame."""
         rows = self.list_rows()
         st0 = self.file_states()
+        with self.mx:
+            self.rows_all = rows
+            self.state_mem = dict(st0)
         self.run_todo = [r for r in rows if st0.get(r["key"][:8], ("", ""))[0] != "DONE"]
-        for r in rows:
-            fid = r["key"][:8]
-            states = self.file_states()
-            if states.get(fid, ("", ""))[0] == "DONE":
-                self.file_rows.append((fid, "DONE (earlier run)", "", ""))
-                continue
-            if self.pilot and any(s == "DONE" for s, _ in states.values()) and PILOT_NAME not in accepted_names():
-                raise Stop("PAUSED after the pilot file")
-            if len(self.failed_waiting(fid)) >= 3:
-                raise Stop("STOPPED, 3 failed files waiting")
-            if self.interrupted:
-                raise Interrupted()
-            self.check_hold()
-            self.deletion_pass(rows)
-            self.out("file %s (%d of %d)" % (fid, rows.index(r) + 1, len(rows)))
-            try:
-                self.do_test_file(r) if self.test else (self.do_fake_file(r) if self.fake else self.do_file(r))
+        if not (self.test or self.fake):
+            self.todo_move = sum(max(0, int(r["size"]) - self.on_disk(r)) for r in self.run_todo)
+
+    def worker(self, queue):
+        try:
+            while True:
+                with self.mx:
+                    if self.stop_exc is not None or self.interrupted:
+                        return
+                    r = None
+                    while queue:
+                        cand = queue.pop(0)
+                        if self.state_mem.get(cand["key"][:8], ("", ""))[0] != "DONE":
+                            r = cand
+                            break
+                    if r is None:
+                        return
+                    fid = r["key"][:8]
+                    if self.pilot and any(s == "DONE" for s, _ in self.state_mem.values()) and PILOT_NAME not in accepted_names():
+                        raise Stop("PAUSED after the pilot file")
+                    if len(self.failed_waiting(fid)) >= 3:
+                        raise Stop("STOPPED, 3 failed files waiting")
+                    self.check_hold()
+                    self.flight[fid] = {"r": r, "phase": "start", "t0": time.time(), "job": 0, "jobs": len(JOBS)}
+                    self.started.append(fid)
+                    self.dirty.set()
+                self.tl.fid = fid
+                try:
+                    self.deletion_pass(self.rows_all)
+                    self.out("file %s (%d of %d)" % (fid, self.rows_all.index(r) + 1, len(self.rows_all)))
+                    self.one_file(r, fid)
+                finally:
+                    self.tl.fid = None
+                    with self.mx:
+                        self.flight.pop(fid, None)
+                        self.dirty.set()
+        except (Stop, Interrupted) as e:
+            with self.mx:
+                if self.stop_exc is None or (isinstance(e, Interrupted) and not isinstance(self.stop_exc, Interrupted)):
+                    self.stop_exc = e
+        except Exception as e:
+            with self.mx:
+                if self.stop_exc is None:
+                    self.stop_exc, self.stop_tb = e, traceback.format_exc()
+        finally:
+            with self.mx:
+                self.workers_alive -= 1
+                self.dirty.set()
+
+    def one_file(self, r, fid):
+        try:
+            self.do_test_file(r) if self.test else (self.do_fake_file(r) if self.fake else self.do_file(r))
+            with self.mx:
                 self.file_rows.append((fid, "DONE", "", ""))
                 self.run_done.add(fid)
-                self.file_report(fid, "DONE")
-            except FileFail as e:
-                self.record_file(fid, "FAILED " + e.step, e.step)
+            self.file_report(fid, "DONE")
+        except FileFail as e:
+            self.record_file(fid, "FAILED " + e.step, e.step)
+            with self.mx:
                 self.file_rows.append((fid, "FAILED", e.step, ""))
                 self.run_failed.add(fid)
-                self.out("[%s] file %s FAILED at %s: its source and %s stay" % (now(), fid, e.step, KEPT_WORD))
-                self.file_report(fid, "FAILED", e.step)
-                if self.pilot and PILOT_NAME not in accepted_names():
-                    # before the pilot is accepted, a failed file stops the split at once
-                    raise Stop("STOPPED at the pilot (%s failed at %s)" % (fid, e.step))
-            states = self.file_states()
-            if self.pilot and states.get(fid, ("", ""))[0] == "DONE" and sum(1 for s, _ in states.values() if s == "DONE") == 1 \
-                    and PILOT_NAME not in accepted_names():
-                raise Stop("PAUSED after the pilot file")
+            self.out("[%s] file %s FAILED at %s: its source and %s stay" % (now(), fid, e.step, KEPT_WORD))
+            self.file_report(fid, "FAILED", e.step)
+            if self.pilot and PILOT_NAME not in accepted_names():
+                # before the pilot is accepted, a failed file stops the split at once
+                raise Stop("STOPPED at the pilot (%s failed at %s)" % (fid, e.step))
+        with self.mx:
+            states = dict(self.state_mem)
+        if self.pilot and states.get(fid, ("", ""))[0] == "DONE" and sum(1 for s, _ in states.values() if s == "DONE") == 1 \
+                and PILOT_NAME not in accepted_names():
+            raise Stop("PAUSED after the pilot file")
 
     def do_test_file(self, r):
         """Test mode: made-up steps."""
         fid = r["key"][:8]
         mode = self.test
+        with self.mx:
+            if fid in self.flight:
+                self.flight[fid]["jobs"], self.flight[fid]["phase"] = len(TEST_STEPS), "jobs"
         if self.floor > 1e6 or self.free_gib() < self.floor:
             raise Stop("STOPPED at %s (disk)" % fid)
         if mode == "error" and fid.startswith("T1"):
@@ -945,6 +1502,9 @@ class Pipe:
         dummy temporary and kept outputs. The keep, the file report, the deletion pass and the waits are the real code."""
         fid, key = r["key"][:8], r["key"]
         src, dest, temps = self.paths_of(r)
+        with self.mx:
+            if fid in self.flight:
+                self.flight[fid]["jobs"] = len(FAKE_STEPS)
         self.wait_for_space(fid, int(r["size"]))
         for pth, text in [(src, "dummy source of %s\n" % fid), (src + ".part0", "dummy part\n")] + [(t, "dummy %s of %s\n" % (KEPT_WORD, fid)) for t in temps] \
                 + [(k, "dummy kept output of %s\n" % fid) for k in self.kept_paths(r)]:
@@ -1162,6 +1722,8 @@ class Pipe:
                 print("PREFLIGHT: " + x)
             return 2
         facts_made = False
+        self.load_rows()
+        self.dash_start()
         try:
             self.process_files()
             if not (self.test or self.fake):
@@ -1185,10 +1747,12 @@ class Pipe:
             self.status = s.status
             self.stop_code = s.code
         except Interrupted:
+            self.dash_stop()
             raise
         except Exception as e:
             self.status = ("FAILED: internal error (%s: %s)" % (type(e).__name__, e)).replace("\n", " ")[:160]
-            self.traceback_text = traceback.format_exc()
+            self.traceback_text = self.traceback_text or traceback.format_exc()
+        self.dash_stop()
         if not (self.test or self.fake):
             post = self.pins_ok()
             if post and self.status.startswith("DONE"):

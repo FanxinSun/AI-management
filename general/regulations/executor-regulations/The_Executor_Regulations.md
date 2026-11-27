@@ -162,7 +162,8 @@ standing rules: for Claude Code, `~/.claude/CLAUDE.md`.
       fetches or reads. Do not draw a format and call it the template's.
 26. **A claim carries its check.** Before you write "restored", "matches", "compliant", "passed" or "done", run the
     check that could have shown the opposite, and paste the command and its output: for a script's screen,
-    `general/rules/script-delivery/check_frame.py` on captures at 100 and 80 columns. Without it, write the state as
+    `general/rules/script-delivery/check_frame.py` on captures at 100 and 80 columns, taken on the path the user's
+    run takes (rule 28). Without it, write the state as
     it is: "built, format not compared".
 27. **Only a script sends a script's lines, and only the user's run counts.** Never type a `[PIPELINE …]` line. Pass
     on what a script reported in your own sentence, and name the file you read. After an edit to a pinned tool, what
@@ -177,6 +178,10 @@ standing rules: for Claude Code, `~/.claude/CLAUDE.md`.
       not run.
     - A tool that fails a correct result does the same harm as a false claim: the next session "repairs" what was
       right.
+    - A check covers the path the user's run takes: the wrapper the user runs, a terminal as well as a pipe, more
+      files than workers, the data already on disk when the user's is, and jobs that take a while. A check that never
+      took that path proves nothing about it (the user, 2026-11-27: "the format is not good as expected. It keeps
+      jumping").
 29. **An acknowledgment covers every file it stands for.** Read, whole, each file that
     `general/rules/mandatory-repo-read/ack-rules.sh --needs <session_id>` lists. The list comes from that command,
     never from a nudge. For agy and Codex the script looks in the session's own log, and it refuses while a file is
@@ -369,6 +374,7 @@ These are suggestions from the manager's own mistakes. Several executor failures
       describes, tested at the edges of its range, and run as written, before it is sent out (Part A, rule 28).
     - Say what you did not run.
     - Correct it in the open: commit the correction as a correction, and name the first version's faults.
+    - A check that never took the path the user's run takes proves nothing about that path (Part A, rule 28).
 31. **A notice of a rules change names the commit, never a part of the files (found 2026-11-27).**
     - Tell the session that the rules changed, and at which commit. It reads what `ack-rules.sh --needs <its id>`
       lists; an agy session's gate lists them by itself.
@@ -525,6 +531,15 @@ Observed in E1, 5–14 November 2026, on WSL. agy is easier to drive. Codex has 
     condition for an executor's script, and the user rejected that ("your restriction to "only a manager can ..."
     sucks"). Prevention: Part A, rule 25, Part B, rules 29, 32 and 33, and `check_spec.py`'s `HOLD_WITHOUT_USER`,
     which flags the hold line of that notice.
+  - **Failed a fourth time, as the one who built a standard and checked a delivery:** asked at 22:21 to check the e2
+    executor's script, it reported that the format matched the templates. Its captures were a two-file test
+    download, piped and in a terminal, and its checker did not look between frames. The user's run went through a
+    terminal with the 77 shards already on disk. There the pipeline template, which this session had built, did four
+    things: it printed the downloads' and the jobs' lines between frames, so the screen scrolled; `GROUPS` showed the
+    bytes moved in this run (0 B); `RECORDS` showed the one file being downloaded; and it worked on one file at a
+    time. The user at 22:57: "the format is not good as expected. It keeps jumping". Prevention: the pipeline's own
+    dashboard and its workers; `check_frame.py`, which fails a terminal capture that scrolls and a complete capture
+    with no file in flight; and Part A, rule 28, and Part B, rule 30: a check covers the path the user's run takes.
 
 ## The incidents behind the rules
 
@@ -571,3 +586,4 @@ Observed in E1, 5–14 November 2026, on WSL. agy is easier to drive. Codex has 
 | 27 Nov | Claude Code "AI-management" (giving notice); agy "e2 Committee" and "e2 executor" (acknowledging) | A notice of a rules change named two files and asked for the acknowledgment. One session read three of the nine changed files and acknowledged; the other read five whole and four in part, and acknowledged. The acknowledgment of agy and Codex was a declaration that nothing checked. Since then `ack_reads.py` reads the session's own log, and agy's gate lists the unread files and records the acknowledgment by itself | A29, B31, [The Mandatory Repo-Read Rule](../../rules/mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md) |
 | 27 Nov | agy "e2 executor" | Asked by its user at 21:14 for "the correct script", it answered with a page of lessons and three questions, and called itself "frozen" until the user answered and its manager sent a handover. The user answered at 21:23 ("Why do you even ask?", three times); it still built nothing, and sent the job to its manager | A30, A31 |
 | 27 Nov | Claude Code "AI-management" (giving notice) | Its correction notice held the executor "until the Committee's handover" without naming the user's instruction as what lifts the hold, and listed for the user questions that the user's words and the script's design already answered. Both became the executor's grounds for withholding the script | B32, B33, `check_spec.py` `HOLD_WITHOUT_USER` |
+| 27 Nov | Claude Code "AI-management" (building a standard, checking a delivery) | It reported the e2 executor's copy of the pipeline template as matching the format, from captures of a two-file test download; its checker did not look between frames. The user's run, in a terminal with the data on disk, scrolled with the downloads' and jobs' lines, showed `GROUPS` 0 B and `RECORDS` one file, and worked on one file at a time ("It keeps jumping"). The template got one dashboard for the whole split and several files at once; `check_frame.py` now fails a terminal capture that scrolls, and the executor's capture of 22:07 fails it | A28, B30 |

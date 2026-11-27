@@ -1,0 +1,330 @@
+PROJECT pipeline tst1  |  23:31:53  |  elapsed 00:00:00  |  4 workers  |  time-out 300 s
+STEP     1 of 10  group DatasetA  |  downloading 0, processing 0, finished 0 of 10 files
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  24.00 MB in all   moved 0 B
+TOTAL    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0.0%   0 B / 24.00 MB
+FILES    0/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA unknown
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ░░░░░░░░░░░░░░░░░░░░   0.0%    0/5   files  0 B / 13.00 MB
+  DatasetB ░░░░░░░░░░░░░░░░░░░░   0.0%    0/5   files  0 B / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ░░░░░░░░░░░░░░░░░░░░   0.0%     0/5   files   0 B / 13.00 MB
+  81002 DatasetB    ░░░░░░░░░░░░░░░░░░░░   0.0%     0/5   files   0 B / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1/pipeline.log
+
+file AAAA1111 (1 of 10)
+file BBBB2222 (2 of 10)
+file C0000001 (3 of 10)
+file C0000002 (4 of 10)
+download BBBB2222 (3145728 bytes) into /path/to/test/downloads/s1-tst1/BBBB2222
+download AAAA1111 (6291456 bytes) into /path/to/test/downloads/s1-tst1/AAAA1111
+download C0000001 (1048576 bytes) into /path/to/test/downloads/s1-tst1/C0000001
+download C0000002 (2097152 bytes) into /path/to/test/downloads/s1-tst1/C0000002
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/C0000001.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:31:53Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/C0000001
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/C0000001/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 1048576
+ON DISK AT START: 0 files complete, 0 bytes of 1048576
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81001: /path/to/test/downloads/s1-tst1/C0000001/81001/SH
+DOWNLOAD END UTC: 2026-11-27T15:32:00Z
+done 1 of 1 files, 1048576 of 1048576 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-C0000001-verify start (limit 600 s) | compute 0.0 of 840 min
+S2 pt1-tst1-C0000001-verify exit 0 0.1 s | compute 0.0 of 840 min
+S9 pt1-tst1-C0000001-wait start (limit 100 s) | compute 0.0 of 840 min
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/C0000002.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:31:53Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/C0000002
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/C0000002/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 2097152
+ON DISK AT START: 0 files complete, 0 bytes of 2097152
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81002: /path/to/test/downloads/s1-tst1/C0000002/81002/SH
+DOWNLOAD END UTC: 2026-11-27T15:32:07Z
+done 1 of 1 files, 2097152 of 2097152 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-C0000002-verify start (limit 600 s) | compute 0.0 of 840 min
+S2 pt1-tst1-C0000002-verify exit 0 0.1 s | compute 0.0 of 840 min
+S9 pt1-tst1-C0000002-wait start (limit 100 s) | compute 0.0 of 840 min
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/BBBB2222.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:31:53Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/BBBB2222
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/BBBB2222/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 3145728
+ON DISK AT START: 0 files complete, 0 bytes of 3145728
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81002: /path/to/test/downloads/s1-tst1/BBBB2222/81002/SH
+DOWNLOAD END UTC: 2026-11-27T15:32:13Z
+done 1 of 1 files, 3145728 of 3145728 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-BBBB2222-verify start (limit 600 s) | compute 0.0 of 840 min
+S2 pt1-tst1-BBBB2222-verify exit 0 0.1 s | compute 0.0 of 840 min
+S9 pt1-tst1-BBBB2222-wait start (limit 100 s) | compute 0.0 of 840 min
+S9 pt1-tst1-C0000001-wait exit 0 20.0 s | compute 0.3 of 840 min
+[2026-11-27T15:32:20Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+file C0000003 (5 of 10)
+download C0000003 (3145728 bytes) into /path/to/test/downloads/s1-tst1/C0000003
+PROJECT pipeline tst1  |  23:32:23  |  elapsed 00:00:30  |  4 workers  |  time-out 300 s
+STEP     5 of 10  group DatasetA  |  downloading 2, processing 2, finished 1 of 10 files
+THIS STEP ██████████████░░░░░░  68.2%  moved 9.54 MB of 14.00 MB
+TO DOWNLOAD (estimate)  24.00 MB in all   moved 10.54 MB
+TOTAL    █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4.2%   1.00 MB / 24.00 MB
+FILES    1/10 complete   2 downloading   4 workers alive
+SPEED    now 300 KB/s   average 360 KB/s   ETA 00:11:30
+LINKS    2 connections open   150 KB/s each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ██░░░░░░░░░░░░░░░░░░   7.7%    1/5   files  1.00 MB / 13.00 MB
+  DatasetB ░░░░░░░░░░░░░░░░░░░░   0.0%    0/5   files  0 B / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██░░░░░░░░░░░░░░░░░░   7.7%     1/5   files   1.00 MB / 13.00 MB
+  81002 DatasetB    ░░░░░░░░░░░░░░░░░░░░   0.0%     0/5   files   0 B / 11.00 MB
+
+DOWNLOADING NOW (showing 2 of 2, nearest to done first)
+  81001 AAAA1111-a.bin       ███████████░░░░░  71%    4.25 MB / 6.00 MB    150 KB/s  ETA 00:00:11
+  81001 C0000003-c.bin       ██░░░░░░░░░░░░░░  10%  300.00 KB / 3.00 MB    150 KB/s  ETA 00:00:18
+
+PROCESSING NOW (showing 2 of 2, longest running first)
+  81002 C0000002-c.bin       ████████░░░░░░░░  50%  job 2 of 2  wait running 15 s
+  81002 BBBB2222-b.bin       ████████░░░░░░░░  50%  job 2 of 2  wait running 9 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1/pipeline.log
+
+S9 pt1-tst1-C0000002-wait exit 0 20.1 s | compute 0.7 of 840 min
+[2026-11-27T15:32:27Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+file C0000004 (6 of 10)
+download C0000004 (1048576 bytes) into /path/to/test/downloads/s1-tst1/C0000004
+S9 pt1-tst1-BBBB2222-wait exit 0 20.1 s | compute 1.0 of 840 min
+[2026-11-27T15:32:34Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+file C0000005 (7 of 10)
+download C0000005 (2097152 bytes) into /path/to/test/downloads/s1-tst1/C0000005
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/AAAA1111.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:31:53Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/AAAA1111
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/AAAA1111/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 6291456
+ON DISK AT START: 0 files complete, 0 bytes of 6291456
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81001: /path/to/test/downloads/s1-tst1/AAAA1111/81001/SH
+DOWNLOAD END UTC: 2026-11-27T15:32:34Z
+done 1 of 1 files, 6291456 of 6291456 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-AAAA1111-verify start (limit 600 s) | compute 1.0 of 840 min
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/C0000004.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:32:27Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/C0000004
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/C0000004/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 1048576
+ON DISK AT START: 0 files complete, 0 bytes of 1048576
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81002: /path/to/test/downloads/s1-tst1/C0000004/81002/SH
+DOWNLOAD END UTC: 2026-11-27T15:32:34Z
+done 1 of 1 files, 1048576 of 1048576 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-C0000004-verify start (limit 600 s) | compute 1.0 of 840 min
+S2 pt1-tst1-AAAA1111-verify exit 0 0.1 s | compute 1.0 of 840 min
+S9 pt1-tst1-AAAA1111-wait start (limit 100 s) | compute 1.0 of 840 min
+S2 pt1-tst1-C0000004-verify exit 0 0.1 s | compute 1.0 of 840 min
+S9 pt1-tst1-C0000004-wait start (limit 100 s) | compute 1.0 of 840 min
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/C0000003.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:32:20Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/C0000003
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/C0000003/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 3145728
+ON DISK AT START: 0 files complete, 0 bytes of 3145728
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81001: /path/to/test/downloads/s1-tst1/C0000003/81001/SH
+DOWNLOAD END UTC: 2026-11-27T15:32:41Z
+done 1 of 1 files, 3145728 of 3145728 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-C0000003-verify start (limit 600 s) | compute 1.0 of 840 min
+S2 pt1-tst1-C0000003-verify exit 0 0.1 s | compute 1.0 of 840 min
+S9 pt1-tst1-C0000003-wait start (limit 100 s) | compute 1.0 of 840 min
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/C0000005.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:32:34Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/C0000005
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/C0000005/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 2097152
+ON DISK AT START: 0 files complete, 0 bytes of 2097152
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81001: /path/to/test/downloads/s1-tst1/C0000005/81001/SH
+DOWNLOAD END UTC: 2026-11-27T15:32:48Z
+done 1 of 1 files, 2097152 of 2097152 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-C0000005-verify start (limit 600 s) | compute 1.0 of 840 min
+S2 pt1-tst1-C0000005-verify exit 0 0.1 s | compute 1.0 of 840 min
+S9 pt1-tst1-C0000005-wait start (limit 100 s) | compute 1.0 of 840 min
+PROJECT pipeline tst1  |  23:32:53  |  elapsed 00:01:00  |  4 workers  |  time-out 300 s
+STEP     7 of 10  group DatasetA  |  downloading 0, processing 4, finished 3 of 10 files
+THIS STEP ████████████████████ 100.0%  moved 12.00 MB of 12.00 MB
+TO DOWNLOAD (estimate)  24.00 MB in all   moved 18.00 MB
+TOTAL    ████████░░░░░░░░░░░░░░░░░░░░░░  25.0%   6.00 MB / 24.00 MB
+FILES    3/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 307 KB/s   ETA 00:03:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ██░░░░░░░░░░░░░░░░░░   7.7%    1/5   files  1.00 MB / 13.00 MB
+  DatasetB █████████░░░░░░░░░░░  45.5%    2/5   files  5.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██░░░░░░░░░░░░░░░░░░   7.7%     1/5   files   1.00 MB / 13.00 MB
+  81002 DatasetB    █████████░░░░░░░░░░░  45.5%     2/5   files   5.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81001 AAAA1111-a.bin       ████████░░░░░░░░  50%  job 2 of 2  wait running 18 s
+  81002 C0000004-c.bin       ████████░░░░░░░░  50%  job 2 of 2  wait running 18 s
+  81001 C0000003-c.bin       ████████░░░░░░░░  50%  job 2 of 2  wait running 11 s
+  81001 C0000005-c.bin       ████████░░░░░░░░  50%  job 2 of 2  wait running 4 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1/pipeline.log
+
+S9 pt1-tst1-AAAA1111-wait exit 0 20.0 s | compute 1.7 of 840 min
+[2026-11-27T15:32:55Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+S9 pt1-tst1-C0000004-wait exit 0 20.0 s | compute 1.7 of 840 min
+file C0000006 (8 of 10)
+download C0000006 (3145728 bytes) into /path/to/test/downloads/s1-tst1/C0000006
+[2026-11-27T15:32:55Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+file C0000007 (9 of 10)
+download C0000007 (1048576 bytes) into /path/to/test/downloads/s1-tst1/C0000007
+S9 pt1-tst1-C0000003-wait exit 0 20.0 s | compute 2.0 of 840 min
+[2026-11-27T15:33:02Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+file C0000008 (10 of 10)
+download C0000008 (2097152 bytes) into /path/to/test/downloads/s1-tst1/C0000008
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/C0000007.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:32:55Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/C0000007
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/C0000007/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 1048576
+ON DISK AT START: 0 files complete, 0 bytes of 1048576
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81001: /path/to/test/downloads/s1-tst1/C0000007/81001/SH
+DOWNLOAD END UTC: 2026-11-27T15:33:01Z
+done 1 of 1 files, 1048576 of 1048576 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-C0000007-verify start (limit 600 s) | compute 2.0 of 840 min
+S2 pt1-tst1-C0000007-verify exit 0 0.1 s | compute 2.0 of 840 min
+S9 pt1-tst1-C0000007-wait start (limit 100 s) | compute 2.0 of 840 min
+S9 pt1-tst1-C0000005-wait exit 0 20.0 s | compute 2.4 of 840 min
+[2026-11-27T15:33:08Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/C0000006.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:32:55Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/C0000006
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/C0000006/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 3145728
+ON DISK AT START: 0 files complete, 0 bytes of 3145728
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81002: /path/to/test/downloads/s1-tst1/C0000006/81002/SH
+DOWNLOAD END UTC: 2026-11-27T15:33:15Z
+done 1 of 1 files, 3145728 of 3145728 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-C0000006-verify start (limit 600 s) | compute 2.4 of 840 min
+list /path/to/project/runs/S1/pipeline-test/tst1/lists/C0000008.tsv, folder /tmp/fixtur
+DOWNLOAD START UTC: 2026-11-27T15:33:02Z
+DOWNLOAD ROOT: /path/to/test/downloads/s1-tst1/C0000008
+DOWNLOAD LOG: /path/to/test/downloads/s1-tst1/C0000008/download.log
+TOTAL FILES: 1
+TOTAL BYTES: 2097152
+ON DISK AT START: 0 files complete, 0 bytes of 2097152
+WORKERS: 1 (set PROJECT_DL_WORKERS to change); refresh every 30 s
+SHA256SUMS written for record 81002: /path/to/test/downloads/s1-tst1/C0000008/81002/SH
+DOWNLOAD END UTC: 2026-11-27T15:33:15Z
+done 1 of 1 files, 2097152 of 2097152 bytes; exit reason: all files done
+DOWNLOAD COMPLETE
+S2 pt1-tst1-C0000008-verify start (limit 600 s) | compute 2.4 of 840 min
+S2 pt1-tst1-C0000006-verify exit 0 0.1 s | compute 2.4 of 840 min
+S9 pt1-tst1-C0000006-wait start (limit 100 s) | compute 2.4 of 840 min
+S2 pt1-tst1-C0000008-verify exit 0 0.1 s | compute 2.4 of 840 min
+S9 pt1-tst1-C0000008-wait start (limit 100 s) | compute 2.4 of 840 min
+S9 pt1-tst1-C0000007-wait exit 0 20.1 s | compute 2.7 of 840 min
+[2026-11-27T15:33:22Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+PROJECT pipeline tst1  |  23:33:23  |  elapsed 00:01:30  |  4 workers  |  time-out 300 s
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 2, finished 8 of 10 files
+THIS STEP ████████████████████ 100.0%  moved 5.00 MB of 5.00 MB
+TO DOWNLOAD (estimate)  24.00 MB in all   moved 24.00 MB
+TOTAL    ████████████████████████░░░░░░  79.2%   19.00 MB / 24.00 MB
+FILES    8/10 complete   0 downloading   2 workers alive
+SPEED    now 0 KB/s   average 273 KB/s   ETA 00:00:23
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ████████████████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ███████████░░░░░░░░░  54.5%    3/5   files  6.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ████████████████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ███████████░░░░░░░░░  54.5%     3/5   files   6.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 2 of 2, longest running first)
+  81002 C0000006-c.bin       ████████░░░░░░░░  50%  job 2 of 2  wait running 7 s
+  81002 C0000008-c.bin       ████████░░░░░░░░  50%  job 2 of 2  wait running 7 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1/pipeline.log
+
+S9 pt1-tst1-C0000006-wait exit 0 20.0 s | compute 3.0 of 840 min
+[2026-11-27T15:33:36Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+S9 pt1-tst1-C0000008-wait exit 0 20.0 s | compute 3.4 of 840 min
+[2026-11-27T15:33:36Z] file report DONE: delivered to 'PROJECT Committee': sent+enter to /dev/fake-
+[2026-11-27T15:33:36Z] WAITING the manager's acceptance: end of the split
+WAITING  the manager's acceptance  since 23:33:36  next check in 1 s
+WAITING  the manager's acceptance  since 23:33:36  next check in 1 s
+WAITING  the manager's acceptance  since 23:33:36  next check in 1 s
+WAITING  the manager's acceptance  since 23:33:36  next check in 1 s
+PROJECT pipeline tst1  |  23:33:39  |  elapsed 00:01:46  |  4 workers  |  time-out 300 s
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 0, finished 10 of 10 files
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  24.00 MB in all   moved 24.00 MB
+TOTAL    ██████████████████████████████ 100.0%   24.00 MB / 24.00 MB
+FILES    10/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 231 KB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ████████████████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ████████████████████ 100.0%    5/5   files  11.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ████████████████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ████████████████████ 100.0%     5/5   files   11.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1/pipeline.log
+
+[2026-11-27T15:33:39Z] SUMMARY: files finished in this run 10 of 10, failed 0, moved 24.00 MB, kept until accepted 10; DONE, 10 file(s) kept until accepted: AAAA1111, BBBB2222, C0000001, C0000002, C0000003, C0000004, C0000005, C0000006, C0000007, C0000008
+nudge: delivered to 'PROJECT executor': sent+enter to /dev/fake-PRO
+nudge: delivered to 'PROJECT Committee': sent+enter to /dev/fake-PR
+status: DONE, 10 file(s) kept until accepted: AAAA1111, BBBB2222, C0000001, C0000002, C0000003, C00
+report: runs/S1/pipeline-test/tst1/report.md

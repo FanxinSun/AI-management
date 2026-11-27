@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 """A local test server for capturing the screen of a download (The Script Delivery Rule, beside this file).
 
-It makes two test files, writes a file list in the templates' format, and serves the files slowly on 127.0.0.1,
-so that a downloader built from general/templates/download-ui/ draws several frames before it ends. It is a test
-fixture: nothing that a user runs is built from it.
+It makes test files (two, or more with --files), writes a file list in the templates' format, and serves the files
+slowly on 127.0.0.1, so that a downloader built from general/templates/download-ui/ draws several frames before it
+ends. It is a test fixture: nothing that a user runs is built from it.
 
 Usage:
-  frame_test_server.py DIR [--port N] [--kib N] [--magic TEXT]
+  frame_test_server.py DIR [--port N] [--kib N] [--files N] [--magic TEXT]
 
   DIR      a folder that does not exist yet, or is empty. The server writes:
              DIR/www/AAAA1111-a.bin   6291456 bytes, record 81001
              DIR/www/BBBB2222-b.bin   3145728 bytes, record 81002
+             DIR/www/C0000001-c.bin   ... with --files N above 2: N - 2 more files of 1, 2 or 3 MiB, C0000001-c.bin
+                                      to C<N-2, 7 digits>-c.bin, in records 81001 and 81002 by turns
              DIR/files-tst1.tsv       the list: a header line "recid key size adler32 url" (tab-separated), then
                                       one line per file; adler32 is 8 hexadecimal digits
            The list is written as DIR/files-tst1.tsv.partial and renamed when the files are ready and the port is
            open, so the list's presence means that a download can start.
   --port   the port on 127.0.0.1 (default 18765); the list's URLs name it
   --kib    KiB per second on each connection (default 700: the two files take about 9 s and 5 s)
+  --files  how many files the list has, 2 to 999 (default 2); a pipeline capture needs more files than workers
   --magic  the files begin with these characters (for a project whose verify step checks a file's first bytes)
 
 It prints the list's path and one "serving" line, and serves until it is killed (kill <pid>, or Ctrl-C).
@@ -30,6 +33,12 @@ import time
 import zlib
 
 FILES = (("AAAA1111-a.bin", 81001, 6 << 20), ("BBBB2222-b.bin", 81002, 3 << 20))
+
+
+def all_files(n):
+    """The two files, then n - 2 more: C0000001-c.bin, ... of 1, 2 or 3 MiB, in records 81001 and 81002 by turns."""
+    extra = [("C%07d-c.bin" % k, 81001 + (k - 1) % 2, (1 + (k - 1) % 3) << 20) for k in range(1, n - 1)]
+    return list(FILES) + extra
 LIST = "files-tst1.tsv"
 
 
@@ -73,13 +82,13 @@ def handler(www, bytes_per_second):
 
 
 def main(argv):
-    port, kib, magic, paths = 18765, 700, b"", []
+    port, kib, nfiles, magic, paths = 18765, 700, 2, b"", []
     it = iter(argv)
     for arg in it:
         if arg in ("-h", "--help"):
             print(__doc__)
             return 0
-        if arg in ("--port", "--kib"):
+        if arg in ("--port", "--kib", "--files"):
             try:
                 value = int(next(it, ""))
             except ValueError:
@@ -88,7 +97,15 @@ def main(argv):
             if value <= 0:
                 print("%s needs a number above 0" % arg, file=sys.stderr)
                 return 2
-            port, kib = (value, kib) if arg == "--port" else (port, value)
+            if arg == "--files" and not 2 <= value <= 999:
+                print("--files needs a number from 2 to 999", file=sys.stderr)
+                return 2
+            if arg == "--port":
+                port = value
+            elif arg == "--kib":
+                kib = value
+            else:
+                nfiles = value
         elif arg == "--magic":
             magic = next(it, "").encode("utf-8")
         elif arg.startswith("--"):
@@ -111,7 +128,7 @@ def main(argv):
         return 2
     os.makedirs(www)
     rows = ["recid\tkey\tsize\tadler32\turl"]
-    for key, recid, size in FILES:
+    for key, recid, size in all_files(nfiles):
         data = magic + os.urandom(size - len(magic))
         with open(os.path.join(www, key), "wb") as f:
             f.write(data)

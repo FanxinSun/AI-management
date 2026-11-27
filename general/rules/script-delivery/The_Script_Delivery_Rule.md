@@ -31,6 +31,12 @@ script is:
 > your restriction to "only a manager can ..." sucks. Executor is cheaper than manager and they should learn to give
 > out correct scripts
 
+Later that evening the user ran the split built from the templates (22:57 CST):
+
+> the format is not good as expected. It keeps jumping. I need a stable UI refresh itself, not keep on outputing;
+> besides, [a frame of the screen] this part is confusing, the GROUPS always show 0B, RECORDS only show one file,
+> while I always see the file is under processing, cannot see many files are being downloaded simultaneously
+
 It binds the seat, whatever the brand: the executor who builds and reports, and the planner (the manager) who orders
 and judges, in Claude Code, agy, Codex, Gemini and any other agent, on every machine. It adds to every other rule and
 relaxes none.
@@ -62,6 +68,12 @@ before the user has run it.
    - Before you write that a script has, keeps or restores the format, capture what it prints, piped (100 columns)
      and in a terminal of 80 columns. Run [`check_frame.py`](check_frame.py) on the captures. Paste the commands and
      their output into your message or report.
+   - Capture it on the path the user's run takes:
+     - through the wrapper the user runs, in a terminal as well as piped;
+     - with more files than workers;
+     - with the data already on disk when the user's is;
+     - with jobs that take a while.
+     A check that never took that path proves nothing about it (the user, that evening: "It keeps jumping").
    - The run that you capture must really download: a dry run and the pipeline's test modes draw no dashboard.
      ["How to capture"](#how-to-capture) gives the commands and a test server.
    - "Restored", "matches", "compliant" and "character-for-character" are format claims.
@@ -106,19 +118,21 @@ is the pipeline guide's §5, point 5, made a duty of both sides.
 | Point | The executor | The planner |
 |---|---|---|
 | 1. The templates | Copies their files. Where the data source differs, keeps the screen, lines and commands, and adapts only the code that fetches or reads | Leaves the building to the executor and checks the result. Never puts the format to the user |
-| 2. A claim and its check | Runs `check_frame.py` on captures and pastes the output, or writes "format not compared" | Accepts no "restored" or "compliant" without that output, and writes none |
+| 2. A claim and its check | Runs `check_frame.py` on captures of the path the user's run takes and pastes the output, or writes "format not compared" | Accepts no "restored" or "compliant" without that output, from captures of that path, and writes none |
 | 3. A script's lines | Never types one. Passes a script's report on in its own sentence | Reads the sender in the bridge log and the script's own files before acting on one |
 | 4. The run that counts | Starts no run of record. Says that outputs made before an edit to a pinned tool are test outputs | Gives a verdict only on a run the user started, with the tools and pins of its start |
 | 5. The user's correction | Works on the correction and on nothing else | Records no verdict, closes no step, pushes no closure, asks nothing about later steps |
 | 6. Answers and states | Gives what was asked, the script with its check. Words a state as it is. Asks only what nothing answers | Words a state as it is. Lists for the user only questions that nothing answers |
 | 7. The user's own word | Does what its own user tells it directly, and tells the manager. Builds and delivers the script itself, with no manager's order | Sets no hold that the user's direct instruction does not lift, holds no script for a handover, and does not ask the user again |
 
-The installed short forms are rule 22 of the executor rules and rules 6 to 9 of the planner rules. Two more rules
-came of the correcting session's own mistakes (see the incident) and are installed with them:
+The installed short forms are rule 22 of the executor rules and rules 6 to 9 of the planner rules. These rules came
+of the correcting session's own mistakes (see the incident) and are installed with them:
 - **A checker, a fixture and a written command are proven before they are handed on:** executor rule 23, planner
   rule 10.
 - **An acknowledgment covers every file it stands for:** executor rule 17, planner rule 11.
 - **Point 7, and asking only what nothing answers (the evening):** executor rules 24 and 25, planner rules 18 and 19.
+- **A check covers the path the user's run takes (the fourth mistake):** executor rules 22 and 23, planner rules 6
+  and 10.
 
 ## The checker (`check_frame.py`)
 
@@ -135,12 +149,18 @@ nothing.
   (estimate)`, `TOTAL`, `FILES`, `SPEED`, `LINKS`, `HEALTH`), then `GROUPS (moved / estimate)`, `RECORDS`,
   `DOWNLOADING NOW (…)` and the bottom line. Bars are made of `█` and `░` only, at the template's lengths: 20 and 30
   characters in the fixed rows, 20 for a group or a record and 16 for a file, or 10 and 6 below 100 columns. A row
-  that is missing is named, and so is a row that the format does not have.
-- **`--kind pipeline`** also asks for the driver's lines: `file <id> (<i> of <n>)`, a job's `start (limit … s) |
+  that is missing is named, and so is a row that the format does not have. A pipeline's frame has `GROUPS (done /
+  total)` instead, `PROCESSING NOW (…)` after `DOWNLOADING NOW`, and, on a terminal, `RECENT` and a `WAITING` row
+  when there is something to show.
+- **On a terminal capture** (one with in-place redraws), a line printed between two frames is a finding: the screen
+  scrolls instead of refreshing in place. On a terminal the pipeline prints nothing but its frame until its end lines.
+- **`--kind pipeline`**, in a piped capture, also asks for the driver's lines: `file <id> (<i> of <n>)`, a job's `start (limit … s) |
   compute …` line and its end line, and a stamped `file report` line. A stamped line that the driver does not print
   is a finding. A job line that the terminal cut needs only its beginning.
 - **`--complete`** says that the capture holds a whole run. Then the seven start lines, the end lines and, for a
-  pipeline, `SUMMARY`, `nudge:`, `status:` and `report:` must all be there.
+  pipeline, `SUMMARY`, `nudge:`, `status:` and `report:` must all be there, and at least one frame must show a file
+  in flight. A pipeline on a terminal sends its own lines and the downloads' to its log, so there only its end lines
+  are asked for.
 - **`--columns N`** gives the terminal's width. A line of N-1 characters was cut there, and only its beginning is
   checked. Without it the width is taken as 80 or 100, whichever the longest line fits.
 - **Exit status:** 0 when everything fits; 1 when something does not fit, or when no frame was found; 2 on a usage
@@ -157,7 +177,13 @@ its made-up files (`PROJECT_PIPE_SANDBOX_FAKE=1`).
 
 [`frame_test_server.py`](frame_test_server.py) gives a download to capture that touches no real source. It writes
 two test files (6 MiB and 3 MiB) and their list, `DIR/files-tst1.tsv`, and serves them on 127.0.0.1 at 700 KiB/s on
-each connection. The list appears when the server is ready.
+each connection. The list appears when the server is ready. `--files N` makes N files in all, `--kib` sets the speed
+and `--port` the port.
+
+A pipeline is captured on the path the user's run takes: in a terminal of 80 columns, through the wrapper the user
+runs, with more files than workers, with the files already on disk, and with jobs that take a while
+(`PROJECT_PIPE_SANDBOX_JOB_S`). A piped capture alone, or a capture of the downloader alone, says nothing about that
+path.
 
 The commands use the templates' names: a project's own names replace `PROJECT_DL_`, `PROJECT_PIPE_`,
 `tools/download_one.sh` and `tools/pipe.py`. Run them in a copy of the project, like the template's other tests. On
@@ -174,18 +200,25 @@ PROJECT_DL_REPORT_SECS=1 PROJECT_DL_WORKERS=2 tools/download_one.sh "$T/srv/file
 COLUMNS=80 LINES=30 script -q -c "env PROJECT_DL_REPORT_SECS=1 PROJECT_DL_WORKERS=2 tools/download_one.sh '$T/srv/files-tst1.tsv' '$T/dl-80'" "$T/capture-80.txt"
 ~/AI-management/general/rules/script-delivery/check_frame.py --complete "$T/capture-100.txt" "$T/capture-80.txt"
 
-# a pipeline: the driver on the same list, as a sandbox run with the bridge pointed away
+# a pipeline: 10 files from a second, slower server, jobs of 20 s, the bridge pointed away; first piped, then in a
+# terminal of 80 columns through the wrapper the user runs, with the files already on disk
+/usr/bin/python3 -I ~/AI-management/general/rules/script-delivery/frame_test_server.py "$T/srv10" --port 18766 --files 10 --kib 150 & SERVER10=$!
+until [ -s "$T/srv10/files-tst1.tsv" ]; do sleep 0.2; done
 printf '#!/bin/bash\necho "sent+enter to /dev/fake-$1"\n' > "$T/fake-send.sh"; chmod +x "$T/fake-send.sh"
-PROJECT_PIPE_SANDBOX_TEST_ROOT="$T/srv" PROJECT_PIPE_SANDBOX_SEND="$T/fake-send.sh" PROJECT_PIPE_POLL_S=1 PROJECT_PIPE_WAIT_H=0.001 PROJECT_DL_REPORT_SECS=1 /usr/bin/python3 -I tools/pipe.py tst1 > "$T/capture-pipe.txt"
-~/AI-management/general/rules/script-delivery/check_frame.py --kind pipeline --complete "$T/capture-pipe.txt"
-kill $SERVER
+export PROJECT_PIPE_SANDBOX_TEST_ROOT="$T/srv10" PROJECT_PIPE_SANDBOX_SEND="$T/fake-send.sh" PROJECT_PIPE_POLL_S=1 PROJECT_PIPE_WAIT_H=0.001 PROJECT_PIPE_SANDBOX_JOB_S=20
+/usr/bin/python3 -I tools/pipe.py tst1 > "$T/capture-pipe.txt"
+COLUMNS=80 LINES=30 script -q -c "env PROJECT_PIPE_TEST_TAG=disk tools/all_in_one.sh tst1" "$T/capture-pipe-80.txt"
+~/AI-management/general/rules/script-delivery/check_frame.py --kind pipeline --complete "$T/capture-pipe.txt" "$T/capture-pipe-80.txt"
+kill $SERVER $SERVER10
 ```
 
 - **A project with only the download wrapper** runs its downloader on the list:
   `/usr/bin/python3 -I tools/fetch_dst.py fetch "$T/srv/files-tst1.tsv" "$T/dl-100" --dashboard --report-seconds 1 --workers 2`.
-- **The pipeline run ends with exit 5.** Nobody accepts the test files, so the wait at the end of the split runs
-  out. It sends nothing to a live session.
-- **What the pipeline run writes:** the downloads go under `$T`. In the project it writes under `runs/` only:
+- **Both pipeline runs end with exit 5.** Nobody accepts the test files, so the wait at the end of the split runs
+  out. They send nothing to a live session. The second run has its own run folder (`PROJECT_PIPE_TEST_TAG=disk`) and
+  finds the 10 files complete on disk, as a real run with its data in place does.
+- **A project that renamed its wrapper** puts its own name in place of `tools/all_in_one.sh`.
+- **What the pipeline runs write:** the downloads go under `$T`. In the project it writes under `runs/` only:
   `runs/<ST>/pipeline-test/`, the test jobs' output files `runs/<ST>/<TEST_PREFIX>-tst1-…`, and their lines in
   `runs/log.jsonl`, which carry the same prefix.
 - **`script` exits 0 whatever the command did.** The command's own exit status is in the capture's last line.
@@ -196,11 +229,14 @@ kill $SERVER
 - **The templates' own screens pass,** in a test project made of the templates' files, with the commands above:
   - `download_one.sh`, piped and in a terminal of 80 columns: 10 frames each, and nothing found.
   - `pipe.py tst1`, piped: exit 5, 16 frames, and nothing found as a complete pipeline run. In a terminal of 80
-    columns: 22 frames, and nothing found.
+    columns: 22 frames, and nothing found. *(Retired the same evening: in that terminal capture the downloads' and
+    the jobs' lines were printed between the frames, and the checker did not yet look between frames. The new check
+    fails that driver with 17 such lines; see the fourth mistake.)*
   - `fetch_dst.py` itself, piped: 10 frames, and nothing found. Earlier the same day it also passed with a
     pipeline's `--context`.
 - **The pipeline template's recorded screen passes** (`chunked-pipeline/README.md`, "The screen") as a complete
-  pipeline run.
+  pipeline run. *(Since the evening the README shows one frame of the pipeline's own dashboard, and the self-test
+  checks it as a frame with files in flight.)*
 - **The runs that draw no dashboard fail,** each with "no dashboard frame found": the dry run, `pipe.py --test
   pilot`, and a run with made-up files.
 - **The edges of the ranges.** `--selftest` loads the template's own `human()`, `rate_text()`, `clock()` and `bar()`
@@ -215,6 +251,13 @@ kill $SERVER
   capture that also held a dry run's lines. The pipeline template's README also named a run with made-up files as
   the one to capture, and that run draws no dashboard. All four were found by reading the templates' code against
   the checker, and are fixed.
+- **In the evening, with the pipeline's own dashboard:**
+  - The capture commands above, run as written, gave four captures with nothing found: the downloader, 10 frames
+    piped and 10 in a terminal; the pipeline, 5 frames piped and 25 in a terminal with the files on disk.
+  - The old pipeline in a terminal failed, with 17 lines printed between frames. So did the e2 executor's terminal
+    capture of 22:07, which the earlier checker had passed. The downloader alone in a terminal passed.
+  - `--selftest` now holds four real captures (`fixtures/`). It fails a terminal capture that scrolls, and a
+    complete capture in which no frame shows a file in flight.
 
 ## Paste-in form
 
@@ -228,7 +271,8 @@ general/templates/chunked-pipeline/ at the commit you acknowledged. A screenshot
 reference, and the format is never a question: where the data source differs, keep the templates' screen, lines and
 commands and adapt only the code that fetches or reads. A format claim ("restored", "matches", "compliant") needs
 `~/AI-management/general/rules/script-delivery/check_frame.py` run on captures of the script's screen at 100 and 80
-columns, with the commands and their output pasted; without it write "format not compared". Only a script sends a
+columns, taken on the path the user's run takes (the user's wrapper, a terminal, the data as it will be, jobs that
+take a while), with the commands and their output pasted; without it write "format not compared". Only a script sends a
 script's lines: no agent types a `[PIPELINE …]` line, and a manager reads the sender in
 ~/.claude/agy-bridge/send.log and the script's own files before it acts on one. A run counts only when the user
 started it on a script the user has not objected to, with the pinned tools unchanged since; after an edit to a pinned
@@ -327,6 +371,24 @@ under correction is a test. The user had asked for the templates' format. The ho
 the condition for an executor's script, and the user rejected that: "your restriction to "only a manager can ..."
 sucks". What prevents it now: point 7, executor rules 22, 24 and 25, planner rules 9, 18 and 19, and the linter's
 `HOLD_WITHOUT_USER` warning, which flags the hold line of that notice.
+
+**The correcting session's fourth mistake.** At 22:21 the user asked the session that wrote this rule to check the
+e2 executor's delivery and the script's format. The session reported that the format matched the templates. Its
+check could fail, but it covered only the path of a test: a two-file download from the test server, piped and in a
+terminal. The checker did not look at what was printed between two frames. The user's run took another path: a
+terminal, with the 77 shards already on disk and the time spent in the jobs. There the template, which this session
+had built, did four things:
+- it printed the downloads' and the jobs' lines between frames, so the screen scrolled;
+- `GROUPS` counted the bytes moved in this run, which was 0 B because the data was on disk;
+- `RECORDS` came from the one file being downloaded;
+- it worked on one file at a time.
+
+The user, at 22:57: "the format is not good as expected. It keeps jumping". The executor's 80-column capture of
+22:07 already showed the scrolling: the new checker fails it with lines printed between frames. What prevents it now:
+- the pipeline's own dashboard and its workers (`chunked-pipeline/README.md`, "The screen");
+- point 2, which asks for captures on the path the user's run takes;
+- executor rules 22 and 23, and planner rules 6 and 10;
+- `check_frame.py`, which fails a terminal capture that scrolls, and a complete capture with no file in flight.
 
 ## Check
 

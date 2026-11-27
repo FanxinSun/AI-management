@@ -1,0 +1,684 @@
+Script started on 2026-11-27 23:33:39+08:00 [COMMAND="env PROJECT_PIPE_TEST_TAG=disk tools/all_in_one.sh tst1" <not executed on terminal>]
+PROJECT pipeline tst1  |  23:33:39  |  elapsed 00:00:00  |  4 workers  |  time-
+STEP     1 of 10  group DatasetA  |  downloading 0, processing 0, finished 0 of
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0.0%   0 B / 24.00 MB
+FILES    0/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA unknown
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ░░░░░░░░░░   0.0%    0/5   files  0 B / 13.00 MB
+  DatasetB ░░░░░░░░░░   0.0%    0/5   files  0 B / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ░░░░░░░░░░   0.0%     0/5   files   0 B / 13.00 MB
+  81002 DatasetB    ░░░░░░░░░░   0.0%     0/5   files   0 B / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[23A[JPROJECT pipeline tst1  |  23:33:40  |  elapsed 00:00:00  |  4 workers  |  time-
+STEP     4 of 10  group DatasetB  |  downloading 0, processing 4, finished 0 of
+THIS STEP ████████████████████ 100.0%  moved 12.00 MB of 12.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0.0%   0 B / 24.00 MB
+FILES    0/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA unknown
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ░░░░░░░░░░   0.0%    0/5   files  0 B / 13.00 MB
+  DatasetB ░░░░░░░░░░   0.0%    0/5   files  0 B / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ░░░░░░░░░░   0.0%     0/5   files   0 B / 13.00 MB
+  81002 DatasetB    ░░░░░░░░░░   0.0%     0/5   files   0 B / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81002 C0000002-c.bin ███░░░  50%  job 2 of 2  wait running 0 s
+  81001 AAAA1111-a.bin ███░░░  50%  job 2 of 2  wait running 0 s
+  81002 BBBB2222-b.bin ███░░░  50%  job 2 of 2  wait running 0 s
+  81001 C0000001-c.bin ███░░░  50%  job 2 of 2  wait running 0 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:33:45  |  elapsed 00:00:05  |  4 workers  |  time-
+STEP     4 of 10  group DatasetB  |  downloading 0, processing 4, finished 0 of
+THIS STEP ████████████████████ 100.0%  moved 12.00 MB of 12.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0.0%   0 B / 24.00 MB
+FILES    0/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA unknown
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ░░░░░░░░░░   0.0%    0/5   files  0 B / 13.00 MB
+  DatasetB ░░░░░░░░░░   0.0%    0/5   files  0 B / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ░░░░░░░░░░   0.0%     0/5   files   0 B / 13.00 MB
+  81002 DatasetB    ░░░░░░░░░░   0.0%     0/5   files   0 B / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81002 C0000002-c.bin ███░░░  50%  job 2 of 2  wait running 5 s
+  81001 AAAA1111-a.bin ███░░░  50%  job 2 of 2  wait running 5 s
+  81002 BBBB2222-b.bin ███░░░  50%  job 2 of 2  wait running 5 s
+  81001 C0000001-c.bin ███░░░  50%  job 2 of 2  wait running 5 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:33:50  |  elapsed 00:00:10  |  4 workers  |  time-
+STEP     4 of 10  group DatasetB  |  downloading 0, processing 4, finished 0 of
+THIS STEP ████████████████████ 100.0%  moved 12.00 MB of 12.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0.0%   0 B / 24.00 MB
+FILES    0/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA unknown
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ░░░░░░░░░░   0.0%    0/5   files  0 B / 13.00 MB
+  DatasetB ░░░░░░░░░░   0.0%    0/5   files  0 B / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ░░░░░░░░░░   0.0%     0/5   files   0 B / 13.00 MB
+  81002 DatasetB    ░░░░░░░░░░   0.0%     0/5   files   0 B / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81002 C0000002-c.bin ███░░░  50%  job 2 of 2  wait running 10 s
+  81001 AAAA1111-a.bin ███░░░  50%  job 2 of 2  wait running 10 s
+  81002 BBBB2222-b.bin ███░░░  50%  job 2 of 2  wait running 10 s
+  81001 C0000001-c.bin ███░░░  50%  job 2 of 2  wait running 10 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:33:55  |  elapsed 00:00:15  |  4 workers  |  time-
+STEP     4 of 10  group DatasetB  |  downloading 0, processing 4, finished 0 of
+THIS STEP ████████████████████ 100.0%  moved 12.00 MB of 12.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0.0%   0 B / 24.00 MB
+FILES    0/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA unknown
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ░░░░░░░░░░   0.0%    0/5   files  0 B / 13.00 MB
+  DatasetB ░░░░░░░░░░   0.0%    0/5   files  0 B / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ░░░░░░░░░░   0.0%     0/5   files   0 B / 13.00 MB
+  81002 DatasetB    ░░░░░░░░░░   0.0%     0/5   files   0 B / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81002 C0000002-c.bin ███░░░  50%  job 2 of 2  wait running 15 s
+  81001 AAAA1111-a.bin ███░░░  50%  job 2 of 2  wait running 15 s
+  81002 BBBB2222-b.bin ███░░░  50%  job 2 of 2  wait running 15 s
+  81001 C0000001-c.bin ███░░░  50%  job 2 of 2  wait running 15 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:34:00  |  elapsed 00:00:20  |  4 workers  |  time-
+STEP     4 of 10  group DatasetB  |  downloading 0, processing 4, finished 0 of
+THIS STEP ████████████████████ 100.0%  moved 12.00 MB of 12.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0.0%   0 B / 24.00 MB
+FILES    0/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA unknown
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ░░░░░░░░░░   0.0%    0/5   files  0 B / 13.00 MB
+  DatasetB ░░░░░░░░░░   0.0%    0/5   files  0 B / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ░░░░░░░░░░   0.0%     0/5   files   0 B / 13.00 MB
+  81002 DatasetB    ░░░░░░░░░░   0.0%     0/5   files   0 B / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81002 C0000002-c.bin ███░░░  50%  job 2 of 2  wait running 20 s
+  81001 AAAA1111-a.bin ███░░░  50%  job 2 of 2  wait running 20 s
+  81002 BBBB2222-b.bin ███░░░  50%  job 2 of 2  wait running 20 s
+  81001 C0000001-c.bin ███░░░  50%  job 2 of 2  wait running 20 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:34:00  |  elapsed 00:00:21  |  4 workers  |  time-
+STEP     8 of 10  group DatasetB  |  downloading 0, processing 4, finished 4 of
+THIS STEP ████████████████████ 100.0%  moved 9.00 MB of 9.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ███████████████░░░░░░░░░░░░░░░  50.0%   12.00 MB / 24.00 MB
+FILES    4/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:21
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████░░░░░  53.8%    2/5   files  7.00 MB / 13.00 MB
+  DatasetB █████░░░░░  45.5%    2/5   files  5.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████░░░░░  53.8%     2/5   files   7.00 MB / 13.00 MB
+  81002 DatasetB    █████░░░░░  45.5%     2/5   files   5.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81001 C0000003-c.bin ░░░░░░   0%  job 1 of 2  verify running 0 s
+  81002 C0000004-c.bin ░░░░░░   0%  job 1 of 2  verify running 0 s
+  81001 C0000005-c.bin ░░░░░░   0%  job 1 of 2  verify running 0 s
+  81002 C0000006-c.bin ░░░░░░   0%  job 1 of 2  verify running 0 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:34:01  |  elapsed 00:00:21  |  4 workers  |  time-
+STEP     8 of 10  group DatasetB  |  downloading 0, processing 4, finished 4 of
+THIS STEP ████████████████████ 100.0%  moved 9.00 MB of 9.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ███████████████░░░░░░░░░░░░░░░  50.0%   12.00 MB / 24.00 MB
+FILES    4/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:21
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████░░░░░  53.8%    2/5   files  7.00 MB / 13.00 MB
+  DatasetB █████░░░░░  45.5%    2/5   files  5.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████░░░░░  53.8%     2/5   files   7.00 MB / 13.00 MB
+  81002 DatasetB    █████░░░░░  45.5%     2/5   files   5.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81001 C0000003-c.bin ███░░░  50%  job 2 of 2  wait running 0 s
+  81002 C0000004-c.bin ███░░░  50%  job 2 of 2  wait running 0 s
+  81001 C0000005-c.bin ███░░░  50%  job 2 of 2  wait running 0 s
+  81002 C0000006-c.bin ███░░░  50%  job 2 of 2  wait running 0 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:34:06  |  elapsed 00:00:26  |  4 workers  |  time-
+STEP     8 of 10  group DatasetB  |  downloading 0, processing 4, finished 4 of
+THIS STEP ████████████████████ 100.0%  moved 9.00 MB of 9.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ███████████████░░░░░░░░░░░░░░░  50.0%   12.00 MB / 24.00 MB
+FILES    4/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:26
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████░░░░░  53.8%    2/5   files  7.00 MB / 13.00 MB
+  DatasetB █████░░░░░  45.5%    2/5   files  5.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████░░░░░  53.8%     2/5   files   7.00 MB / 13.00 MB
+  81002 DatasetB    █████░░░░░  45.5%     2/5   files   5.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81001 C0000003-c.bin ███░░░  50%  job 2 of 2  wait running 5 s
+  81002 C0000004-c.bin ███░░░  50%  job 2 of 2  wait running 5 s
+  81001 C0000005-c.bin ███░░░  50%  job 2 of 2  wait running 5 s
+  81002 C0000006-c.bin ███░░░  50%  job 2 of 2  wait running 5 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:34:11  |  elapsed 00:00:31  |  4 workers  |  time-
+STEP     8 of 10  group DatasetB  |  downloading 0, processing 4, finished 4 of
+THIS STEP ████████████████████ 100.0%  moved 9.00 MB of 9.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ███████████████░░░░░░░░░░░░░░░  50.0%   12.00 MB / 24.00 MB
+FILES    4/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:31
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████░░░░░  53.8%    2/5   files  7.00 MB / 13.00 MB
+  DatasetB █████░░░░░  45.5%    2/5   files  5.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████░░░░░  53.8%     2/5   files   7.00 MB / 13.00 MB
+  81002 DatasetB    █████░░░░░  45.5%     2/5   files   5.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81001 C0000003-c.bin ███░░░  50%  job 2 of 2  wait running 10 s
+  81002 C0000004-c.bin ███░░░  50%  job 2 of 2  wait running 10 s
+  81001 C0000005-c.bin ███░░░  50%  job 2 of 2  wait running 10 s
+  81002 C0000006-c.bin ███░░░  50%  job 2 of 2  wait running 10 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:34:16  |  elapsed 00:00:36  |  4 workers  |  time-
+STEP     8 of 10  group DatasetB  |  downloading 0, processing 4, finished 4 of
+THIS STEP ████████████████████ 100.0%  moved 9.00 MB of 9.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ███████████████░░░░░░░░░░░░░░░  50.0%   12.00 MB / 24.00 MB
+FILES    4/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:36
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████░░░░░  53.8%    2/5   files  7.00 MB / 13.00 MB
+  DatasetB █████░░░░░  45.5%    2/5   files  5.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████░░░░░  53.8%     2/5   files   7.00 MB / 13.00 MB
+  81002 DatasetB    █████░░░░░  45.5%     2/5   files   5.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81001 C0000003-c.bin ███░░░  50%  job 2 of 2  wait running 15 s
+  81002 C0000004-c.bin ███░░░  50%  job 2 of 2  wait running 15 s
+  81001 C0000005-c.bin ███░░░  50%  job 2 of 2  wait running 15 s
+  81002 C0000006-c.bin ███░░░  50%  job 2 of 2  wait running 15 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:34:21  |  elapsed 00:00:41  |  4 workers  |  time-
+STEP     8 of 10  group DatasetB  |  downloading 0, processing 4, finished 4 of
+THIS STEP ████████████████████ 100.0%  moved 9.00 MB of 9.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ███████████████░░░░░░░░░░░░░░░  50.0%   12.00 MB / 24.00 MB
+FILES    4/10 complete   0 downloading   4 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:41
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████░░░░░  53.8%    2/5   files  7.00 MB / 13.00 MB
+  DatasetB █████░░░░░  45.5%    2/5   files  5.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████░░░░░  53.8%     2/5   files   7.00 MB / 13.00 MB
+  81002 DatasetB    █████░░░░░  45.5%     2/5   files   5.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 4 of 4, longest running first)
+  81001 C0000003-c.bin ███░░░  50%  job 2 of 2  wait running 20 s
+  81002 C0000004-c.bin ███░░░  50%  job 2 of 2  wait running 20 s
+  81001 C0000005-c.bin ███░░░  50%  job 2 of 2  wait running 20 s
+  81002 C0000006-c.bin ███░░░  50%  job 2 of 2  wait running 20 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[27A[JPROJECT pipeline tst1  |  23:34:21  |  elapsed 00:00:41  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 2, finished 8 o
+THIS STEP ████████████████████ 100.0%  moved 3.00 MB of 3.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████░░░░  87.5%   21.00 MB / 24.00 MB
+FILES    8/10 complete   0 downloading   2 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:05
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████████░  92.3%    4/5   files  12.00 MB / 13.00 MB
+  DatasetB ████████░░  81.8%    4/5   files  9.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████████░  92.3%     4/5   files   12.00 MB / 13.00 MB
+  81002 DatasetB    ████████░░  81.8%     4/5   files   9.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 2 of 2, longest running first)
+  81001 C0000007-c.bin ███░░░  50%  job 2 of 2  wait running 0 s
+  81002 C0000008-c.bin ███░░░  50%  job 2 of 2  wait running 0 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[25A[JPROJECT pipeline tst1  |  23:34:26  |  elapsed 00:00:46  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 2, finished 8 o
+THIS STEP ████████████████████ 100.0%  moved 3.00 MB of 3.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████░░░░  87.5%   21.00 MB / 24.00 MB
+FILES    8/10 complete   0 downloading   2 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:06
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████████░  92.3%    4/5   files  12.00 MB / 13.00 MB
+  DatasetB ████████░░  81.8%    4/5   files  9.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████████░  92.3%     4/5   files   12.00 MB / 13.00 MB
+  81002 DatasetB    ████████░░  81.8%     4/5   files   9.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 2 of 2, longest running first)
+  81001 C0000007-c.bin ███░░░  50%  job 2 of 2  wait running 5 s
+  81002 C0000008-c.bin ███░░░  50%  job 2 of 2  wait running 5 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[25A[JPROJECT pipeline tst1  |  23:34:31  |  elapsed 00:00:51  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 2, finished 8 o
+THIS STEP ████████████████████ 100.0%  moved 3.00 MB of 3.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████░░░░  87.5%   21.00 MB / 24.00 MB
+FILES    8/10 complete   0 downloading   2 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:07
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████████░  92.3%    4/5   files  12.00 MB / 13.00 MB
+  DatasetB ████████░░  81.8%    4/5   files  9.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████████░  92.3%     4/5   files   12.00 MB / 13.00 MB
+  81002 DatasetB    ████████░░  81.8%     4/5   files   9.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 2 of 2, longest running first)
+  81001 C0000007-c.bin ███░░░  50%  job 2 of 2  wait running 10 s
+  81002 C0000008-c.bin ███░░░  50%  job 2 of 2  wait running 10 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[25A[JPROJECT pipeline tst1  |  23:34:36  |  elapsed 00:00:56  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 2, finished 8 o
+THIS STEP ████████████████████ 100.0%  moved 3.00 MB of 3.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████░░░░  87.5%   21.00 MB / 24.00 MB
+FILES    8/10 complete   0 downloading   2 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:08
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████████░  92.3%    4/5   files  12.00 MB / 13.00 MB
+  DatasetB ████████░░  81.8%    4/5   files  9.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████████░  92.3%     4/5   files   12.00 MB / 13.00 MB
+  81002 DatasetB    ████████░░  81.8%     4/5   files   9.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 2 of 2, longest running first)
+  81001 C0000007-c.bin ███░░░  50%  job 2 of 2  wait running 15 s
+  81002 C0000008-c.bin ███░░░  50%  job 2 of 2  wait running 15 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[25A[JPROJECT pipeline tst1  |  23:34:41  |  elapsed 00:01:01  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 2, finished 8 o
+THIS STEP ████████████████████ 100.0%  moved 3.00 MB of 3.00 MB
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████░░░░  87.5%   21.00 MB / 24.00 MB
+FILES    8/10 complete   0 downloading   2 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:08
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA █████████░  92.3%    4/5   files  12.00 MB / 13.00 MB
+  DatasetB ████████░░  81.8%    4/5   files  9.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    █████████░  92.3%     4/5   files   12.00 MB / 13.00 MB
+  81002 DatasetB    ████████░░  81.8%     4/5   files   9.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 2 of 2, longest running first)
+  81001 C0000007-c.bin ███░░░  50%  job 2 of 2  wait running 20 s
+  81002 C0000008-c.bin ███░░░  50%  job 2 of 2  wait running 20 s
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[25A[JPROJECT pipeline tst1  |  23:34:42  |  elapsed 00:01:02  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 0, finished 10 
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████████ 100.0%   24.00 MB / 24.00 MB
+FILES    10/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+WAITING  the manager's acceptance  since 23:34:41  next check in 1 s
+
+GROUPS (done / total)
+  DatasetA ██████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ██████████ 100.0%    5/5   files  11.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ██████████ 100.0%     5/5   files   11.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+RECENT
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] WAITING the manager's acceptance: end of the split
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[29A[JPROJECT pipeline tst1  |  23:34:42  |  elapsed 00:01:02  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 0, finished 10 
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████████ 100.0%   24.00 MB / 24.00 MB
+FILES    10/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ██████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ██████████ 100.0%    5/5   files  11.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ██████████ 100.0%     5/5   files   11.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+RECENT
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] WAITING the manager's acceptance: end of the split
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[28A[JPROJECT pipeline tst1  |  23:34:43  |  elapsed 00:01:03  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 0, finished 10 
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████████ 100.0%   24.00 MB / 24.00 MB
+FILES    10/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+WAITING  the manager's acceptance  since 23:34:41  next check in 1 s
+
+GROUPS (done / total)
+  DatasetA ██████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ██████████ 100.0%    5/5   files  11.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ██████████ 100.0%     5/5   files   11.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+RECENT
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] WAITING the manager's acceptance: end of the split
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[29A[JPROJECT pipeline tst1  |  23:34:43  |  elapsed 00:01:03  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 0, finished 10 
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████████ 100.0%   24.00 MB / 24.00 MB
+FILES    10/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ██████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ██████████ 100.0%    5/5   files  11.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ██████████ 100.0%     5/5   files   11.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+RECENT
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] WAITING the manager's acceptance: end of the split
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[28A[JPROJECT pipeline tst1  |  23:34:44  |  elapsed 00:01:04  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 0, finished 10 
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████████ 100.0%   24.00 MB / 24.00 MB
+FILES    10/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+WAITING  the manager's acceptance  since 23:34:41  next check in 1 s
+
+GROUPS (done / total)
+  DatasetA ██████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ██████████ 100.0%    5/5   files  11.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ██████████ 100.0%     5/5   files   11.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+RECENT
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] WAITING the manager's acceptance: end of the split
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[29A[JPROJECT pipeline tst1  |  23:34:44  |  elapsed 00:01:04  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 0, finished 10 
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████████ 100.0%   24.00 MB / 24.00 MB
+FILES    10/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+WAITING  the manager's acceptance  since 23:34:41  next check in 1 s
+
+GROUPS (done / total)
+  DatasetA ██████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ██████████ 100.0%    5/5   files  11.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ██████████ 100.0%     5/5   files   11.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+RECENT
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] WAITING the manager's acceptance: end of the split
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[29A[JPROJECT pipeline tst1  |  23:34:45  |  elapsed 00:01:05  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 0, finished 10 
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████████ 100.0%   24.00 MB / 24.00 MB
+FILES    10/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ██████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ██████████ 100.0%    5/5   files  11.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ██████████ 100.0%     5/5   files   11.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+RECENT
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] WAITING the manager's acceptance: end of the split
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[28A[JPROJECT pipeline tst1  |  23:34:45  |  elapsed 00:01:05  |  4 workers  |  time-
+STEP     10 of 10  group DatasetB  |  downloading 0, processing 0, finished 10 
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   0.0%  moved 0 B of 0 B
+TO DOWNLOAD (estimate)  0 B in all   moved 0 B
+TOTAL    ██████████████████████████████ 100.0%   24.00 MB / 24.00 MB
+FILES    10/10 complete   0 downloading   0 workers alive
+SPEED    now 0 KB/s   average 0 KB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (done / total)
+  DatasetA ██████████ 100.0%    5/5   files  13.00 MB / 13.00 MB
+  DatasetB ██████████ 100.0%    5/5   files  11.00 MB / 11.00 MB
+
+RECORDS
+  81001 DatasetA    ██████████ 100.0%     5/5   files   13.00 MB / 13.00 MB
+  81002 DatasetB    ██████████ 100.0%     5/5   files   11.00 MB / 11.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+PROCESSING NOW (showing 0 of 0, longest running first)
+
+RECENT
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] file report DONE: delivered to 'PROJECT Committee': se
+  [2026-11-27T15:34:41Z] WAITING the manager's acceptance: end of the split
+
+Ctrl-C stops cleanly; rerun resumes   |   log: runs/S1/pipeline-test/tst1disk/p
+[2026-11-27T15:34:45Z] SUMMARY: files finished in this run 10 of 10, failed 0,
+  moved 0 B, kept until accepted 10; DONE, 10 file(s) kept until accepted:
+  AAAA1111, BBBB2222, C0000001, C0000002, C0000003, C0000004, C0000005,
+  C0000006, C0000007, C0000008
+nudge: delivered to 'PROJECT executor': sent+enter to /dev/fake-PRO
+nudge: delivered to 'PROJECT Committee': sent+enter to /dev/fake-PR
+status: DONE, 10 file(s) kept until accepted: AAAA1111, BBBB2222, C0000001, C00
+report: runs/S1/pipeline-test/tst1disk/report.md
+
+Script done on 2026-11-27 23:34:45+08:00 [COMMAND_EXIT_CODE="5"]

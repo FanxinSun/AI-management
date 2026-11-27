@@ -1,0 +1,247 @@
+list /path/to/test/files-tst1.tsv, folder /path/to/downloads, 2 file(s) at once, 8 range(s) per file
+DOWNLOAD START UTC: 2026-11-27T15:22:50Z
+DOWNLOAD ROOT: /path/to/downloads
+DOWNLOAD LOG: /path/to/downloads/download.log
+TOTAL FILES: 2
+TOTAL BYTES: 9437184
+ON DISK AT START: 0 files complete, 0 bytes of 9437184
+WORKERS: 2 (set PROJECT_DL_WORKERS to change); refresh every 1 s
+PROJECT download tst1  |  23:22:50  |  elapsed 00:00:00  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 2, processing 0, finished 0 of 2 files
+THIS STEP ░░░░░░░░░░░░░░░░░░░░   2.3%  moved 210.00 KB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 210.00 KB
+TOTAL    █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   2.3%   210.00 KB / 9.00 MB
+FILES    0/2 complete   2 downloading   2 workers alive
+SPEED    now measuring   average 698 KB/s   ETA 00:00:12
+LINKS    1 connections open   measuring each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 █░░░░░░░░░░░░░░░░░░░   3.4%    0/1   files  210.00 KB / 6.00 MB
+  81002 ░░░░░░░░░░░░░░░░░░░░   0.0%    0/1   files  0 B / 3.00 MB
+
+RECORDS
+  81001             █░░░░░░░░░░░░░░░░░░░   3.4%     0/1   files   210.00 KB / 6.00 MB
+  81002             ░░░░░░░░░░░░░░░░░░░░   0.0%     0/1   files   0 B / 3.00 MB
+
+DOWNLOADING NOW (showing 2 of 2, nearest to done first)
+  81001 AAAA1111-a.bin       █░░░░░░░░░░░░░░░   3%  210.00 KB / 6.00 MB    measuring
+  81002 BBBB2222-b.bin       ░░░░░░░░░░░░░░░░   0%        0 B / 3.00 MB    measuring
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+PROJECT download tst1  |  23:22:51  |  elapsed 00:00:01  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 2, processing 0, finished 0 of 2 files
+THIS STEP ███░░░░░░░░░░░░░░░░░  17.5%  moved 1.57 MB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 1.57 MB
+TOTAL    █████░░░░░░░░░░░░░░░░░░░░░░░░░  17.5%   1.57 MB / 9.00 MB
+FILES    0/2 complete   2 downloading   2 workers alive
+SPEED    now 1.37 MB/s   average 1.21 MB/s   ETA 00:00:06
+LINKS    2 connections open   700 KB/s each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 ███░░░░░░░░░░░░░░░░░  14.8%    0/1   files  910.00 KB / 6.00 MB
+  81002 █████░░░░░░░░░░░░░░░  22.8%    0/1   files  700.00 KB / 3.00 MB
+
+RECORDS
+  81001             ███░░░░░░░░░░░░░░░░░  14.8%     0/1   files   910.00 KB / 6.00 MB
+  81002             █████░░░░░░░░░░░░░░░  22.8%     0/1   files   700.00 KB / 3.00 MB
+
+DOWNLOADING NOW (showing 2 of 2, nearest to done first)
+  81002 BBBB2222-b.bin       ████░░░░░░░░░░░░  23%  700.00 KB / 3.00 MB    700 KB/s  ETA 00:00:03
+  81001 AAAA1111-a.bin       ██░░░░░░░░░░░░░░  15%  910.00 KB / 6.00 MB    700 KB/s  ETA 00:00:07
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+PROJECT download tst1  |  23:22:52  |  elapsed 00:00:02  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 2, processing 0, finished 0 of 2 files
+THIS STEP ███████░░░░░░░░░░░░░  32.7%  moved 2.94 MB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 2.94 MB
+TOTAL    ██████████░░░░░░░░░░░░░░░░░░░░  32.7%   2.94 MB / 9.00 MB
+FILES    0/2 complete   2 downloading   2 workers alive
+SPEED    now 1.37 MB/s   average 1.28 MB/s   ETA 00:00:04
+LINKS    2 connections open   700 KB/s each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 █████░░░░░░░░░░░░░░░  26.2%    0/1   files  1.57 MB / 6.00 MB
+  81002 █████████░░░░░░░░░░░  45.6%    0/1   files  1.37 MB / 3.00 MB
+
+RECORDS
+  81001             █████░░░░░░░░░░░░░░░  26.2%     0/1   files   1.57 MB / 6.00 MB
+  81002             █████████░░░░░░░░░░░  45.6%     0/1   files   1.37 MB / 3.00 MB
+
+DOWNLOADING NOW (showing 2 of 2, nearest to done first)
+  81002 BBBB2222-b.bin       ███████░░░░░░░░░  46%    1.37 MB / 3.00 MB    700 KB/s  ETA 00:00:02
+  81001 AAAA1111-a.bin       ████░░░░░░░░░░░░  26%    1.57 MB / 6.00 MB    700 KB/s  ETA 00:00:06
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+PROJECT download tst1  |  23:22:53  |  elapsed 00:00:03  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 2, processing 0, finished 0 of 2 files
+THIS STEP ██████████░░░░░░░░░░  47.9%  moved 4.31 MB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 4.31 MB
+TOTAL    ██████████████░░░░░░░░░░░░░░░░  47.9%   4.31 MB / 9.00 MB
+FILES    0/2 complete   2 downloading   2 workers alive
+SPEED    now 1.37 MB/s   average 1.30 MB/s   ETA 00:00:03
+LINKS    2 connections open   700 KB/s each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 ████████░░░░░░░░░░░░  37.6%    0/1   files  2.26 MB / 6.00 MB
+  81002 ██████████████░░░░░░  68.4%    0/1   files  2.05 MB / 3.00 MB
+
+RECORDS
+  81001             ████████░░░░░░░░░░░░  37.6%     0/1   files   2.26 MB / 6.00 MB
+  81002             ██████████████░░░░░░  68.4%     0/1   files   2.05 MB / 3.00 MB
+
+DOWNLOADING NOW (showing 2 of 2, nearest to done first)
+  81002 BBBB2222-b.bin       ███████████░░░░░  68%    2.05 MB / 3.00 MB    700 KB/s  ETA 00:00:01
+  81001 AAAA1111-a.bin       ██████░░░░░░░░░░  38%    2.26 MB / 6.00 MB    700 KB/s  ETA 00:00:05
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+PROJECT download tst1  |  23:22:54  |  elapsed 00:00:04  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 2, processing 0, finished 0 of 2 files
+THIS STEP █████████████░░░░░░░  63.0%  moved 5.67 MB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 5.67 MB
+TOTAL    ███████████████████░░░░░░░░░░░  63.0%   5.67 MB / 9.00 MB
+FILES    0/2 complete   2 downloading   2 workers alive
+SPEED    now 1.37 MB/s   average 1.32 MB/s   ETA 00:00:02
+LINKS    2 connections open   700 KB/s each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 ██████████░░░░░░░░░░  49.0%    0/1   files  2.94 MB / 6.00 MB
+  81002 ██████████████████░░  91.1%    0/1   files  2.73 MB / 3.00 MB
+
+RECORDS
+  81001             ██████████░░░░░░░░░░  49.0%     0/1   files   2.94 MB / 6.00 MB
+  81002             ██████████████████░░  91.1%     0/1   files   2.73 MB / 3.00 MB
+
+DOWNLOADING NOW (showing 2 of 2, nearest to done first)
+  81002 BBBB2222-b.bin       ███████████████░  91%    2.73 MB / 3.00 MB    700 KB/s  ETA 00:00:00
+  81001 AAAA1111-a.bin       ████████░░░░░░░░  49%    2.94 MB / 6.00 MB    700 KB/s  ETA 00:00:04
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+PROJECT download tst1  |  23:22:55  |  elapsed 00:00:05  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 1, processing 0, finished 1 of 2 files
+THIS STEP ███████████████░░░░░  73.6%  moved 6.62 MB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 6.62 MB
+TOTAL    ██████████████████████░░░░░░░░  73.6%   6.62 MB / 9.00 MB
+FILES    1/2 complete   1 downloading   1 workers alive
+SPEED    now 1.28 MB/s   average 1.25 MB/s   ETA 00:00:01
+LINKS    1 connections open   1.28 MB/s each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 ████████████░░░░░░░░  60.4%    0/1   files  3.62 MB / 6.00 MB
+  81002 ████████████████████ 100.0%    1/1   files  3.00 MB / 3.00 MB
+
+RECORDS
+  81001             ████████████░░░░░░░░  60.4%     0/1   files   3.62 MB / 6.00 MB
+  81002             ████████████████████ 100.0%     1/1   files   3.00 MB / 3.00 MB
+
+DOWNLOADING NOW (showing 1 of 1, nearest to done first)
+  81001 AAAA1111-a.bin       ██████████░░░░░░  60%    3.62 MB / 6.00 MB    700 KB/s  ETA 00:00:03
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+PROJECT download tst1  |  23:22:56  |  elapsed 00:00:06  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 1, processing 0, finished 1 of 2 files
+THIS STEP ████████████████░░░░  81.2%  moved 7.31 MB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 7.31 MB
+TOTAL    ████████████████████████░░░░░░  81.2%   7.31 MB / 9.00 MB
+FILES    1/2 complete   1 downloading   1 workers alive
+SPEED    now 1.18 MB/s   average 1.16 MB/s   ETA 00:00:01
+LINKS    1 connections open   1.18 MB/s each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 ██████████████░░░░░░  71.8%    0/1   files  4.31 MB / 6.00 MB
+  81002 ████████████████████ 100.0%    1/1   files  3.00 MB / 3.00 MB
+
+RECORDS
+  81001             ██████████████░░░░░░  71.8%     0/1   files   4.31 MB / 6.00 MB
+  81002             ████████████████████ 100.0%     1/1   files   3.00 MB / 3.00 MB
+
+DOWNLOADING NOW (showing 1 of 1, nearest to done first)
+  81001 AAAA1111-a.bin       ███████████░░░░░  72%    4.31 MB / 6.00 MB    700 KB/s  ETA 00:00:02
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+PROJECT download tst1  |  23:22:57  |  elapsed 00:00:07  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 1, processing 0, finished 1 of 2 files
+THIS STEP ██████████████████░░  88.8%  moved 7.99 MB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 7.99 MB
+TOTAL    ███████████████████████████░░░  88.8%   7.99 MB / 9.00 MB
+FILES    1/2 complete   1 downloading   1 workers alive
+SPEED    now 1.11 MB/s   average 1.09 MB/s   ETA 00:00:00
+LINKS    1 connections open   1.11 MB/s each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 █████████████████░░░  83.2%    0/1   files  4.99 MB / 6.00 MB
+  81002 ████████████████████ 100.0%    1/1   files  3.00 MB / 3.00 MB
+
+RECORDS
+  81001             █████████████████░░░  83.2%     0/1   files   4.99 MB / 6.00 MB
+  81002             ████████████████████ 100.0%     1/1   files   3.00 MB / 3.00 MB
+
+DOWNLOADING NOW (showing 1 of 1, nearest to done first)
+  81001 AAAA1111-a.bin       █████████████░░░  83%    4.99 MB / 6.00 MB    700 KB/s  ETA 00:00:01
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+PROJECT download tst1  |  23:22:58  |  elapsed 00:00:08  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 1, processing 0, finished 1 of 2 files
+THIS STEP ███████████████████░  96.4%  moved 8.67 MB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 8.67 MB
+TOTAL    █████████████████████████████░  96.4%   8.67 MB / 9.00 MB
+FILES    1/2 complete   1 downloading   1 workers alive
+SPEED    now 1.06 MB/s   average 1.04 MB/s   ETA 00:00:00
+LINKS    1 connections open   1.06 MB/s each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 ███████████████████░  94.6%    0/1   files  5.67 MB / 6.00 MB
+  81002 ████████████████████ 100.0%    1/1   files  3.00 MB / 3.00 MB
+
+RECORDS
+  81001             ███████████████████░  94.6%     0/1   files   5.67 MB / 6.00 MB
+  81002             ████████████████████ 100.0%     1/1   files   3.00 MB / 3.00 MB
+
+DOWNLOADING NOW (showing 1 of 1, nearest to done first)
+  81001 AAAA1111-a.bin       ███████████████░  95%    5.67 MB / 6.00 MB    700 KB/s  ETA 00:00:00
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+PROJECT download tst1  |  23:22:59  |  elapsed 00:00:08  |  2 workers  |  time-out 300 s
+STEP     1 of 1  group tst1  |  downloading 0, processing 0, finished 2 of 2 files
+THIS STEP ████████████████████ 100.0%  moved 9.00 MB of 9.00 MB
+TO DOWNLOAD (estimate)  9.00 MB in all   moved 9.00 MB
+TOTAL    ██████████████████████████████ 100.0%   9.00 MB / 9.00 MB
+FILES    2/2 complete   0 downloading   0 workers alive
+SPEED    now 1.04 MB/s   average 1.03 MB/s   ETA 00:00:00
+LINKS    0 connections open   - each   0 stalled right now
+HEALTH   failed attempts 0   stalls dropped 0   certificate events 0
+
+GROUPS (moved / estimate)
+  81001 ████████████████████ 100.0%    1/1   files  6.00 MB / 6.00 MB
+  81002 ████████████████████ 100.0%    1/1   files  3.00 MB / 3.00 MB
+
+RECORDS
+  81001             ████████████████████ 100.0%     1/1   files   6.00 MB / 6.00 MB
+  81002             ████████████████████ 100.0%     1/1   files   3.00 MB / 3.00 MB
+
+DOWNLOADING NOW (showing 0 of 0, nearest to done first)
+
+Ctrl-C stops cleanly; rerun resumes   |   log: /path/to/downloads/download.log
+
+SHA256SUMS written for record 81001: /path/to/downloads/81001/SHA256SUMS
+SHA256SUMS written for record 81002: /path/to/downloads/81002/SHA256SUMS
+DOWNLOAD END UTC: 2026-11-27T15:22:59Z
+done 2 of 2 files, 9437184 of 9437184 bytes; exit reason: all files done
+DOWNLOAD COMPLETE

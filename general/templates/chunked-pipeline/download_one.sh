@@ -30,6 +30,7 @@ file_lines=${PROJECT_DL_FILE_LINES:-8}
 dry_run=${PROJECT_DL_DRY_RUN:-0}
 caffeinate_on=${PROJECT_DL_CAFFEINATE:-1}
 context=${PROJECT_DL_CONTEXT:-}
+status_file=${PROJECT_DL_STATUS_FILE:-}                   # set by pipe.py: the downloader reports its state there, the pipeline draws the dashboard
 py=${PROJECT_DL_PYTHON:-/usr/bin/python3}                 # PROJECT (e7: $HOME/system-env/e7/bin/python)
 
 die() { echo "ERROR: $*" >&2; exit 2; }
@@ -70,6 +71,9 @@ wrap=()
 if [ -n "$context" ]; then
     [ -s "$context" ] || die "PROJECT_DL_CONTEXT is not a file: $context"
     extra+=(--context "$context")
+fi
+if [ -n "$status_file" ]; then
+    extra+=(--status-file "$status_file")
 fi
 if [ "$dry_run" = 1 ]; then
     extra+=(--dry-run)

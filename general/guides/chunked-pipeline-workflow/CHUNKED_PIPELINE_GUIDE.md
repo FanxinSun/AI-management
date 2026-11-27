@@ -1,6 +1,6 @@
 # Chunked Download–Process–Delete Pipeline Guide (AI-Free Execution)
 
-Recorded on **2026-11-25** and updated on **2026-11-26** from the two production pipelines developed by **e6 Committee** (`~/e6-emu-below-z`, `claude:57721`) and **e7 Committee** (`~/e7-upsilon-omega`, `claude:90804`), reflecting **per-file manager acceptance before deletion** (E7 D21 / E6 D23). Updated on **2026-11-27**: e6's and e7's screens are recorded from their code (§3, §4), and the templates carry the merged format that the user chose from the two (§7).
+Recorded on **2026-11-25** and updated on **2026-11-26** from the two production pipelines developed by **e6 Committee** (`~/e6-emu-below-z`, `claude:57721`) and **e7 Committee** (`~/e7-upsilon-omega`, `claude:90804`), reflecting **per-file manager acceptance before deletion** (E7 D21 / E6 D23). Updated on **2026-11-27**: e6's and e7's screens are recorded from their code (§3, §4), and the templates carry the merged format that the user chose from the two (§7). Updated the same evening, after the user ran a split built from the templates: the pipeline's screen and its workers (§7, Addendum).
 
 > [!IMPORTANT]
 > **Templates (2026-11-27).** Build a pipeline from [`general/templates/chunked-pipeline/`](../../templates/chunked-pipeline/README.md)
@@ -12,6 +12,8 @@ Recorded on **2026-11-25** and updated on **2026-11-26** from the two production
 >   modes on e7's driver and on the template with e7's names: the outputs were identical.
 > - **The merge:** the user then chose, row by row, one format from e6's and e7's. The templates carry that merged
 >   format (§7). e6 and e7 themselves were not changed.
+> - **The evening of 2026-11-27:** the pipeline got one dashboard of its own for the whole split, and works on
+>   several files at once (§7, Addendum). The downloader alone is unchanged.
 
 ---
 
@@ -176,7 +178,7 @@ download file ──► verify ──► process / skim ──► tool checks �
 
 When designing a new chunked all-in-one pipeline in any project:
 
-1. **Downloader UI compliance:** follow [`general/templates/download-ui/README.md`](../../templates/download-ui/README.md) (`fetch_dst.py` + `download_wrapper.sh`: in-place `\033[<n>A\033[J` dashboard, `<100`-col layout, `status` creates nothing, automatic default folder, `caffeinate -i`, single-instance lock, HTTP Range resume, size/checksum verification). **Build the driver from [`general/templates/chunked-pipeline/`](../../templates/chunked-pipeline/README.md)** (the split script): it already has the merged screen of §7, the bridge lines, report, status, waits, gates and exit codes, and invariants 2 to 6 below. Before saying that a script has the format, run [`check_frame.py`](../../rules/script-delivery/check_frame.py) on a capture of its screen ([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md)).
+1. **Downloader UI compliance:** follow [`general/templates/download-ui/README.md`](../../templates/download-ui/README.md) (`fetch_dst.py` + `download_wrapper.sh`: in-place `\033[<n>A\033[J` dashboard, `<100`-col layout, `status` creates nothing, automatic default folder, `caffeinate -i`, single-instance lock, HTTP Range resume, size/checksum verification). **Build the driver from [`general/templates/chunked-pipeline/`](../../templates/chunked-pipeline/README.md)** (the split script): it already has the merged screen of §7 (with the Addendum: one dashboard for the whole split), the bridge lines, report, status, waits, gates and exit codes, and invariants 2 to 6 below. Before saying that a script has the format, run [`check_frame.py`](../../rules/script-delivery/check_frame.py) on captures of its screen taken on the path the user's run takes ([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md)).
 2. **Accept-then-delete + audit log:**
    * Never delete raw downloads until automated checks pass **and** the Manager/Committee's independent check records that file in `accepted-files.tsv` (and verify manifest SHA-256 matches before `os.remove`).
    * Never delete when a `HOLD` file exists; stop cleanly (`exit 4`) with nothing more deleted.
@@ -259,3 +261,25 @@ The user's answers on the open points (2026-11-27):
 The templates' READMEs show the screen and list each line:
 [`chunked-pipeline/README.md`](../../templates/chunked-pipeline/README.md) and
 [`download-ui/README.md`](../../templates/download-ui/README.md).
+
+### Addendum (2026-11-27, evening): the pipeline's screen and its workers
+
+The user ran a split built from the templates and wrote: "the format is not good as expected. It keeps jumping. I
+need a stable UI refresh itself, not keep on outputing", and "the GROUPS always show 0B, RECORDS only show one file,
+while I always see the file is under processing, cannot see many files are being downloaded simultaneously". These
+rows changed for the pipeline. The downloader alone keeps the table above.
+
+| # | Item | The pipeline now uses |
+|---|---|---|
+| 2 | Redraw | one frame for the whole split, redrawn in place every 5 s and whenever a file changes state; piped, a frame every 30 s |
+| 5 | Step rows | `STEP` counts the files downloading, processing and finished; the `WAITING` row is in the pipeline's frame |
+| 14 | Group section | `GROUPS (done / total)` and `RECORDS`: the finished files of the whole split, with their bytes |
+| 15 | Files section | `DOWNLOADING NOW` for every file downloading, then `PROCESSING NOW` for every file in its jobs; on a terminal, `RECENT` with the last three stamped lines |
+| 18 | Short window | the frame fits the window: `RECENT` goes first, then the file rows, the records and the groups shrink |
+| 20 | Job lines | on a terminal in `pipeline.log` only, and the running job shows in `PROCESSING NOW`; piped as before |
+| 21 | Per-file lines | on a terminal in `RECENT` and `pipeline.log`; piped as before |
+| 22 | End lines | the downloads' start and end lines: on a terminal in `pipeline.log` and `<id>/download-screen.log`; piped, after each download. The split's end lines are printed below the last frame |
+| new | Files at once | `PROJECT_PIPE_WORKERS` (4); the pilot file runs alone |
+
+Every line of the run goes to `<run folder>/pipeline.log`. The downloads run with `--status-file` and draw no frame of
+their own. `check_frame.py` fails a terminal capture in which anything is printed between two frames.

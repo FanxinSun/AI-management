@@ -433,6 +433,7 @@ class Runner:
         self.wall0 = time.time()
         self.baseline = 0
         self.hist = collections.deque()        # (time, total bytes, {row: bytes}) snapshots for the rates
+        self.shist = collections.deque()       # the same, for the --status-file snapshots
         self.prev_lines = 0
         self.done_log, self.shas = {}, {}
         self.tty = sys.stdout.isatty()
@@ -445,7 +446,7 @@ class Runner:
         with self.outlock:
             self.logf.write("%s %s %s\n" % (utc(), tag or "[main]", text))
             self.logf.flush()
-            if show and not self.a.dashboard:
+            if show and not (self.a.dashboard or self.a.status_file):
                 print(text, flush=True)
 
     def say(self, text):
@@ -1033,7 +1034,7 @@ class Runner:
         self.have0 = list(self.have)
         self.emit("", "RUN START workers=%d dashboard=%s max_stalls=%d retry_wait=%s stall=%s B/s over %s s"
                   % (self.nthreads, a.dashboard, a.max_stalls, a.retry_wait, a.stall_limit, a.stall_seconds), show=False)
-        if a.dashboard:
+        if a.dashboard or a.status_file:
             total_b = sum(r[2] for r in self.rows)
             self.say("DOWNLOAD START UTC: %s" % utc())
             self.say("DOWNLOAD ROOT: %s" % self.outdir)
@@ -1057,18 +1058,64 @@ class Runner:
 
     def monitor(self):
         stop_seen = None
+        sf = self.a.status_file
         while True:
-            if self.a.dashboard:
+            if sf:
+                self.write_status()
+            elif self.a.dashboard:
                 self.render()
-            finished = self.all_done.wait(timeout=self.report if self.a.dashboard else 1.0)
+            finished = self.all_done.wait(timeout=1.0 if sf else (self.report if self.a.dashboard else 1.0))
             if finished:
                 break
             if self.stop.is_set():
                 stop_seen = stop_seen or time.monotonic()
                 if time.monotonic() - stop_seen > 15:      # threads blocked in a read: they are daemons, leave them
                     break
-        if self.a.dashboard:
+        if sf:
+            self.write_status(final=True)
+        elif self.a.dashboard:
             self.render(final=True)
+
+    def write_status(self, final=False):
+        """--status-file: the run's state as JSON, written every second (a .partial file, then renamed), for a pipeline that draws
+        one dashboard for many downloads. The values are those of the dashboard's rows; no frame is drawn."""
+        now = time.monotonic()
+        cur = dict(self.cur)
+        have_total = sum(self.have)
+        snap = {i: c["got"] for i, c in cur.items()}
+        rate_now = None
+        if self.shist and now - self.shist[0][0] > 0.5:
+            rate_now = max(0, have_total - self.shist[0][1]) / (now - self.shist[0][0])
+        rows, live, stalled = [], 0, 0
+        for i, c in cur.items():
+            rate = None
+            for t_old, _total, files_old in self.shist:        # the oldest snapshot that still holds this file
+                if i in files_old and now - t_old > 0.5:
+                    rate = max(0, c["got"] - files_old[i]) / (now - t_old)
+                    break
+            if c["live"]:
+                live += 1
+                if rate == 0:
+                    stalled += 1
+            rows.append({"recid": self.rows[i][0], "key": self.rows[i][1], "got": c["got"], "size": c["size"], "rate": rate,
+                         "note": c["note"] if (c["note"] and not c["live"]) else "", "kind": c.get("kind", "")})
+        self.shist.append((now, have_total, snap))
+        while len(self.shist) > 1 and now - self.shist[1][0] >= max(10.0, self.report):
+            self.shist.popleft()
+        gained = max(0, have_total - self.baseline)
+        elapsed = now - self.t0
+        state = {"t": time.time(), "final": final, "got": have_total, "size": sum(r[2] for r in self.rows), "moved": gained,
+                 "files": self.n, "done": sum(self.done), "live": live, "stalled": stalled, "retries": self.retries,
+                 "stalls": self.stalls, "cert": self.cert_events, "last_error": self.last_error[:60],
+                 "net_down": bool(cur and now - self.last_ok > DOWN_WINDOW and self.retries), "rate": rate_now,
+                 "average": (gained / elapsed) if elapsed > 0 and gained > 0 else None, "timeout": READ_TIMEOUT, "rows": rows}
+        tmp = self.a.status_file + ".partial"
+        try:
+            with open(tmp, "w", encoding="utf-8") as g:
+                json.dump(state, g)
+            os.replace(tmp, self.a.status_file)
+        except OSError as e:
+            self.emit("", "status file not written: %s" % e, show=False)
 
     def finish(self):
         """Write the SHA256SUMS of complete records, print the end lines, return the exit code."""
@@ -1087,7 +1134,7 @@ class Runner:
             reason, code = "all files done", 0
         else:
             reason, code = "stopped with %d files not done" % (self.n - dn), 1
-        if self.a.dashboard:
+        if self.a.dashboard or self.a.status_file:
             for rid in sums:
                 self.say("SHA256SUMS written for record %d: %s" % (rid, os.path.join(self.outdir, str(rid), SUMS)))
             self.say("DOWNLOAD END UTC: %s" % utc())
@@ -1186,7 +1233,7 @@ def cmd_fetch(a):
             runner.monitor()
         except KeyboardInterrupt:
             runner.request_stop("interrupted", 130)
-            if a.dashboard:
+            if a.dashboard or a.status_file:
                 runner.say("INTERRUPTED: stopping all workers; partial files are kept")
             runner.all_done.wait(timeout=3)
         code = runner.finish()
@@ -1291,6 +1338,8 @@ def main(argv):
     f.add_argument("--cafile-sha256", default=None, help="refuse to run unless the CA file has this SHA-256 fingerprint")
     f.add_argument("--context", default=None, help="a pipeline's run, as JSON: the split, this file's step and group, the run's totals (STEP, TO DOWNLOAD, GROUPS rows)")
     f.add_argument("--dry-run", action="store_true", help="check the list, CA file and disk; fetch nothing, create nothing")
+    f.add_argument("--status-file", default=None, help="write the run's state as JSON to this file every second, for a pipeline's "
+                   "dashboard; with it no frame is drawn, and the start and end lines still are")
     pr = sub.add_parser("probe")
     pr.add_argument("urls", nargs="+")
     pr.add_argument("--cafile", default=None)

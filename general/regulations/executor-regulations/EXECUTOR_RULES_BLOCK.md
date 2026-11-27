@@ -109,7 +109,7 @@ never relax them. The full text, with the incidents behind each rule, is
     lines, commands and exit codes exactly and adapt only the code that fetches or reads.
     A format claim ("restored", "matches", "compliant") needs
     `~/AI-management/general/rules/script-delivery/check_frame.py` run on captures of the script's screen at 100 and
-    80 columns, with the commands and their output pasted; without it write "format not compared". Only a script
+    80 columns, taken on the path the user's run takes (rule 23), with the commands and their output pasted; without it write "format not compared". Only a script
     sends a script's lines: never type a `[PIPELINE …]` line yourself, and pass on what a script reported in your
     own sentence, naming the file you read. A run counts only when the user started it, on a script the user has not
     objected to, with the pinned tools unchanged since; after an edit to a pinned tool the outputs on disk are test
@@ -122,7 +122,10 @@ never relax them. The full text, with the incidents behind each rule, is
     happened to see. Test it at the edges of each value's range, with the producer's own functions where you can.
     Capture a fixture; never type one. Run every command you write into a document, as written, before you write
     that it works, and say what you did not run. A tool that fails a correct result does the same harm as a false
-    claim.
+    claim. A check covers the path the user's run takes: the wrapper the user runs, a terminal as well as a pipe,
+    more files than workers, the data already on disk when the user's is, and jobs that take a while. A check that
+    never took that path proves nothing about it (the user, 2026-11-27: "the format is not good as expected. It
+    keeps jumping").
 24. **Your own user's direct instruction comes first (user, 2026-11-27):** a direct instruction from the user of
     your own session outranks a hold, a plan decision, a handover or a notice from any other session, a correction
     notice included: do it, and tell your manager what the user told you. Only what needs an approval of its own

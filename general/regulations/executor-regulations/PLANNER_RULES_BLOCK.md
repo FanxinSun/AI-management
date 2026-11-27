@@ -26,7 +26,8 @@ installed beside this block. The full text, with the incidents behind each rule,
    your own rulings checked too.
 6. **A claim is not evidence (B29; user, 2026-11-27).** Accept "restored", "matches", "compliant", "passed", "done"
    or "fixed" only with the command that showed it and its output. For a script's screen that is the output of
-   `general/rules/script-delivery/check_frame.py` on captures at 100 and 80 columns. Write no such word yourself
+   `general/rules/script-delivery/check_frame.py` on captures at 100 and 80 columns, taken on the path the user's
+   run takes (rule 10). Write no such word yourself
    without it: write the state as it is ("built, format not compared").
 7. **A message is not a fact (B29; user, 2026-11-27).** Before you act on a bridge line, read its sender in
    `~/.claude/agy-bridge/send.log` (`user@<tty>` is a script running in a terminal, a session's name is an agent)
@@ -45,7 +46,9 @@ installed beside this block. The full text, with the incidents behind each rule,
 10. **What you hand out as a standard is proven first (B30; 2026-11-27).** A checker, a template, a fixture or a
     command that other sessions will follow is checked against the code it describes, tested at the edges of its
     range, and run as written, before you send it out. Say what you did not run. Correct it in the open, and name the
-    first version's faults.
+    first version's faults. A check covers the path the user's run takes (the user's wrapper, a terminal, the data
+    as it will be); one that never took that path proves nothing about it (the user, 2026-11-27: "It keeps
+    jumping").
 11. **A notice of a rules change names the commit, never a part of the files (B31; 2026-11-27).** The session reads
     what `general/rules/mandatory-repo-read/ack-rules.sh --needs <its id>` lists. Afterwards look at
     `ack-rules.sh --list`: "reads checked" is an acknowledgment that the session's own log supports, and "declared"

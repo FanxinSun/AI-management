@@ -7,7 +7,7 @@
 > 2. **NEVER** invent an ad-hoc `curl`/`wget`/`tqdm`/line-by-line `print` downloader, and **NEVER** drop the in-place `\033[<n>A\033[J` dashboard, the `<100`-column narrow layout, the `status` subcommand, the automatic default folder, HTTP Range resume, size/checksum verification, the `caffeinate`-safe single-instance guard, or exit codes `0`/`1`/`2`/`3`.
 > 3. **Always test** through the exact launch wrapper (including `status` and `<100` col width) and place the **complete, exact, copy-paste-ready runnable command at the very end** of your closing message (Rule 14).
 > 4. **Chain downstream processing when the task processes data (amended 2026-11-27):** `download-ui/` supplies the download/verify layer; whenever the dataset is to be skimmed, filtered, validated, or processed after download, follow [`CHUNKED_PIPELINE_GUIDE.md`](../../guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md) (`download -> verify -> process -> tool checks -> bridge line to Manager/Committee`), keeping raw files until Manager acceptance on bounded disk rather than stopping silently after `SHA256SUMS`. The script for that is built from [`../chunked-pipeline/`](../chunked-pipeline/README.md) (the split script).
-> 5. **Prove the format before you claim it (2026-11-27):** capture the script's screen at 100 and 80 columns, run [`check_frame.py`](../../rules/script-delivery/check_frame.py) on the captures, and paste the commands and their output with the delivery. Without it write "format not compared" ([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md)).
+> 5. **Prove the format before you claim it (2026-11-27):** capture the script's screen at 100 and 80 columns, on the path the user's run takes (the user's wrapper, a terminal, the data as it will be), run [`check_frame.py`](../../rules/script-delivery/check_frame.py) on the captures, and paste the commands and their output with the delivery. Without it write "format not compared" ([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md)).
 
 Recorded 2026-11-27. On that day the user asked to "align the UI/format in the repo WITH WHAT e6/e7 ARE USING STRICTLY".
 The user then chose, row by row, one merged format from e6's and e7's dashboards; the guide's §7 holds that table.
@@ -28,6 +28,13 @@ The files:
 A pipeline calls the same downloader once per file through
 [`../chunked-pipeline/download_one.sh`](../chunked-pipeline/download_one.sh) (e7's `tools/s6_download.sh`). It passes
 the run as `--context`: the split, the file's step and group, and the run's totals.
+
+Since the evening of 2026-11-27 the pipeline draws one dashboard of its own for the whole split, and it also passes
+each download `--status-file <path>`. With it the downloader draws no frame and prints no progress lines. Its start
+and end lines are printed as before. Once a second it writes its state as JSON to `<path>` (first to
+`<path>.partial`, then renamed). The keys are the values of its rows: `t`, `final`, `got`, `size`, `moved`, `files`,
+`done`, `live`, `stalled`, `retries`, `stalls`, `cert`, `last_error`, `net_down`, `rate`, `average` and `timeout`,
+and `rows`, with one entry per file being downloaded (`recid`, `key`, `got`, `size`, `rate`, `note`, `kind`).
 
 ## The interface (what the user sees and types)
 
@@ -94,6 +101,9 @@ Ctrl-C stops cleanly; rerun resumes   |   log: <folder>/download.log            
     bytes moved in this run.
 - **Without `--context`:** the run is the list. The step is 1 of 1, the group is the set, and `GROUPS` lists the
   list's datasets.
+- **With `--status-file`** (a pipeline's downloads): no frame. The pipeline draws the file's row in its own
+  `DOWNLOADING NOW`, and adds the rest into its own rows ([`../chunked-pipeline/README.md`](../chunked-pipeline/README.md),
+  "The screen").
 - **This download only:** `THIS STEP`, `TOTAL`, `FILES`, `RECORDS` and the file rows.
 - **`HEALTH`:**
   - it counts failed attempts, connections dropped for stalling, and certificate refusals (certificate checks are never
@@ -180,3 +190,10 @@ When processing follows the download, take the driver from [`../chunked-pipeline
     (certificate)`).
 - **`NETWORK DOWN? waiting, retrying`** appeared with a 1-second window in a test copy.
 - **The row for a file waiting to retry** read `retry in 1 s  retrying`.
+
+**In the evening:**
+- **With `--status-file`,** inside the pipeline, the downloader drew no frame, wrote its state once a second and kept
+  its start and end lines. The pipeline's captures passed `check_frame.py`.
+- **Without it,** the downloader is unchanged. Its captures, piped and in a terminal of 80 columns, passed
+  `check_frame.py` again, with the new check that nothing is printed between two frames on a terminal. They are the
+  checker's fixtures `download-piped.txt` and `download-terminal-80.txt`.

@@ -12,10 +12,14 @@ Usage:
 
   CAPTURE      a text file with what the script printed ("-" reads standard input). Escape codes are removed,
                so the capture of a terminal works as well as piped output.
-  --kind       download (default): the dashboard frames, and the start and end lines where they appear.
-               pipeline: the same, and the driver's lines (file, job, file report).
+  --kind       download (default): the downloader's frames, and the start and end lines where they appear.
+               pipeline: the pipeline's frames (one dashboard for the whole split: GROUPS (done / total), PROCESSING NOW,
+               RECENT), and, in a piped capture, the driver's lines (file, job, file report) and the downloads' start and
+               end lines. On a terminal the pipeline prints nothing but its frame until the end lines.
   --complete   the capture holds a whole run: the start lines, the end lines and, for a pipeline, the SUMMARY,
-               nudge, status and report lines must all be there.
+               nudge, status and report lines must all be there (on a terminal the pipeline's own lines and the
+               downloads' start and end lines go to its log, so there only the end lines are asked for), and at
+               least one frame must show a file in flight (a DOWNLOADING NOW or PROCESSING NOW line).
   --columns N  the terminal's width when the capture was made. A line of N-1 characters was cut there, and its
                end is not checked. Without it the width is taken as 80 or 100, whichever the longest line fits.
 
@@ -23,7 +27,14 @@ How to capture (Linux; on macOS: script -q FILE COMMAND ...):
   COMMAND > capture-100.txt                                              # piped: a 100-column frame every 30 s
   COLUMNS=80 LINES=30 script -q -c "COMMAND" capture-80.txt              # a terminal of 80 columns
 COMMAND must really download: a dry run, the pipeline's --test modes and its made-up files draw no frame.
-frame_test_server.py, beside this file, serves two test files slowly for that; the rule gives the commands.
+frame_test_server.py, beside this file, serves test files slowly for that (--files N for more than two); the rule
+gives the commands. A pipeline is captured on the path the user's run takes: in a terminal, through the wrapper the
+user runs, with more files than workers, with the files already on disk, and with jobs that take a while
+(general/templates/chunked-pipeline/README.md, "Tests before real use").
+
+On a terminal capture (one with in-place redraws, ESC[<n>A) a line printed between two frames is a finding: the
+screen scrolls instead of refreshing in place (the user, 2026-11-27: "I need a stable UI refresh itself, not keep on
+outputing").
 
 It changes nothing. Exit status: 0 when every frame and line fits, 1 when something does not fit or no frame was
 found, 2 on a usage error.
@@ -41,7 +52,8 @@ NUM = r"\d+(?:\.\d+)?(?:e[+-]?\d+)?"    # a number printed with %g
 BAR_REC = r"(?:[█░]{20}|[█░]{10})"      # a group's or a record's bar: 20 characters, 10 below 100 columns
 BAR_FILE = r"(?:[█░]{16}|[█░]{6})"      # a file's bar: 16 characters, 6 below 100 columns
 UTC = r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ"
-WHERE = "general/templates/download-ui/README.md, \"The dashboard\""
+WHERE = {"download": "general/templates/download-ui/README.md, \"The dashboard\"",
+         "pipeline": "general/templates/chunked-pipeline/README.md, \"The screen\""}
 
 # The nine fixed rows at the top of a frame: (name, how it reads, its parts in order).
 # The first part of a row must fit even when the terminal cut the line.
@@ -68,7 +80,18 @@ HEAD = [
      [r"HEALTH   failed attempts \d+", r"   stalls dropped \d+", r"   certificate events \d+",
       r"(?:   LASTERR .*)?(?:   NETWORK DOWN\? waiting, retrying)?"]),
 ]
+# the pipeline's frame: the same rows, counted for the whole split; processing is a real count there
+HEAD_PIPE = [(n, r.replace("processing 0", "processing <b>"), [x.replace("processing 0", r"processing \d+") for x in parts])
+             for n, r, parts in HEAD]
 GROUPS_HDR = "GROUPS (moved / estimate)"
+GROUPS_HDR_PIPE = "GROUPS (done / total)"
+PROC_HDR = re.compile(r"PROCESSING NOW \(showing \d+ of \d+, longest running first\)$")
+RECENT_HDR = "RECENT"
+WAITING_ROW = re.compile(r"WAITING  .+  since " + CLK + r"  next check in \d+ s")
+PROC_ROW = ("a PROCESSING NOW line", "  <recid> <key> <bar> <p>%  job <i> of <J>  <step> running <t> s",
+            [r"  \S.* running \d+ s"])
+RECENT_ROW = re.compile(r"  \[" + UTC + r"\] ")
+TTY_MARK = re.compile(r"\x1b\[\d+A")
 RECORDS_HDR = "RECORDS"
 NOW_HDR = re.compile(r"DOWNLOADING NOW \(showing \d+ of \d+, nearest to done first\)$")
 GROUP_ROW = ("a GROUPS line", "  <G>  <bar> <p>%  <d>/<n>   files  <moved> / <estimate>",
@@ -148,7 +171,7 @@ BAR_HINT = " (bars are made of █ and ░ only, with no brackets)"
 
 
 def is_row(line, k):
-    """True when the line carries the label of fixed row k."""
+    """True when the line carries the label of fixed row k (the same in both kinds of frame)."""
     label = LABEL.get(HEAD[k][0])
     return bool(label) and line.startswith(label)
 
@@ -157,9 +180,11 @@ def bar_hint(line):
     return BAR_HINT if re.search(r"\[[-#=.█░ ]|#{2,}|={3,}", line) else ""
 
 
-def check_frame(lines, start, columns):
+def check_frame(lines, start, columns, kind="download"):
     """Check the frame whose title is lines[start]. Returns (errors, index of the line after the frame)."""
     errs = []
+    head = HEAD_PIPE if kind == "pipeline" else HEAD
+    groups_hdr, other_hdr = (GROUPS_HDR_PIPE, GROUPS_HDR) if kind == "pipeline" else (GROUPS_HDR, GROUPS_HDR_PIPE)
     end = start + 1
     while end < len(lines) and end - start < 5000:      # a frame has one line per group and per record
         if BOTTOM_ANY.match(lines[end]):
@@ -177,8 +202,8 @@ def check_frame(lines, start, columns):
 
     # the nine fixed rows, in order; a row that is absent is named, a row that is not one of them is named
     n, k = 0, 0
-    while k < len(HEAD) and n < len(frame):
-        name, reads, parts = HEAD[k]
+    while k < len(head) and n < len(frame):
+        name, reads, parts = head[k]
         line = frame[n]
         why = fit(line, parts, cut_len)
         if why is None:
@@ -190,8 +215,8 @@ def check_frame(lines, start, columns):
             n += 1
             k += 1
             continue
-        later = [j for j in range(k + 1, len(HEAD)) if is_row(line, j)]
-        if later or line == GROUPS_HDR:
+        later = [j for j in range(k + 1, len(head)) if is_row(line, j)]
+        if later or line in (GROUPS_HDR, GROUPS_HDR_PIPE):
             bad(n, "the %s row is missing before %r; it reads: %s" % (name, line[:40], reads))
             k += 1
             continue
@@ -201,39 +226,57 @@ def check_frame(lines, start, columns):
             continue
         bad(n, "a row that the format does not have: %r" % line[:60])
         n += 1
-    for j in range(k, len(HEAD)):
+    for j in range(k, len(head)):
         if n >= len(frame):
-            bad(n - 1, "the %s row is missing; it reads: %s" % (HEAD[j][0], HEAD[j][1]))
+            bad(n - 1, "the %s row is missing; it reads: %s" % (head[j][0], head[j][1]))
 
-    # the three sections and the bottom line
-    order = ["GROUPS", "RECORDS", "NOW", "BOTTOM"]
+    # the sections and the bottom line (a pipeline frame adds PROCESSING NOW, and RECENT when there is something recent)
+    if kind == "pipeline":
+        order, needed = ["GROUPS", "RECORDS", "NOW", "PROCESSING", "RECENT", "BOTTOM"], ["GROUPS", "RECORDS", "NOW", "PROCESSING", "BOTTOM"]
+    else:
+        order, needed = ["GROUPS", "RECORDS", "NOW", "BOTTOM"], ["GROUPS", "RECORDS", "NOW", "BOTTOM"]
     seen = {}
     section = None
     counts = {"GROUPS": 0, "RECORDS": 0}
+    inflight = 0
     for m in range(n, len(frame)):
         line = frame[m]
         if not line.strip():
             continue
-        if line == GROUPS_HDR:
+        if kind == "pipeline" and section is None and WAITING_ROW.match(line):
+            continue
+        if line in (GROUPS_HDR, GROUPS_HDR_PIPE):
             section = "GROUPS"
+            if line == other_hdr:
+                bad(m, "the GROUPS header of a %s frame reads %r" % (kind, groups_hdr))
         elif line == RECORDS_HDR:
             section = "RECORDS"
         elif NOW_HDR.match(line):
             section = "NOW"
+        elif kind == "pipeline" and PROC_HDR.match(line):
+            section = "PROCESSING"
+        elif kind == "pipeline" and line == RECENT_HDR:
+            section = "RECENT"
         elif BOTTOM_ANY.match(line):
             section = "BOTTOM"
             if not BOTTOM.match(line):
                 bad(m, "the bottom line does not fit; it reads: Ctrl-C stops cleanly; rerun resumes   |   log: "
                        "<folder>/download.log")
-        elif line.startswith("  ") and section in ("GROUPS", "RECORDS", "NOW"):
-            if section == "NOW" and MORE_ROW.match(line):
+        elif line.startswith("  ") and section in ("GROUPS", "RECORDS", "NOW", "PROCESSING", "RECENT"):
+            if section != "RECENT" and MORE_ROW.match(line):
                 continue
-            spec = {"GROUPS": GROUP_ROW, "RECORDS": RECORD_ROW, "NOW": FILE_ROW}[section]
+            if section == "RECENT":
+                if not RECENT_ROW.match(line):
+                    bad(m, "a RECENT line is a stamped line of the run ('  [<utc>] ...'): %r" % line[:60])
+                continue
+            spec = {"GROUPS": GROUP_ROW, "RECORDS": RECORD_ROW, "NOW": FILE_ROW, "PROCESSING": PROC_ROW}[section]
             why = fit(line, spec[2], cut_len)
             if why:
                 bad(m, "%s %s; it reads: %s%s" % (spec[0], why, spec[1], bar_hint(line)))
             if section in counts:
                 counts[section] += 1
+            else:
+                inflight += 1
             continue
         else:
             bad(m, "a row that the format does not have: %r" % line[:60])
@@ -244,31 +287,53 @@ def check_frame(lines, start, columns):
             if earlier in seen:
                 bad(m, "the %s part comes after the %s part" % (section, earlier))
         seen[section] = m
-    names = {"GROUPS": GROUPS_HDR, "RECORDS": RECORDS_HDR, "NOW": "DOWNLOADING NOW (showing <a> of <b>, nearest to done "
-             "first)", "BOTTOM": "Ctrl-C stops cleanly; rerun resumes   |   log: ..."}
-    for part in order:
+    names = {"GROUPS": groups_hdr, "RECORDS": RECORDS_HDR, "NOW": "DOWNLOADING NOW (showing <a> of <b>, nearest to done "
+             "first)", "PROCESSING": "PROCESSING NOW (showing <a> of <b>, longest running first)",
+             "BOTTOM": "Ctrl-C stops cleanly; rerun resumes   |   log: ..."}
+    for part in needed:
         if part not in seen:
             bad(len(frame) - 1, "the frame has no line %r" % names[part])
     for part, cnt in counts.items():
         if part in seen and cnt == 0:
             bad(seen[part], "%s has no line under it" % names[part])
-    return errs, end
+    return errs, end, inflight
 
 
 def check_text(text, kind="download", complete=False, columns=None):
     """Returns (errors, frames found)."""
     lines = clean(text)
+    tty = bool(TTY_MARK.search(text))
     errs, frames, i = [], 0, 0
+    spans = []
+    inflight = 0
     while i < len(lines):
         if TITLE_LIKE.match(lines[i]) and not lines[i].startswith(" "):
-            e, i = check_frame(lines, i, columns)
+            begin = i
+            e, i, rows = check_frame(lines, i, columns, kind)
+            spans.append((begin, i))
             frames += 1
             errs += e
+            inflight += rows
         else:
             i += 1
     if frames == 0:
         errs.append("no dashboard frame found: a frame starts with the title row "
                     "'<TITLE> <run>  |  HH:MM:SS  |  elapsed ...'")
+    elif complete and inflight == 0:
+        errs.append("no frame shows a file in flight (a DOWNLOADING NOW%s line), so the capture proves nothing about "
+                    "those lines: capture a run whose files take longer than a frame%s" % (
+                        " or PROCESSING NOW" if kind == "pipeline" else "",
+                        " (PROJECT_PIPE_SANDBOX_JOB_S=20, a test server with --files 10)" if kind == "pipeline"
+                        else " (PROJECT_DL_REPORT_SECS=1)"))
+    if tty:
+        between = []
+        for (_, end), (nxt, _) in zip(spans, spans[1:]):
+            between += [(n, lines[n]) for n in range(end, nxt) if lines[n].strip()]
+        for n, line in between[:5]:
+            errs.append("line %d: printed between two frames on a terminal, so the screen scrolls instead of refreshing "
+                        "in place: %r" % (n + 1, line[:60]))
+        if len(between) > 5:
+            errs.append("... and %d more lines printed between frames" % (len(between) - 5))
 
     cut_at = (columns - 1) if columns else 79       # the shortest line that the driver can have cut
 
@@ -288,13 +353,16 @@ def check_text(text, kind="download", complete=False, columns=None):
 
     well_formed(START_LINES, "start")
     well_formed(END_LINES[:1], "end")
-    if complete:
+    # on a terminal the pipeline's own lines and the downloads' start and end lines go to its log, not to the screen
+    quiet = kind == "pipeline" and tty
+    if complete and not quiet:
         need([(name, rx, None) for name, rx in START_LINES], "the start lines")
         need([(name, rx, None) for name, rx in END_LINES], "the end lines")
         if not any(END_WORD.match(line) for line in lines):
             errs.append("the end lines: no 'DOWNLOAD COMPLETE', 'DOWNLOAD INCOMPLETE (...)' or 'INTERRUPTED: ...' line")
     if kind == "pipeline":
-        need(PIPE_LINES, "the pipeline's lines")
+        if not quiet:
+            need(PIPE_LINES, "the pipeline's lines")
         if complete:
             need(PIPE_END, "the end of the split")
         for n, line in enumerate(lines):
@@ -310,7 +378,7 @@ def report(path, text, kind, complete, columns):
     if len(errs) > 40:
         print("FAIL %s: ... and %d more" % (path, len(errs) - 40))
     print("Checked %s as %s%s: %d frame(s), %d finding(s). The format: %s" % (
-        path, kind, " (complete run)" if complete else "", frames, len(errs), WHERE))
+        path, kind, " (complete run)" if complete else "", frames, len(errs), WHERE[kind]))
     return len(errs)
 
 
@@ -372,7 +440,7 @@ Ctrl-C stops cleanly; rerun resumes   |   log: /tmp/frame-test.wOYLDk/out80/dow
 
 
 def readme_screen():
-    """The screen recorded in the pipeline template's README: the reference this checker is held to."""
+    """The frame shown in the pipeline template's README ("The screen"): a frame from the middle of a real run."""
     here = os.path.dirname(os.path.abspath(__file__))
     path = os.path.normpath(os.path.join(here, "..", "..", "templates", "chunked-pipeline", "README.md"))
     with open(path, encoding="utf-8") as f:
@@ -382,14 +450,28 @@ def readme_screen():
     return text[j:text.index("\n```", j)] + "\n", path
 
 
-def template_formatters():
-    """The download template itself, loaded from its file: its human(), clock(), rate_text() and bar() write the
-    values that this checker's patterns must take."""
+def fixture(name):
+    """A real capture kept beside this file (fixtures/), made from the templates on 2026-11-27 with frame_test_server.py;
+    only the folders are shortened to /path/to/...:
+      pipeline-piped.txt        a test copy of the pipeline template (GROUP_NAMES DatasetA and DatasetB), piped: the test
+                                server with --files 10 --kib 150, 4 workers, PROJECT_PIPE_SANDBOX_JOB_S=20
+      pipeline-terminal-80.txt  the same split again in a terminal of 80 x 30 through tools/all_in_one.sh, with the files
+                                already on disk (PROJECT_PIPE_TEST_TAG=disk): the path of a real run whose data is there
+      download-piped.txt        the downloader alone (tools/download_one.sh), piped, 2 workers, a frame every second
+      download-terminal-80.txt  the downloader alone in a terminal of 80 x 30
+    The pipeline README ("Tests before real use") gives the commands."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(here, "fixtures", name), encoding="utf-8") as f:
+        return f.read()
+
+
+def load_template(*parts):
+    """A template's code, loaded from its file (it does not run: the templates start only as __main__)."""
     import importlib.util
     here = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.normpath(os.path.join(here, "..", "..", "templates", "download-ui", "fetch_dst.py"))
+    path = os.path.normpath(os.path.join(here, "..", "..", "templates", *parts))
     sys.dont_write_bytecode = True
-    spec = importlib.util.spec_from_file_location("fetch_dst_template", path)
+    spec = importlib.util.spec_from_file_location("template_" + parts[-1].replace(".", "_"), path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -407,69 +489,113 @@ def selftest():
         if must_say and not any(must_say in e for e in errs):
             bad.append("%s: no finding says %r (findings: %s)" % (label, must_say, "; ".join(errs[:3])))
 
-    screen, path = readme_screen()
-    expect("the pipeline README's screen, as a complete pipeline run", screen, True, "pipeline", True)
-    expect("the pipeline README's screen, as a download", screen, True)
-    expect("a frame of 80 columns from the template", NARROW, True)
+    piped, term, dl = fixture("pipeline-piped.txt"), fixture("pipeline-terminal-80.txt"), fixture("download-piped.txt")
+    dl_term = fixture("download-terminal-80.txt")
+    frame, _ = readme_screen()
+    expect("a piped pipeline run (fixtures/pipeline-piped.txt)", piped, True, "pipeline", True)
+    expect("a pipeline run in a terminal of 80 columns (fixtures/pipeline-terminal-80.txt)", term, True, "pipeline", True,
+           columns=80)
+    expect("a piped download (fixtures/download-piped.txt)", dl, True, "download", True)
+    expect("a download in a terminal of 80 columns (fixtures/download-terminal-80.txt)", dl_term, True, "download", True,
+           columns=80)
+    expect("a download frame of 80 columns", NARROW, True)
+    readme_errs, _, readme_rows = check_frame(clean(frame), 0, None, "pipeline")
+    if readme_errs or not readme_rows:
+        bad.append("the frame in the pipeline README: should pass with files in flight, but: %s" % (
+            readme_errs[0] if readme_errs else "no file in flight"))
     expect("the 14:48 frame of the incident", NOT_THE_FORMAT_1, False, must_say="title row")
     expect("the 15:09 frame of the incident", NOT_THE_FORMAT_2, False, must_say="STEP row is missing")
-    lines = screen.split("\n")
-    step = [k for k, x in enumerate(lines) if x.startswith("STEP     ")][0]
-    expect("the screen without its STEP row", "\n".join(lines[:step] + lines[step + 1:]), False, must_say="STEP row is missing")
-    expect("the screen with # bars", screen.replace("█", "#").replace("░", "-"), False, must_say="THIS STEP row")
-    hdr = lines.index(GROUPS_HDR)
-    expect("the screen with a STAGES part", "\n".join(lines[:hdr] + ["STAGES", "  step2 ████  1/9", ""] + lines[hdr:]),
-           False, must_say="does not have")
-    expect("the screen without RECORDS", screen.replace("\nRECORDS\n", "\n"), False, must_say="'RECORDS'")
-    expect("the screen without its SUMMARY, as a complete pipeline run",
-           "\n".join(x for x in lines if "SUMMARY:" not in x and not x.startswith("  until accepted")), False, "pipeline",
-           True, must_say="SUMMARY")
-    expect("the screen without its job lines, as a pipeline", "\n".join(x for x in lines if "| compute" not in x), False,
-           "pipeline", must_say="start (limit")
+    expect("a download checked as a pipeline", dl, False, "pipeline", must_say="GROUPS header")
+    expect("a pipeline checked as a download", piped, False, "download", must_say="GROUPS header")
+    k = term.index("\x1b[", term.index("Ctrl-C stops cleanly"))
+    scrolled = term[:k] + "S2 pt1-tst1-F0000001-verify start (limit 600 s) | compute 0.0 of 840 min\r\n" + term[k:]
+    expect("a terminal capture with a line printed between two frames", scrolled, False, "pipeline", True,
+           must_say="between two frames")
+    lines = piped.split("\n")
+    step = [n for n, x in enumerate(lines) if x.startswith("STEP     ")][0]
+    expect("a pipeline without its STEP row", "\n".join(lines[:step] + lines[step + 1:]), False, "pipeline",
+           must_say="STEP row is missing")
+    expect("a pipeline with # bars", piped.replace("█", "#").replace("░", "-"), False, "pipeline", must_say="THIS STEP row")
+    hdr = lines.index(GROUPS_HDR_PIPE)
+    expect("a pipeline with a STAGES part", "\n".join(lines[:hdr] + ["STAGES", "  step2 ████  1/9", ""] + lines[hdr:]),
+           False, "pipeline", must_say="does not have")
+    expect("a pipeline without RECORDS", piped.replace("\nRECORDS\n", "\n"), False, "pipeline", must_say="'RECORDS'")
+    expect("a pipeline without PROCESSING NOW", "\n".join(x for x in lines if not x.startswith("PROCESSING NOW")), False,
+           "pipeline", must_say="PROCESSING NOW")
+    expect("a pipeline without its SUMMARY, as a complete run", "\n".join(x for x in lines if "SUMMARY:" not in x), False,
+           "pipeline", True, must_say="SUMMARY")
+    expect("a piped pipeline without its job lines", "\n".join(x for x in lines if "| compute" not in x), False, "pipeline",
+           must_say="start (limit")
     expect("an empty capture", "nothing here\n", False, must_say="no dashboard frame")
-
-    # The edges of the ranges. The values are written by the template's own formatters, not typed here.
-    t = template_formatters()
-    for rx, fn, args in [(HUM, t.human, (0, 1, 1023, 1024, (1 << 20) - 1, 1 << 20, (1 << 30) - 1, 1 << 30, 5 << 40)),
-                         (RATE, t.rate_text, (0, 1, 1023, 1024, (1 << 20) - 1, 1 << 20, 9e9)),
-                         (DUR, t.clock, (0, 59, 99 * 3600 + 3599, 100 * 3600, 1300 * 3600)),
-                         (BAR_REC, lambda f: t.bar(f, 20), (-1, 0, 0.5, 1, 1.7)), (BAR_REC, lambda f: t.bar(f, 10), (0, 0.5, 1)),
-                         (BAR_FILE, lambda f: t.bar(f, 16), (0, 0.5, 1)), (BAR_FILE, lambda f: t.bar(f, 6), (0, 0.5, 1))]:
-        for a in args:
-            if not re.fullmatch(rx, fn(a)):
-                bad.append("the template writes %r for %r, and the pattern %s does not take it" % (fn(a), a, rx))
-    if t.rate_text(None) != "measuring":
-        bad.append("the template's word for a rate not yet measured is %r, not 'measuring'" % t.rate_text(None))
-    long_run = screen.replace("elapsed 00:00:02", "elapsed " + t.clock(100 * 3600)).replace("ETA 00:00:01", "ETA " + t.clock(1300 * 3600))
-    if long_run.count("elapsed 100:00:00") != 1 or long_run.count("ETA 1300:00:00") != 2:
-        bad.append("the README's screen no longer has the elapsed time and the two ETAs that the 100-hour test replaces")
-    expect("the screen after 100 hours, with an ETA of 1300 hours", long_run, True, "pipeline", True)
-    rec = [k for k, x in enumerate(lines) if x.startswith("  81001 DatasetA")][0]
-    many = [lines[rec].replace("81001", str(82000 + j)) for j in range(150)]
-    expect("a frame with 150 records", "\n".join(lines[:rec] + many + lines[rec + 1:]), True, "pipeline", True)
-    dry_lines = "TOTAL FILES: %d, TOTAL BYTES: %d\nWORKERS: %d, max attempts without progress per file: %d\n" % (2, 9437184, 2, 10)
-    expect("the screen after the two lines of a dry run", dry_lines + screen, True, "pipeline", True)
-    expect("a start line that does not fit", "TOTAL FILES: two\n" + screen, False, must_say="TOTAL FILES")
+    idle = "\n".join(x for x in lines if not re.match(r"  \d+ (?!Dataset)\S", x))
+    expect("a complete pipeline capture in which no frame shows a file in flight", idle, False, "pipeline", True,
+           must_say="no frame shows a file in flight")
+    dl_lines = dl.split("\n")
+    expect("a complete download capture in which no frame shows a file downloading",
+           "\n".join(x for x in dl_lines if not re.match(r"  \d+ \S+ +[█░]", x)), False, "download", True,
+           must_say="no frame shows a file in flight")
     grp = hdr + 1
     expect("a group's bar of 15 characters", "\n".join(lines[:grp] + [lines[grp].replace("░" * 5, "", 1)] + lines[grp + 1:]),
-           False, must_say="a GROUPS line")
-    fil = [k for k, x in enumerate(lines) if x.startswith("  81001 AAAA1111")][0]
+           False, "pipeline", must_say="a GROUPS line")
+    fil = [n for n, x in enumerate(lines) if x.startswith("  81001 AAAA1111") and "%" in x][0]
     expect("a file's bar of 12 characters", "\n".join(lines[:fil] + [lines[fil].replace("░" * 4, "", 1)] + lines[fil + 1:]),
-           False, must_say="a DOWNLOADING NOW line")
-    wide = [x.replace("g1-AAAA1111-verify", "a-long-split-name-AAAA1111-verify")[:79] if " start (limit" in x else x for x in lines]
-    if not any(len(x) == 79 and " start (limit" in x for x in wide):
-        bad.append("the README's screen no longer has the job line that the cut-line test lengthens to 79 characters")
-    expect("a job's start line that the terminal cut at 79 characters", "\n".join(wide), True, "pipeline", True)
+           False, "pipeline", must_say="a DOWNLOADING NOW line")
+    pr = [n for n, x in enumerate(lines) if x.startswith("  ") and " running " in x and " job " in x][0]
+    expect("a processing row without its running time", "\n".join(lines[:pr] + [lines[pr].replace(" running ", " idle ")]
+                                                                  + lines[pr + 1:]), False, "pipeline",
+           must_say="a PROCESSING NOW line")
     expect("a job's start line without its compute part",
            "\n".join(x.split(" | compute")[0] if " start (limit" in x else x for x in lines), False, "pipeline",
            must_say="start (limit")
 
+    # The edges of the ranges. The values are written by the templates' own formatters, not typed here: the downloader's
+    # (download-ui/fetch_dst.py) and the pipeline's (chunked-pipeline/pipe.py, which draws the pipeline's frame).
+    t = load_template("download-ui", "fetch_dst.py")
+    pp = load_template("chunked-pipeline", "pipe.py")
+    for rx, name, args in [(HUM, "human", (0, 1, 1023, 1024, (1 << 20) - 1, 1 << 20, (1 << 30) - 1, 1 << 30, 5 << 40)),
+                           (RATE, "rate_text", (0, 1, 1023, 1024, (1 << 20) - 1, 1 << 20, 9e9)),
+                           (DUR, "clock", (0, 59, 99 * 3600 + 3599, 100 * 3600, 1300 * 3600))]:
+        for a in args:
+            for mod, who in ((t, "fetch_dst.py"), (pp, "pipe.py")):
+                v = getattr(mod, name)(a)
+                if not re.fullmatch(rx, v):
+                    bad.append("%s's %s writes %r for %r, and the pattern %s does not take it" % (who, name, v, a, rx))
+    for rx, width, args in [(BAR_REC, 20, (-1, 0, 0.5, 1, 1.7)), (BAR_REC, 10, (0, 0.5, 1)), (BAR_FILE, 16, (0, 0.5, 1)),
+                            (BAR_FILE, 6, (0, 0.5, 1))]:
+        for a in args:
+            for mod, who in ((t, "fetch_dst.py"), (pp, "pipe.py")):
+                v = mod.bar(a, width)
+                if not re.fullmatch(rx, v):
+                    bad.append("%s's bar writes %r for %r, and the pattern %s does not take it" % (who, v, a, rx))
+    for mod, who in ((t, "fetch_dst.py"), (pp, "pipe.py")):
+        if mod.rate_text(None) != "measuring":
+            bad.append("%s's word for a rate not yet measured is %r, not 'measuring'" % (who, mod.rate_text(None)))
+    if not MORE_ROW.match(pp.limit_rows(["  a", "  b", "  c"], 2)[-1]):
+        bad.append("pipe.py's '… and N more' line does not fit the pattern %s" % MORE_ROW.pattern)
+    if "elapsed 00:00:30" not in piped or "ETA 00:00:11" not in piped:
+        bad.append("fixtures/pipeline-piped.txt no longer has the elapsed time and the ETA that the 100-hour test replaces")
+    long_run = piped.replace("elapsed 00:00:30", "elapsed " + pp.clock(100 * 3600)).replace("ETA 00:00:11", "ETA " + pp.clock(1300 * 3600))
+    expect("a pipeline after 100 hours, with an ETA of 1300 hours", long_run, True, "pipeline", True)
+    rec = [n for n, x in enumerate(lines) if x.startswith("  81001 DatasetA")][0]
+    many = [lines[rec].replace("81001", str(82000 + j)) for j in range(150)]
+    expect("a pipeline frame with 150 records", "\n".join(lines[:rec] + many + lines[rec + 1:]), True, "pipeline", True)
+    dry_lines = "TOTAL FILES: %d, TOTAL BYTES: %d\nWORKERS: %d, max attempts without progress per file: %d\n" % (2, 9437184, 2, 10)
+    expect("a pipeline after the two lines of a dry run", dry_lines + piped, True, "pipeline", True)
+    expect("a start line that does not fit", "TOTAL FILES: two\n" + piped, False, "pipeline", must_say="TOTAL FILES")
+    wide = [x.replace("pt1-tst1-", "pt1-a-long-split-name-tst1-")[:79] if " start (limit" in x else x for x in lines]
+    if not any(len(x) == 79 and " start (limit" in x for x in wide):
+        bad.append("fixtures/pipeline-piped.txt no longer has a job line that the cut-line test lengthens to 79 characters")
+    expect("a job's start line that the terminal cut at 79 characters", "\n".join(wide), True, "pipeline", True)
+
     for line in bad:
         print("SELFTEST FAIL: " + line)
-    print("selftest: %s" % ("FAILED" if bad else "ok (pass: the template README's screen, a real 80-column frame, and that "
-                            "screen after 100 hours, with 150 records, after a dry run's lines and with a cut job line; "
-                            "fail: the two frames of the incident, 10 broken copies of the screen and an empty capture; "
-                            "the value patterns take what the template's own formatters write at the edges of their ranges)"))
+    print("selftest: %s" % ("FAILED" if bad else "ok (pass: 4 real captures (a pipeline and a download, each piped and in a "
+                            "terminal of 80 columns), a real 80-column download frame, the README's frame, and a pipeline "
+                            "after 100 hours, with 150 records, after a dry run's lines and with a cut job line; fail: the "
+                            "two frames of the incident, a capture checked as the wrong kind (both ways), a terminal capture "
+                            "that scrolls, two complete captures with no file in flight, 11 broken copies and an empty "
+                            "capture; the value patterns take what both templates' formatters write at the edges of their "
+                            "ranges)"))
     return 1 if bad else 0
 
 
