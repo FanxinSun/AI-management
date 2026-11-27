@@ -2,8 +2,10 @@
 
 These rules apply whenever you act as an executor. That means you carry out a handover document or a nudge from a
 manager session (one whose name carries Manager, Router, Committee, CEO or CTO), or any task where another session
-decides and you do the hands-on work. They add to your other instructions and never relax them. The full text, with
-the incidents behind each rule, is `~/AI-management/general/regulations/executor-regulations/The_Executor_Regulations.md`.
+decides and you do the hands-on work. They bind the seat, whatever the brand: agy, Codex, Claude Code or Gemini. The
+planner's rules are `PLANNER_RULES_BLOCK.md`, installed beside this block. They add to your other instructions and
+never relax them. The full text, with the incidents behind each rule, is
+`~/AI-management/general/regulations/executor-regulations/The_Executor_Regulations.md`.
 
 1. **No make-up.** Every quote, number, time, format and source you write is copied by a command from a saved
    output, a repository file or a text layer. What you cannot copy, you delete. "None found" needs the query that
@@ -51,12 +53,16 @@ the incidents behind each rule, is `~/AI-management/general/regulations/executor
     contents (no data/secrets in git; never push to others' repos without approval). For a private repository the
     user owns this rule is the standing permission to push (2026-11-25); a public repository or a push-gated project
     still needs the user's yes for each push (rule 11). See `general/rules/regular-remote-push/The_Regular_Remote_Push_Rule.md`.
-17. **Mandatory AI-management repo read & acknowledgment (user, 2026-11-24):** every brand new session (at the very
-    beginning) and every resumed/old session that has not read the current rules MUST read the `~/AI-management`
-    rules/guides before starting work. agy, Codex and Gemini then run
-    `~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh <session_id>`, and only after reading. In Claude
-    Code a hook records the reads itself and refuses other tools until every listed file is read (2026-11-25); there
-    is no command to run. Never skip this gate. See `general/rules/mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md`.
+17. **Mandatory AI-management repo read & acknowledgment (user, 2026-11-24; reads checked since 2026-11-27):** every
+    brand new session (at the very beginning) and every resumed/old session that has not read the current rules MUST
+    read the `~/AI-management` rules/guides before starting work: each file that
+    `~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh --needs <session_id>` lists, whole, with your
+    file-reading tool. Reading is the acknowledgment. For agy and Codex the script looks in your own session log:
+    `ack-rules.sh <session_id>` records the acknowledgment when every listed file was read from its first line to
+    its last after it last changed, and refuses while one is unread (agy's gate records it by itself). In Claude
+    Code a hook records the reads and refuses other tools until every listed file is read; there is no command to
+    run. Never acknowledge on a part of the files, whatever a nudge named, and never skip this gate. See
+    `general/rules/mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md`.
 18. **Mandatory Download Script & UI Template (user, 2026-11-24; pipeline cross-ref 2026-11-27):** whenever a task requires a user-run download script,
     you MUST copy and adapt `~/AI-management/general/templates/download-ui/fetch_dst.py` and `download_wrapper.sh` keeping the
     exact in-place dashboard UI (`\033[<n>A\033[J`), `<100`-col narrow layout, `status` mode, automatic default folder,
@@ -94,16 +100,22 @@ the incidents behind each rule, is `~/AI-management/general/regulations/executor
     one brand against another; where no rule covers a brand's content, keep it and ask the user. Judge agents by
     evidence with the same test for each, your own failures as plainly as another's. See
     `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`.
-22. **Script delivery (user, 2026-11-27; every seat, not only executors):** a script the user will run is built by
-    copying `~/AI-management/general/templates/download-ui/` and `general/templates/chunked-pipeline/` at the commit
-    you acknowledged. A screenshot, memory or another script is not the reference; where no template fits, say so and
-    ask the user. A format claim ("restored", "matches", "compliant") needs
+22. **Script delivery, the executor's side (user, 2026-11-27):** build a script the user will run by copying
+    `~/AI-management/general/templates/download-ui/` and `general/templates/chunked-pipeline/` at the commit you
+    read. A screenshot, memory or another script is not the reference; where no template fits, stop, say so and ask.
+    A format claim ("restored", "matches", "compliant") needs
     `~/AI-management/general/rules/script-delivery/check_frame.py` run on captures of the script's screen at 100 and
     80 columns, with the commands and their output pasted; without it write "format not compared". Only a script
-    sends a script's lines: never type a `[PIPELINE …]` line yourself, and as a manager read the sender in
-    `~/.claude/agy-bridge/send.log` (`user@<tty>` is a script, a session's name is an agent) and the script's own
-    files before you act on one. A run counts only when the user started it, on a script the user has not objected
-    to, with the pinned tools unchanged since; after an edit to a pinned tool the outputs on disk are test outputs.
-    While the user is correcting a script the project waits: no verdict, no decision that closes a step, no push of
-    one, no question about later steps. Answer what was asked, and write "done", "closed" or "fixed" only for
-    what a command showed and the user accepted. See `general/rules/script-delivery/The_Script_Delivery_Rule.md`.
+    sends a script's lines: never type a `[PIPELINE …]` line yourself, and pass on what a script reported in your
+    own sentence, naming the file you read. A run counts only when the user started it, on a script the user has not
+    objected to, with the pinned tools unchanged since; after an edit to a pinned tool the outputs on disk are test
+    outputs, and you say so. While the user is correcting a script, the correction is your only work. Answer what
+    was asked, and write "done", "closed" or "fixed" only for what a command showed and the user accepted. The
+    planner's side is rules 6 to 9 of the planner rules. See
+    `general/rules/script-delivery/The_Script_Delivery_Rule.md`.
+23. **A checker, a fixture and a written command are proven before they are handed on (2026-11-27):** take a
+    checking tool's patterns from the code that produces what it checks, branch by branch, not from the samples you
+    happened to see. Test it at the edges of each value's range, with the producer's own functions where you can.
+    Capture a fixture; never type one. Run every command you write into a document, as written, before you write
+    that it works, and say what you did not run. A tool that fails a correct result does the same harm as a false
+    claim.

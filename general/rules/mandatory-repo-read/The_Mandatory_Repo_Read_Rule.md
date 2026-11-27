@@ -13,7 +13,7 @@ It binds every agent session on every machine: Claude Code, agy, Codex, and Gemi
 Every session MUST read the entire `~/AI-management` rule set **at least once** before doing any substantive work (planning, handovers, edits, script generation, or reviews):
 
 - **Brand new session:** read at the very beginning of the session before starting any task.
-- **Old / resumed session not yet acknowledged:** read immediately upon resume before continuing work. For agy and Codex "not acknowledged" also means acknowledged at an older `git HEAD` commit. For Claude Code it means that a listed file has changed since the session read it, and then only the changed files are read again.
+- **Old / resumed session not yet acknowledged:** read immediately upon resume before continuing work. For every brand it means that a listed file has changed since the session read it, and then only those files are read again: `ack-rules.sh --needs <session_id>` lists them. For a declared id (Gemini, manual) they are the files changed since its last acknowledgment.
 
 ### Required reading list (in `~/AI-management`)
 
@@ -26,36 +26,51 @@ Every session MUST read the entire `~/AI-management` rule set **at least once** 
 7. `claude/rules/ultracode-workflow/The_Ultracode_Rule.md`
 8. `general/rules/multi-agent-dispatch/MULTI_AGENT_DISPATCH_RULES.md`
 9. `general/regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md`
-10. `general/regulations/executor-regulations/HANDOVER_RULES.md`
-11. `general/templates/download-ui/README.md`
-12. `general/templates/chunked-pipeline/README.md`
-13. `general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md`
-14. `claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md`
-15. `general/tools/handover-lint/README.md`
-16. `general/rules/project-planning/The_Project_Planning_Rule.md`
-17. `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`
-18. `general/rules/script-delivery/The_Script_Delivery_Rule.md`
-19. Platform bridge guide as applicable: `general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md` or `general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md`.
+10. `general/regulations/executor-regulations/PLANNER_RULES_BLOCK.md`
+11. `general/regulations/executor-regulations/HANDOVER_RULES.md`
+12. `general/templates/download-ui/README.md`
+13. `general/templates/chunked-pipeline/README.md`
+14. `general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md`
+15. `claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md`
+16. `general/tools/handover-lint/README.md`
+17. `general/rules/project-planning/The_Project_Planning_Rule.md`
+18. `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`
+19. `general/rules/script-delivery/The_Script_Delivery_Rule.md`
+20. Platform bridge guide as applicable: `general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md` or `general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md`.
 
 ### How to acknowledge
 
-**Claude Code (since 2026-11-25): by reading.** The rules-gate hook records each listed file that the session reads
+**Reading is the acknowledgment, for every brand.** What differs is where the proof of the reading is kept.
+
+**Claude Code (since 2026-11-25).** The rules-gate hook records each listed file that the session reads
 whole with the Read tool, by content, and refuses the session's other tools until every listed file is read. There is
 no command to run and none that can record it: `ack-rules.sh claude-<session_id>` only reports what is read. After a
 commit the hook asks only for the listed files whose content changed. The list the hook uses is
-[`reading-list.txt`](reading-list.txt) beside this file: items 1 to 18 above and the platform's bridge guide. Keep the
+[`reading-list.txt`](reading-list.txt) beside this file: items 1 to 19 above and the platform's bridge guide. Keep the
 two in step, and keep host and hardware fixes out of these files (they go in `fix/`), because every change to a listed
 file sends every session back to read it.
 
-**agy, Codex, Gemini and manual runs: by declaration, after reading.** Record the acknowledgment for your session ID
-at the current `HEAD` commit, and never without having read the files:
+**agy and Codex (since 2026-11-27): checked in the session's own log.** [`ack_reads.py`](ack_reads.py) looks in the
+log that the session itself writes: agy's transcript, or Codex's session log.
+- **What counts as read:** the text that the session's tools returned, after the file last changed, holds the
+  file's lines from the first to the last. Several calls may share one file. A part of a file does not count, and
+  neither does a read made before the file's last change.
+- **What to read:** `ack-rules.sh --needs <session_id>` lists the files that are still unread, one path per line.
+  The list comes from this command, never from a nudge.
+- **agy:** the gate lists the unread files in its notice, and it records the acknowledgment by itself as soon as
+  the session's log holds them all. The id is `agy-<conversation_id>` (the `conversationId` passed by the hook).
+- **Codex:** run `ack-rules.sh codex-<pid>` with the pid of the running session, or `codex-<thread_id>`. It records
+  the acknowledgment, or it names the unread files and exits 1.
 
 ```bash
-~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh <session_id>
+~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh --needs <session_id>   # the files still to read
+~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh <session_id>           # record it; exit 1 while a file is unread
+~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh --list                 # every session: "reads checked" or "declared"
 ```
 
-- For **agy** sessions: use `agy-<conversation_id>` (the `conversationId` passed by the hook).
-- For **Codex** / **Gemini** / **manual** runs: use `codex-<thread_or_pid>` or `gemini-<id>`.
+**Gemini, a manual id, and a session whose log is not found: by declaration.** `ack-rules.sh <session_id>` records
+the acknowledgment at the current `HEAD`, and `--list` shows it as "declared". Never declare without having read the
+files. A planner who needs more than the session's word asks for the commands and their output.
 
 Also state explicitly in your first substantive response after reading that you have read `~/AI-management` rules.
 
@@ -85,7 +100,8 @@ Whenever a task involves downloading datasets, files, or artifacts that the user
   - The gate fails open on an internal error, and `AI_MGMT_RULES_GATE_OFF=1` is the user's off switch; no agent sets it.
   - Before 2026-11-25 the gate was a note plus a self-declared acknowledgment tied to `HEAD`: nothing was refused, a session could acknowledge without opening a file, and every commit, whatever it changed, told every session to read everything again.
 - **Claude Guardrails:** [`claude/hooks/claude-guardrails/install-claude-guardrails-hook.sh`](../../../claude/hooks/claude-guardrails/install-claude-guardrails-hook.sh) installs `~/.claude/hooks/ai-management-claude-guardrails.sh` to block `AskUserQuestion` pickers and edits of a `.py` file that add a `1 - cdf` upper tail or a hardcoded Python minor path, and injects T1–T5 reminders.
-- **Antigravity (`agy`):** [`agy/hooks/rules-gate/install-agy-rules-gate-hook.sh`](../../../agy/hooks/rules-gate/install-agy-rules-gate-hook.sh) installs `~/.gemini/config/hooks/ai-management-rules-gate.sh` in `~/.gemini/config/hooks.json` on `SessionStart` and `PreInvocation`. Brand new sessions are gated at `SessionStart`; resumed/old unacknowledged sessions are gated at `PreInvocation` until `ack-rules.sh agy-<conversationId>` matches current `HEAD`.
+- **Antigravity (`agy`):** [`agy/hooks/rules-gate/install-agy-rules-gate-hook.sh`](../../../agy/hooks/rules-gate/install-agy-rules-gate-hook.sh) installs `~/.gemini/config/hooks/ai-management-rules-gate.sh` in `~/.gemini/config/hooks.json` on `SessionStart` and `PreInvocation`. Since 2026-11-27 the hook first runs `ack-rules.sh --auto agy-<conversationId>`: when the session's own log holds every listed file, whole, the acknowledgment is recorded and the hook is silent. Otherwise its notice lists the unread files (`ack-rules.sh --needs`), at `SessionStart` and at most every 120 s at `PreInvocation`. The hook injects a notice; it does not refuse a tool, so a planner looks at `ack-rules.sh --list`.
+- **Codex and Gemini:** no hook. Codex acknowledges with `ack-rules.sh codex-<pid>`, which checks its session log; Gemini declares.
 
 ---
 
@@ -98,8 +114,10 @@ For a `CLAUDE.md`, `AGENTS.md`, or handover rules:
 
 Every session (brand new at startup; resumed/old immediately upon resume if it has not read the current rules) MUST
 read the ~/AI-management rules (the files listed in general/rules/mandatory-repo-read/reading-list.txt) before starting
-work. In Claude Code a hook records the reads and refuses other tools until every listed file is read; agy, Codex and
-Gemini then run `~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh <session_id>`, only after reading.
+work. Reading is the acknowledgment: in Claude Code a hook records the reads and refuses other tools until every
+listed file is read; for agy and Codex `~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh <session_id>`
+looks in the session's own log, records the acknowledgment when every file was read whole, and names the unread files
+otherwise (`--needs <session_id>` lists them); Gemini declares it with the same command, only after reading.
 For any user-run download task, you MUST copy and adapt `~/AI-management/general/templates/download-ui/fetch_dst.py` and
 `download_wrapper.sh` keeping the exact in-place dashboard UI, narrow <100-col layout, `status` mode, resume,
 verification, single-instance guard, and exit codes, chain downstream data processing + checks + bridge wakeup per
@@ -112,8 +130,14 @@ response with the exact copy-paste runnable command.
 ## 5. Incident & Check
 
 - **Incident (2026-11-24):** `claude e6 Committee` and `e6 executor` skipped reading `~/AI-management` rules, failed to deliver a download script, and failed twice to produce the required download UI/format.
+- **Incident (2026-11-27):** a Claude Code session told two agy sessions that the rules had changed, named two files
+  to read and asked for the acknowledgment. One read three of the nine changed files and acknowledged; the other read
+  five whole and four in part, and acknowledged. Nothing checked an agy or Codex acknowledgment. Since then
+  `ack_reads.py` reads the session's own log, the agy gate lists the unread files and records the acknowledgment by
+  itself, and `--list` shows "reads checked" or "declared".
 - **Check:**
   ```bash
+  ~/AI-management/general/rules/mandatory-repo-read/ack_reads.py --selftest
   ~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh --list
   grep -rln --exclude='*.bak*' -e "Mandatory AI-management repo read" -e "mandatory-repo-read/reading-list.txt" ~/.claude/CLAUDE.md ~/AGENTS.md ~/.gemini/config ~/.codex/skills ~/.claude/skills 2>/dev/null
   ```

@@ -1,7 +1,9 @@
 #!/bin/bash
 # Installs an Antigravity (agy) hook in ~/.gemini/config/hooks.json (SessionStart +
-# PreInvocation) that gates every brand new session and every unacknowledged resumed/old
-# session until it reads ~/AI-management rules and runs general/rules/mandatory-repo-read/ack-rules.sh agy-<conversationId>.
+# PreInvocation) that gates every brand new session and every resumed/old session that has not read the
+# current ~/AI-management rules. Reading is the acknowledgment (2026-11-27): the hook asks
+# general/rules/mandatory-repo-read/ack-rules.sh to look in the session's own log, lists the files that are
+# still unread, and records the acknowledgment by itself when every listed file was read whole.
 # Backup: ~/.gemini/config/hooks.json.bak-rules-gate
 set -euo pipefail
 
@@ -14,7 +16,7 @@ H="$AGY_CFG/hooks/ai-management-rules-gate.sh"
 
 cat > "$H" <<'EOF'
 #!/bin/bash
-# Enforces mandatory reading and acknowledgment of ~/AI-management rules for agy sessions.
+# Enforces the reading of ~/AI-management rules for agy sessions; reading is the acknowledgment.
 # Reads camelCase JSON from stdin and outputs {"injectSteps":...} or {}.
 input="$(cat)"
 read -r event cid < <(printf '%s' "$input" | python3 -c '
@@ -41,6 +43,12 @@ if [ -f "$ACK_DIR/$safe_id" ] && [ "$(cat "$ACK_DIR/$safe_id" 2>/dev/null)" = "$
   exit 0
 fi
 
+# Reading is the acknowledgment: record it when this session's own log holds every listed file, whole.
+if "$ACK_SH" --auto "$safe_id" >/dev/null 2>&1; then
+  echo '{}'
+  exit 0
+fi
+
 # On PreInvocation, avoid repeating on every tool call within 120s while the agent is reading the repo.
 stamp="$ACK_DIR/.notified-$safe_id"
 if [ "$event" = "PreInvocation" ] && [ -f "$stamp" ]; then
@@ -53,36 +61,21 @@ if [ "$event" = "PreInvocation" ] && [ -f "$stamp" ]; then
 fi
 touch "$stamp"
 
+needs="$("$ACK_SH" --needs "$safe_id" 2>/dev/null | sed "s|^|   - $REPO/|")"
+[ -n "$needs" ] || needs="   - every file named in $REPO/general/rules/mandatory-repo-read/reading-list.txt"
+
 note="[MANDATORY AI-MANAGEMENT RULES GATE — STOP BEFORE WORKING]
-This session ($safe_id) has NOT acknowledged $REPO rules at current HEAD ($short_sha).
-Whether this is a BRAND NEW session or a RESUMED/OLD session, you MUST do the following BEFORE any planning, handover, edit, or script generation:
-1. Read the rule and template files in $REPO:
-   - $REPO/README.md
-   - $REPO/general/rules/mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md
-   - $REPO/general/regulations/executor-regulations/The_Executor_Regulations.md
-   - $REPO/general/regulations/others-repositories/The_Others_Repositories_Regulation.md
-   - $REPO/general/rules/regular-remote-push/The_Regular_Remote_Push_Rule.md
-   - $REPO/claude/rules/ten-years-retention/The_10_Years_Rule.md
-   - $REPO/claude/rules/ultracode-workflow/The_Ultracode_Rule.md
-   - $REPO/general/rules/multi-agent-dispatch/MULTI_AGENT_DISPATCH_RULES.md
-   - $REPO/general/regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md
-   - $REPO/general/regulations/executor-regulations/HANDOVER_RULES.md
-   - $REPO/general/templates/download-ui/README.md (and fetch_dst.py / download_wrapper.sh if a download task)
-   - $REPO/general/templates/chunked-pipeline/README.md
-   - $REPO/general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md
-   - $REPO/claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md
-   - $REPO/general/tools/handover-lint/README.md
-   - $REPO/general/rules/project-planning/The_Project_Planning_Rule.md
-   - $REPO/general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md
-   - $REPO/general/rules/script-delivery/The_Script_Delivery_Rule.md
-   - Platform bridge guide (general/guides/agent-control-macos/ or agent-control-wsl/) as applicable.
-2. Acknowledge by running: \"$ACK_SH\" \"$safe_id\"
-3. Confirm in your response that you read ~/AI-management rules.
-CRITICAL REMINDERS:
-- For any user-run download script, you MUST copy/adapt $REPO/general/templates/download-ui/fetch_dst.py + download_wrapper.sh (exact in-place dashboard, <100-col narrow layout, status subcommand, resume, verification, caffeinate-safe single-instance guard, exit codes 0/1/2/3) — NEVER invent an ad-hoc downloader. Whenever data processing/skimming follows download, chain processing, checks, and bridge wakeup per $REPO/general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md rather than stopping silently after SHA256SUMS.
-- End every user-run script/task delivery with the complete, exact copy-paste runnable command (Rule 14).
-- Brand neutrality (user, 2026-11-26): treat every AI brand's content (transcripts, histories, caches, handovers) by one standard, agy's own included. Before you keep, delete or report, run $REPO/general/rules/brand-neutrality/ai_content_inventory.py <project folder>: a file-name search finds Claude Code's folders and misses agy's and Codex's, which are named by ID. Your report has a line for every brand.
-- Script delivery (user, 2026-11-27): build a script the user will run by copying $REPO/general/templates/download-ui/ and $REPO/general/templates/chunked-pipeline/. Before you write that it has the format, run $REPO/general/rules/script-delivery/check_frame.py on captures of its screen and paste the output, or write \"format not compared\". Never type a script's [PIPELINE ...] line yourself. While the user is correcting a script, close nothing, push no closure and ask nothing about later steps."
+This session ($safe_id) has NOT read the current rules of $REPO (HEAD $short_sha).
+Whether this is a BRAND NEW session or a RESUMED/OLD session, do this BEFORE any planning, handover, edit, or script generation:
+1. Read each of these files whole, with your file-reading tool. Several calls may share one file; a part of a file does not count, and neither does a read made before the file last changed:
+$needs
+2. Reading is the acknowledgment. This gate looks in your own session log and records it by itself when every file above was read from its first line to its last. Do not acknowledge on a part of the files, whatever a nudge named.
+3. If this notice returns although you have read them all, run: \"$ACK_SH\" \"$safe_id\" . It names what your log lacks, and it refuses while a file is unread.
+4. Confirm in your response that you read ~/AI-management rules.
+REMINDERS BY SEAT (they bind the seat, whatever the brand; the full text is in the files above):
+- EXECUTOR (you carry out a handover, a nudge or any hands-on job): copy or delete, never make up. A claim (\"restored\", \"matches\", \"compliant\", \"passed\", \"done\") carries the command that showed it and its output, or you write the state as it is (\"format not compared\"). Build a script the user will run by copying $REPO/general/templates/download-ui/ and $REPO/general/templates/chunked-pipeline/ (never an ad-hoc downloader; chain the processing per CHUNKED_PIPELINE_GUIDE.md), and prove its screen with $REPO/general/rules/script-delivery/check_frame.py. Never type a script's [PIPELINE ...] line yourself. After an edit to a pinned tool, what is on disk is test output. Prove a checker, a fixture and every command you write into a file before you hand them on. End a delivery the user must run with the complete copy-paste command (Rule 14).
+- PLANNER (Manager, Router, Committee, CEO or CTO in your session's name, or your user's word): accept no claim without its check, and write none. Before you act on a bridge line, read its sender in ~/.claude/agy-bridge/send.log and the script's own files. While the user is correcting a deliverable, record no verdict, close no step, push no closure and ask nothing about later steps. Give a verdict only on a run the user started. Prove a checker, a template or a command before you hand it to other sessions. A notice of a rules change names the commit and lets this gate list the files, never a part of them.
+- EVERY SEAT: answer what was asked. Brand neutrality (user, 2026-11-26): treat every AI brand's content (transcripts, histories, caches, handovers) by one standard, agy's own included; before you keep, delete or report, run $REPO/general/rules/brand-neutrality/ai_content_inventory.py <project folder>, and give every brand a line in your report."
 
 python3 -c 'import json,sys; print(json.dumps({"injectSteps":[{"systemMessage":{"systemMessage":sys.argv[1]}}]}))' "$note"
 EOF
@@ -109,11 +102,16 @@ PY
 
 echo "installed: $H, wired into $HOOKS_JSON"
 
-# Self-test unacknowledged -> emits injectSteps; acknowledged -> {}
-test_out="$(echo '{"conversationId":"install-test","hookEventName":"SessionStart"}' | "$H")"
-python3 -c 'import json,sys; d=json.loads(sys.argv[1]); assert "MANDATORY AI-MANAGEMENT RULES GATE" in d["injectSteps"][0]["systemMessage"]["systemMessage"]' "$test_out"
-"$ACK_SH" "agy-install-test" >/dev/null
-test_acked="$(echo '{"conversationId":"install-test","hookEventName":"PreInvocation"}' | "$H")"
+# Self-test, in a folder of its own so that no session's record is touched:
+#   a session that has read nothing -> the notice, with the files to read; an acknowledged session -> {}
+T="$(mktemp -d)"
+test_out="$(echo '{"conversationId":"install-test","hookEventName":"SessionStart"}' | AI_MGMT_ACK_DIR="$T" "$H")"
+python3 -c 'import json,sys
+m = json.loads(sys.argv[1])["injectSteps"][0]["systemMessage"]["systemMessage"]
+assert "MANDATORY AI-MANAGEMENT RULES GATE" in m and "/README.md" in m and "EXECUTOR" in m and "PLANNER" in m' "$test_out"
+[ ! -f "$T/agy-install-test" ]
+git -C "$REPO" rev-parse HEAD > "$T/agy-install-test"
+test_acked="$(echo '{"conversationId":"install-test","hookEventName":"PreInvocation"}' | AI_MGMT_ACK_DIR="$T" "$H")"
 [ "$test_acked" = "{}" ]
-rm -f "${AI_MGMT_ACK_DIR:-$HOME/.ai-management/rules-ack}/agy-install-test" "${AI_MGMT_ACK_DIR:-$HOME/.ai-management/rules-ack}/.notified-agy-install-test"
+rm -rf "$T"
 echo "self-test passed: $H"

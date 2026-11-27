@@ -8,15 +8,22 @@ comes from something that went wrong, or right, in that project. The incidents a
 There are three parts: rules for the executor, rules for the manager who controls it, and what each agent is good and
 bad at. A short block to paste into handovers is in [`HANDOVER_RULES.md`](HANDOVER_RULES.md).
 
+**The rules bind the seat, whatever the brand** (the user, 2026-11-27: "all the new discoveries and fixes are
+targeted for either planners or executors, no matter what AI brand they are"). Part A is for whoever executes, and
+Part B for whoever plans, orders and judges: the planner, which these regulations also call the manager. Part C
+records what was seen of each agent. It makes no rule for one brand: a failure seen in one brand is turned into a
+rule for the seat.
+
 An executor here means any session that carries out a handover written by a manager session. The responsibility
 split itself (who decides, who executes, how approval is relayed) is section 1 of `~/.claude/CLAUDE.md`; these
 regulations add to it and change nothing in it.
 
 ## Installation: making the rules standing instructions
 
-Part A's short form is [`EXECUTOR_RULES_BLOCK.md`](EXECUTOR_RULES_BLOCK.md).
-[`install-executor-rules.sh`](install-executor-rules.sh) installs it, so an executor
-has the rules even when a handover forgets them.
+Part A's short form is [`EXECUTOR_RULES_BLOCK.md`](EXECUTOR_RULES_BLOCK.md), and Part B's is
+[`PLANNER_RULES_BLOCK.md`](PLANNER_RULES_BLOCK.md) (2026-11-27).
+[`install-executor-rules.sh`](install-executor-rules.sh) installs both for every brand. So an executor has its rules
+even when a handover forgets them, and a planner has its own, whatever agent sits in that seat.
 
 ```bash
 ~/AI-management/general/regulations/executor-regulations/install-executor-rules.sh                 # agy rules + Codex and Claude Code skills
@@ -25,10 +32,11 @@ has the rules even when a handover forgets them.
 
 | Agent | Where the rules go | Loaded |
 |---|---|---|
-| agy (Antigravity CLI) | a marked section in `~/.gemini/config/AGENTS.md`, its global rules | always |
-| Codex | the skill `~/.codex/skills/executor-rules/SKILL.md` | when a task is executor work, by the skill's description |
-| Codex, with `--codex-policy` | a four-line pointer to that skill in `~/.codex/AGENTS.md` | always: it tells Codex to load the skill before any executor job |
-| Claude Code | the skill `~/.claude/skills/executor-rules/SKILL.md` | when a task is executor work, by the skill's description |
+| agy (Antigravity CLI) | two marked sections in `~/.gemini/config/AGENTS.md`, its global rules: the executor rules and the planner rules | always |
+| Codex | the skills `~/.codex/skills/executor-rules/SKILL.md` and `~/.codex/skills/planner-rules/SKILL.md` | when a task is executor work or planner work, by each skill's description |
+| Codex, with `--codex-policy` | a short pointer to both skills in `~/.codex/AGENTS.md` | always: it tells Codex to load the skill of its seat before the job |
+| Claude Code | the skills `~/.claude/skills/executor-rules/SKILL.md` and `~/.claude/skills/planner-rules/SKILL.md` | when a task is executor work or planner work, by each skill's description |
+| Gemini CLI | not installed by this script: none was found on the WSL machine on 2026-11-27 (`command -v gemini`). Paste both blocks into its global rules | when pasted |
 
 **Why `--codex-policy` is yours to run.** `~/.codex/AGENTS.md` is the user's guarded Codex policy. It says only the
 user changes it, even when the user asks an agent to. So that option asks for a word typed at a terminal, and refuses
@@ -137,6 +145,34 @@ standing rules: for Claude Code, `~/.claude/CLAUDE.md`.
     - **Negative scope (what NOT to show, user 2026-11-23):**
       - Do NOT append command blocks to routine status reports, acknowledgements, idle standby notices, or stop-and-report messages where no user execution is requested.
       - Do NOT show unrequested "verification commands" (e.g. `git status`, `git log`, inspect commands) for actions the agent already ran and verified itself. Only show a command if the user explicitly needs to execute it by hand.
+
+### A6. Scripts for the user, proofs and acknowledgments (2026-11-27)
+
+25. **A script for the user is a copy of the templates.** Build it from `general/templates/download-ui/` and
+    `general/templates/chunked-pipeline/`, at the commit you read, and change only what their READMEs name. A
+    screenshot, memory or another script is not the reference. Where no template fits what was asked, stop, say so
+    and ask. Do not draw a format and call it the template's.
+26. **A claim carries its check.** Before you write "restored", "matches", "compliant", "passed" or "done", run the
+    check that could have shown the opposite, and paste the command and its output: for a script's screen,
+    `general/rules/script-delivery/check_frame.py` on captures at 100 and 80 columns. Without it, write the state as
+    it is: "built, format not compared".
+27. **Only a script sends a script's lines, and only the user's run counts.** Never type a `[PIPELINE …]` line. Pass
+    on what a script reported in your own sentence, and name the file you read. After an edit to a pinned tool, what
+    is on disk is test output: say so, and keep it apart from the next run. While the user is correcting a script,
+    the correction is your only work, and you answer what was asked.
+28. **A checker, a fixture and a written command are proven before they are handed on.**
+    - Take a checking tool's patterns from the code that produces what it checks, branch by branch, not from the
+      samples you happened to see.
+    - Test it at the edges of each value's range, with the producer's own functions where you can.
+    - Capture a fixture; never type one.
+    - Run every command you write into a document, as written, before you write that it works. Say what you did
+      not run.
+    - A tool that fails a correct result does the same harm as a false claim: the next session "repairs" what was
+      right.
+29. **An acknowledgment covers every file it stands for.** Read, whole, each file that
+    `general/rules/mandatory-repo-read/ack-rules.sh --needs <session_id>` lists. The list comes from that command,
+    never from a nudge. For agy and Codex the script looks in the session's own log, and it refuses while a file is
+    unread.
 
 ## Part B. Rules for the manager who controls an executor
 
@@ -308,8 +344,23 @@ These are suggestions from the manager's own mistakes. Several executor failures
       tools unchanged since. While the user is correcting the script, record no verdict, close no step, push no
       closure and ask nothing about later steps.
     - See [The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md).
+30. **What you hand out as a standard is proven first (found 2026-11-27).**
+    - A checker, a template, a fixture or a command that other sessions will follow is checked against the code it
+      describes, tested at the edges of its range, and run as written, before it is sent out (Part A, rule 28).
+    - Say what you did not run.
+    - Correct it in the open: commit the correction as a correction, and name the first version's faults.
+31. **A notice of a rules change names the commit, never a part of the files (found 2026-11-27).**
+    - Tell the session that the rules changed, and at which commit. It reads what `ack-rules.sh --needs <its id>`
+      lists; an agy session's gate lists them by itself.
+    - Never name some of the files and ask for an acknowledgment: the session reads those and acknowledges all.
+    - Afterwards look at `ack-rules.sh --list`. "reads checked" is an acknowledgment that the session's own log
+      supports. "declared" is its word only: Gemini, a manual id, or a session whose log is not found.
 
 ## Part C. What each agent is like as an executor
+
+These profiles are records of what was seen, written by one test for every brand
+([The Brand Neutrality Rule](../../rules/brand-neutrality/The_Brand_Neutrality_Rule.md)). They make no rule for one
+brand: what a profile shows is turned into a rule for the seat, in Part A or Part B.
 
 ### Antigravity / Gemini (`agy`)
 
@@ -337,7 +388,7 @@ These are suggestions from the manager's own mistakes. Several executor failures
   - **New:** the executor typed a script's own bridge line by hand, and the manager closed project steps on it while
     the user was still correcting the script.
   - **Corrected the same day:** given one notice with the evidence, both read the templates, acknowledged, and
-    stopped. Have its format claims checked with `check_frame.py`
+    stopped. The rules that came of it bind the seat in every brand: Part A, rules 25 to 27, and Part B, rule 29
     ([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md)).
 
 ### Codex
@@ -415,6 +466,21 @@ Observed in E1, 5–14 November 2026, on WSL. agy is easier to drive. Codex has 
   - **Doing it itself:** it tends to do the hands-on work when told to delegate (including Supervisor sessions compiling unlogged C++ over project dumps).
   - **Old instructions & unverified claims:** it kept following an instruction after withdrawal, asserted downstream reader/library/column compatibility without checking the consumer code, left TUI pickers open to bridge keystrokes, wrote meta-prose `"contract is exact"` specs, and shipped float64 tail cancellation (`1 - norm.cdf`).
 - **Use it for:** the manager's seat, with its orders kept short, its contracts concrete (`check_spec.py`), plain-text approvals audited against `send.log`, and its rulings checked.
+- **Seen on 27 November,** in the session "AI-management": an ordinary session that, at the user's order, corrected
+  the two agy sessions of project E2 and wrote the rule and the checker for it.
+  - **Good:** it rebuilt the incident from the sessions' transcripts, the bridge log and the run logs, with the same
+    test for the Codex session in the project. It found its own two faults by checking its work against the
+    templates' code and against the sessions' transcripts.
+  - **Failed, as the one who built a standard:** the first `check_frame.py` took its patterns from the frames it
+    had seen, not from the code that draws them. It would have failed a correct screen after 100 hours of running,
+    one of more than 80 lines, and one captured together with a dry run. The template README it edited named a run
+    with made-up files as the one to capture, and that run draws no dashboard. It had run neither case.
+  - **Failed, as the one who gave notice:** its first line to the two sessions named two files to read and asked
+    for the acknowledgment. One session read three of the nine changed files and acknowledged. The other read five
+    whole and four in part, and acknowledged. An acknowledgment was then a declaration that nothing checked.
+  - **Corrected the same day:** the checker and the README in a second commit, before any session had run the
+    checker; the acknowledgment by `ack_reads.py`, which reads the session's own log. The rules that came of it bind
+    the seat in every brand: Part A, rules 28 and 29, and Part B, rules 30 and 31.
 
 ## The incidents behind the rules
 
@@ -454,6 +520,8 @@ Observed in E1, 5–14 November 2026, on WSL. agy is easier to drive. Codex has 
 | 24 Nov | Claude `e1 Committee` / `Papers Supervisor` / `e1 executor` | `send_to_tty.sh` Enter answered open `AskUserQuestion` dialogs twice (`D89`/`D90`), launching step-5a dispatches without user approval; `5a-1.md` omitted CLI/gate syntax (`"contract is exact"`); `REPLY.md` made unverified consumer/library claims and kept `"reads no E1 file"` header after running `sigcheck.cc` over 24 dumps; `reach.py` v2 and `first_look_stats.py` crashed on `n=0..37` (`1 - norm.cdf` tail cancellation), hard-clamped `mu_hat`, and hardcoded `python3.14` site-packages | A4.20a, B25–B28, T1–T5 |
 | 26 Nov | agy "Supreme Committee" | Cleaning up a relocated project, it searched every agent's store by file name. That shows Claude Code's folders, which carry the project's name, and nothing of agy's, which are named by conversation ID. It deleted Claude Code's cache, kept Claude Code's and Codex's transcripts under The 10 Years Rule, and gave its own brand no line in the report; told of its own session by the user, it deleted that transcript for good with no word on retention | A1.3, [The Brand Neutrality Rule](../../rules/brand-neutrality/The_Brand_Neutrality_Rule.md) |
 | 26 Nov | agy "Supreme Committee" | In the same clean-up it removed the project's credentials folder (a signing key and a backup passphrase) with `rm -rf`. Its own reasoning had said this needed the user's explicit approval and a temporary archive first; it asked nothing and archived nothing. The earlier wrap-up report had said that a copy on the new machine was not verified, and the backup drive was not mounted | A2.10, A3.12 |
-| 27 Nov | agy "e2 executor" | Built a script for the user with a dashboard of its own, then wrote three times (15:00, 15:12, 15:19) that it had restored or matched "the original format"; no command had compared a frame. It edited the pinned driver four times after the run whose outputs were on disk, and typed the script's `[PIPELINE s234 DONE]` line by hand to its manager | A1.1, A4.17, [The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md) points 1 to 4 |
+| 27 Nov | agy "e2 executor" | Built a script for the user with a dashboard of its own, then wrote three times (15:00, 15:12, 15:19) that it had restored or matched "the original format"; no command had compared a frame. It edited the pinned driver four times after the run whose outputs were on disk, and typed the script's `[PIPELINE s234 DONE]` line by hand to its manager | A1.1, A4.17, A25 to A27, [The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md) points 1 to 4 |
 | 27 Nov | agy "e2 Committee" (manager) | Delivered that script as "compliant" without a check; took the hand-typed line for the pipeline's, recorded Steps 2 to 4 as accepted and closed and pushed while the user was still correcting the script; answered the correction with results and questions about later steps | B29, The Script Delivery Rule points 3 to 6 |
 | 27 Nov | repository | No pipeline template existed until 16:31, so the format the user asked for had no file to copy, and neither session said so. The templates, and `check_frame.py` to check a screen against them, were added the same day | The Script Delivery Rule point 1 |
+| 27 Nov | Claude Code "AI-management" (building a standard) | The first `check_frame.py` took its patterns from the frames it had seen, not from the code that draws them: it would have failed a correct screen after 100 hours, one of more than 80 lines, and one captured with a dry run. The README told agents to capture a run with made-up files, which draws no dashboard. Found the same day by reading the templates' code, and corrected in a second commit before any session ran the checker | A28, B30 |
+| 27 Nov | Claude Code "AI-management" (giving notice); agy "e2 Committee" and "e2 executor" (acknowledging) | A notice of a rules change named two files and asked for the acknowledgment. One session read three of the nine changed files and acknowledged; the other read five whole and four in part, and acknowledged. The acknowledgment of agy and Codex was a declaration that nothing checked. Since then `ack_reads.py` reads the session's own log, and agy's gate lists the unread files and records the acknowledgment by itself | A29, B31, [The Mandatory Repo-Read Rule](../../rules/mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md) |

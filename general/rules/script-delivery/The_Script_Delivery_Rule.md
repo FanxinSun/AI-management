@@ -11,8 +11,16 @@ And, after those sessions had been corrected:
 > Currently I don't care the progress or operation of e2, I'm asking you to fix those sessions, add
 > regulations/instructions in the repo
 
-It binds every agent session on every machine: Claude Code, agy, Codex, Gemini and any other agent, in every seat
-(manager, executor, reviewer, workflow subagent). It adds to every other rule and relaxes none.
+And on whom the rule is for:
+
+> 1. update the rules for agy to stop them in the future make the similar hallucinations
+> 2. also update the rules for other AI brands to prevent
+> 3. also record your two mistakes, install them for prevention
+> 4. all the new discoveries and fixes are targeted for either planners or executors, no matter what AI brand they are
+
+It binds the seat, whatever the brand: the executor who builds and reports, and the planner (the manager) who orders
+and judges, in Claude Code, agy, Codex, Gemini and any other agent, on every machine. It adds to every other rule and
+relaxes none.
 
 The quotations are the rule. The sections below say how sessions apply it. Where they seem to differ from the
 quotations, the quotations win, and in any doubt the session asks the user.
@@ -68,6 +76,23 @@ before the user has run it.
 
 Points 2 and 6 apply Executor rules 1 and 8 (no make-up; a check must be able to fail) to a script's format. Point 3
 is the pipeline guide's §5, point 5, made a duty of both sides.
+
+## By seat
+
+| Point | The executor | The planner |
+|---|---|---|
+| 1. The templates | Copies their files. Where none fits, stops and says so | Orders the script as a copy of the templates. Where none fits, asks the user before anything is written |
+| 2. A claim and its check | Runs `check_frame.py` on captures and pastes the output, or writes "format not compared" | Accepts no "restored" or "compliant" without that output, and writes none |
+| 3. A script's lines | Never types one. Passes a script's report on in its own sentence | Reads the sender in the bridge log and the script's own files before acting on one |
+| 4. The run that counts | Starts no run of record. Says that outputs made before an edit to a pinned tool are test outputs | Gives a verdict only on a run the user started, with the tools and pins of its start |
+| 5. The user's correction | Works on the correction and on nothing else | Records no verdict, closes no step, pushes no closure, asks nothing about later steps |
+| 6. Answers and states | Answers what was asked, and words a state as it is | The same |
+
+The installed short forms are rule 22 of the executor rules and rules 6 to 9 of the planner rules. Two more rules
+came of the correcting session's own mistakes (see the incident) and are installed with them:
+- **A checker, a fixture and a written command are proven before they are handed on:** executor rule 23, planner
+  rule 10.
+- **An acknowledgment covers every file it stands for:** executor rule 17, planner rule 11.
 
 ## The checker (`check_frame.py`)
 
@@ -188,12 +213,16 @@ The_Script_Delivery_Rule.md in the AI-management repository.
 
 ## Where it is in force
 
-- Every agent: rule 22 of [`EXECUTOR_RULES_BLOCK.md`](../../regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md),
-  which `install-executor-rules.sh` installs into agy's global rules (`~/.gemini/config/AGENTS.md`) and into the
-  Codex and Claude Code executor-rules skills; rule 17 of the handover block in
-  [`HANDOVER_RULES.md`](../../regulations/executor-regulations/HANDOVER_RULES.md); the required reading list of
-  [The Mandatory Repo-Read Rule](../mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md); and the reminder of agy's
-  rules gate.
+- **The executor, in every brand:** rules 22 and 23 of
+  [`EXECUTOR_RULES_BLOCK.md`](../../regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md), and rules 17 and 18
+  of the handover block in [`HANDOVER_RULES.md`](../../regulations/executor-regulations/HANDOVER_RULES.md).
+- **The planner, in every brand:** rules 6 to 11 of
+  [`PLANNER_RULES_BLOCK.md`](../../regulations/executor-regulations/PLANNER_RULES_BLOCK.md).
+- **How they are installed:** `install-executor-rules.sh` puts both blocks into agy's global rules
+  (`~/.gemini/config/AGENTS.md`, always loaded) and into the Codex and Claude Code skills `executor-rules` and
+  `planner-rules`. Both blocks and this rule are on the required reading list of
+  [The Mandatory Repo-Read Rule](../mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md), and agy's rules gate
+  carries a reminder for each seat.
 - Claude Code's machine rules file (`~/.claude/CLAUDE.md`) and Codex's policy file (`~/.codex/AGENTS.md`) are
   guarded: only the user adds to them. The section for the first is
   [`CLAUDE_md_section11.md`](CLAUDE_md_section11.md).
@@ -202,6 +231,7 @@ Where it is installed; nothing is listed until it is:
 
 ```bash
 grep -rln --exclude='*.bak*' "Script delivery" ~/.claude/CLAUDE.md ~/.gemini/config ~/.codex/AGENTS.md ~/.codex/skills ~/.claude/skills 2>/dev/null
+grep -rln --exclude='*.bak*' "## Planner rules" ~/.gemini/config ~/.codex/skills ~/.claude/skills 2>/dev/null
 ```
 
 ## The incident (2026-11-27)
@@ -236,9 +266,23 @@ The same test was applied to it, and it made no claim that a command had not sho
 templates at `9d9a763`, acknowledged, and stopped: the executor changed nothing, and the Committee recorded the
 correction in its plan by additions only.
 
+**The correcting session's own mistakes.** The session that wrote this rule, a Claude Code session, made two. They
+are recorded by the same test as the others:
+- **The checker was handed out unproven.** Its first version took its patterns from the frames it had seen, not from
+  the code that draws them ("Checked on 2026-11-27", last point). It was corrected before any session had run it.
+- **Its notice named a part of the files.** It told the two sessions that the rules had changed, named two files and
+  asked for the acknowledgment. One session read three of the nine changed files and acknowledged. The other read
+  five whole and four in part, and acknowledged. Nothing checked an agy or Codex acknowledgment.
+
+What prevents them now: executor rule 23 and planner rule 10 for the first; for the second, executor rule 17, planner
+rule 11 and [`ack_reads.py`](../mandatory-repo-read/ack_reads.py), which reads the session's own log
+([The Mandatory Repo-Read Rule](../mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md), "How to acknowledge").
+
 ## Check
 
 ```bash
 /usr/bin/python3 -I ~/AI-management/general/rules/script-delivery/check_frame.py --selftest
+/usr/bin/python3 -I ~/AI-management/general/rules/mandatory-repo-read/ack_reads.py --selftest
 grep -rln --exclude='*.bak*' "Script delivery" ~/.claude/CLAUDE.md ~/.gemini/config ~/.codex/AGENTS.md ~/.codex/skills ~/.claude/skills 2>/dev/null
+grep -rln --exclude='*.bak*' "## Planner rules" ~/.gemini/config ~/.codex/skills ~/.claude/skills 2>/dev/null
 ```

@@ -45,13 +45,13 @@ The repository is organized cleanly at the top level into 5 folders — **target
 
 ### Regulations (`general/regulations/`)
 * **[Executor Regulations](general/regulations/executor-regulations/The_Executor_Regulations.md)**  
-  Strict rules for `agy`, Codex, and Claude Code sessions acting as executors (no made-up facts, apply given lists exactly, keep what was verified), rules for the manager who orders them, agent profiles, and incident history. Includes [`EXECUTOR_RULES_BLOCK.md`](general/regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md), [`HANDOVER_RULES.md`](general/regulations/executor-regulations/HANDOVER_RULES.md), and [`install-executor-rules.sh`](general/regulations/executor-regulations/install-executor-rules.sh).
+  Strict rules for `agy`, Codex, and Claude Code sessions acting as executors (no made-up facts, apply given lists exactly, keep what was verified), rules for the manager who orders them, agent profiles, and incident history. The rules bind the seat, whatever the brand: [`EXECUTOR_RULES_BLOCK.md`](general/regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md) for the executor and [`PLANNER_RULES_BLOCK.md`](general/regulations/executor-regulations/PLANNER_RULES_BLOCK.md) for the planner are installed for agy, Codex and Claude Code by [`install-executor-rules.sh`](general/regulations/executor-regulations/install-executor-rules.sh), and [`HANDOVER_RULES.md`](general/regulations/executor-regulations/HANDOVER_RULES.md) is the block to paste into a handover.
 * **[Others' Repositories Regulation](general/regulations/others-repositories/The_Others_Repositories_Regulation.md)**  
   Set by the user on 2026-11-17: without the user's direct approval, no modification, merge, or pull request on a repository (or repo-like resource) that the user does not own.
 
 ### Rules (`general/rules/`)
 * **[Mandatory Repo-Read & Download UI Rule](general/rules/mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md)**  
-  Set by the user on 2026-11-24: every brand new session (at startup) and every resumed/old unacknowledged session MUST read `~/AI-management` rules before working. In Claude Code a hook records the reads and refuses other tools until every file on [`reading-list.txt`](general/rules/mandatory-repo-read/reading-list.txt) is read; agy and Codex acknowledge via [`ack-rules.sh`](general/rules/mandatory-repo-read/ack-rules.sh) after reading. Also enforces copying/adapting `general/templates/download-ui/` for all user-run download scripts.
+  Set by the user on 2026-11-24: every brand new session (at startup) and every resumed/old unacknowledged session MUST read `~/AI-management` rules before working. In Claude Code a hook records the reads and refuses other tools until every file on [`reading-list.txt`](general/rules/mandatory-repo-read/reading-list.txt) is read; for agy and Codex [`ack-rules.sh`](general/rules/mandatory-repo-read/ack-rules.sh) checks the reads in the session's own log ([`ack_reads.py`](general/rules/mandatory-repo-read/ack_reads.py)) and refuses an acknowledgment while a file is unread. Also enforces copying/adapting `general/templates/download-ui/` for all user-run download scripts.
 * **[Regular Remote Push Rule](general/rules/regular-remote-push/The_Regular_Remote_Push_Rule.md)**  
   Set by the user on 2026-11-23: all user-owned projects with a git repo must push to the remote regularly (at milestones and whenever blocked) with descriptive commit messages and up-to-date in-repo status files.
 * **[Multi-Agent Coordination & Dispatch Rules](general/rules/multi-agent-dispatch/MULTI_AGENT_DISPATCH_RULES.md)**  
@@ -111,7 +111,7 @@ The repository is organized cleanly at the top level into 5 folders — **target
 * **Tools (`agy/tools/`)**:
   * **[Statusline & Tab Animation](agy/tools/statusline/README.md)**: `statusline.py`, `color.py`, and `/color` skill for Claude-style `[WORKING]` / `[STOPPED]` pills, colored session badges, and live terminal tab braille spinners.
 * **Hooks (`agy/hooks/`)**:
-  * [`rules-gate/`](agy/hooks/rules-gate/install-agy-rules-gate-hook.sh): Enforces the mandatory `~/AI-management` repo-read gate in `~/.gemini/config/hooks.json` (`SessionStart` + `PreInvocation`).
+  * [`rules-gate/`](agy/hooks/rules-gate/install-agy-rules-gate-hook.sh): Enforces the mandatory `~/AI-management` repo-read gate in `~/.gemini/config/hooks.json` (`SessionStart` + `PreInvocation`). Since 2026-11-27 it lists the files a session has still to read and records the acknowledgment by itself when the session's own log holds them all.
 * **Skills (`agy/skills/`)**:
   * [`cross-agent-bridge/`](agy/skills/cross-agent-bridge/SKILL.md): `agy` skill + [`install-cross-agent-bridge.sh`](agy/skills/cross-agent-bridge/install-cross-agent-bridge.sh).
 
@@ -185,11 +185,11 @@ If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also availa
 │   └── alipay.jpg
 ├── general/
 │   ├── regulations/
-│   │   ├── executor-regulations/      # The_Executor_Regulations.md, EXECUTOR_RULES_BLOCK.md, HANDOVER_RULES.md, installer
+│   │   ├── executor-regulations/      # The_Executor_Regulations.md, EXECUTOR_RULES_BLOCK.md, PLANNER_RULES_BLOCK.md, HANDOVER_RULES.md, installer
 │   │   └── others-repositories/       # The_Others_Repositories_Regulation.md
 │   ├── rules/
 │   │   ├── brand-neutrality/          # The_Brand_Neutrality_Rule.md, ai_content_inventory.py, CLAUDE_md_section10.md
-│   │   ├── mandatory-repo-read/       # The_Mandatory_Repo_Read_Rule.md, ack-rules.sh, reading-list.txt
+│   │   ├── mandatory-repo-read/       # The_Mandatory_Repo_Read_Rule.md, ack-rules.sh, ack_reads.py, reading-list.txt
 │   │   ├── multi-agent-dispatch/      # MULTI_AGENT_DISPATCH_RULES.md
 │   │   ├── project-planning/          # The_Project_Planning_Rule.md
 │   │   ├── regular-remote-push/       # The_Regular_Remote_Push_Rule.md
