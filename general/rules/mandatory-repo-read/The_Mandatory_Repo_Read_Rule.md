@@ -28,12 +28,14 @@ Every session MUST read the entire `~/AI-management` rule set **at least once** 
 9. `general/regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md`
 10. `general/regulations/executor-regulations/HANDOVER_RULES.md`
 11. `general/templates/download-ui/README.md`
-12. `general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md`
-13. `claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md`
-14. `general/tools/handover-lint/README.md`
-15. `general/rules/project-planning/The_Project_Planning_Rule.md`
-16. `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`
-17. Platform bridge guide as applicable: `general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md` or `general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md`.
+12. `general/templates/chunked-pipeline/README.md`
+13. `general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md`
+14. `claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md`
+15. `general/tools/handover-lint/README.md`
+16. `general/rules/project-planning/The_Project_Planning_Rule.md`
+17. `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`
+18. `general/rules/script-delivery/The_Script_Delivery_Rule.md`
+19. Platform bridge guide as applicable: `general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md` or `general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md`.
 
 ### How to acknowledge
 
@@ -41,7 +43,7 @@ Every session MUST read the entire `~/AI-management` rule set **at least once** 
 whole with the Read tool, by content, and refuses the session's other tools until every listed file is read. There is
 no command to run and none that can record it: `ack-rules.sh claude-<session_id>` only reports what is read. After a
 commit the hook asks only for the listed files whose content changed. The list the hook uses is
-[`reading-list.txt`](reading-list.txt) beside this file: items 1 to 16 above and the platform's bridge guide. Keep the
+[`reading-list.txt`](reading-list.txt) beside this file: items 1 to 18 above and the platform's bridge guide. Keep the
 two in step, and keep host and hardware fixes out of these files (they go in `fix/`), because every change to a listed
 file sends every session back to read it.
 
@@ -70,6 +72,7 @@ Whenever a task involves downloading datasets, files, or artifacts that the user
    - Test through the exact launch wrapper (including `status` and `<100` col narrow layout) before delivering.
 3. **Rule 14 (Full runnable command at the very end):** the final element of your closing message MUST be the complete, exact, copy-paste-ready command line(s) (with `cd <repo>` or absolute paths, and all options) for the user to run.
 4. **Chain downstream data processing per `CHUNKED_PIPELINE_GUIDE.md` (amended 2026-11-27):** whenever the task includes data processing, skimming, filtering, or validation after download, do **not** stop silently after writing `SHA256SUMS`. Follow [`general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md`](../../guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md): chain download -> verification -> processing/skimming -> automated checks -> bridge wakeup (`send_to_tty.sh` to Manager/Committee) inside an unattended resumable script (and keep raw downloads until independent Manager acceptance on bounded disk).
+5. **Prove the format before you claim it (2026-11-27):** capture the script's screen at 100 and 80 columns, run `~/AI-management/general/rules/script-delivery/check_frame.py` on the captures, and paste the commands and their output with the delivery. Without it write "format not compared". Build the script by copying the templates' files, and where no template fits what was asked, say so and ask the user. See [`The_Script_Delivery_Rule.md`](../script-delivery/The_Script_Delivery_Rule.md).
 
 ---
 

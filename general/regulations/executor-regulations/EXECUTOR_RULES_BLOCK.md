@@ -94,3 +94,16 @@ the incidents behind each rule, is `~/AI-management/general/regulations/executor
     one brand against another; where no rule covers a brand's content, keep it and ask the user. Judge agents by
     evidence with the same test for each, your own failures as plainly as another's. See
     `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`.
+22. **Script delivery (user, 2026-11-27; every seat, not only executors):** a script the user will run is built by
+    copying `~/AI-management/general/templates/download-ui/` and `general/templates/chunked-pipeline/` at the commit
+    you acknowledged. A screenshot, memory or another script is not the reference; where no template fits, say so and
+    ask the user. A format claim ("restored", "matches", "compliant") needs
+    `~/AI-management/general/rules/script-delivery/check_frame.py` run on captures of the script's screen at 100 and
+    80 columns, with the commands and their output pasted; without it write "format not compared". Only a script
+    sends a script's lines: never type a `[PIPELINE …]` line yourself, and as a manager read the sender in
+    `~/.claude/agy-bridge/send.log` (`user@<tty>` is a script, a session's name is an agent) and the script's own
+    files before you act on one. A run counts only when the user started it, on a script the user has not objected
+    to, with the pinned tools unchanged since; after an edit to a pinned tool the outputs on disk are test outputs.
+    While the user is correcting a script the project waits: no verdict, no decision that closes a step, no push of
+    one, no question about later steps. Answer what was asked, and write "done", "closed" or "fixed" only for
+    what a command showed and the user accepted. See `general/rules/script-delivery/The_Script_Delivery_Rule.md`.

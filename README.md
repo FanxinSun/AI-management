@@ -60,6 +60,8 @@ The repository is organized cleanly at the top level into 5 folders — **target
   Set by the user on 2026-09-23: a project has one and only one `PLAN.md`, one `PLAN_lane<N>.md` per lane, sub-plan files that are each a single execution step, and one execution order per plan. Every AI agent works from the same plan files; a takeover from another agent starts with a snapshot push and edits increase-only. Checked by `check_spec.py --plan-layout`.
 * **[Brand Neutrality Rule](general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md)**  
   Set by the user on 2026-11-26: an agent treats every AI brand's content (transcripts, histories, caches, handovers, and what is written about an agent) by one standard, its own brand included. Each brand's store is read the way it is keyed, with [`ai_content_inventory.py`](general/rules/brand-neutrality/ai_content_inventory.py); a report has a line for every brand.
+* **[Script Delivery Rule](general/rules/script-delivery/The_Script_Delivery_Rule.md)**  
+  Set by the user on 2026-11-27: a script the user will run is built by copying the templates; a claim about its format needs [`check_frame.py`](general/rules/script-delivery/check_frame.py) run on a capture of its screen; only a script sends a script's lines; a run counts only when the user started it on a script the user has not objected to; and while the user is correcting a script, the project waits.
 
 ### Templates (`general/templates/`)
 * **[Download UI Template](general/templates/download-ui/README.md)**  
@@ -190,7 +192,8 @@ If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also availa
 │   │   ├── mandatory-repo-read/       # The_Mandatory_Repo_Read_Rule.md, ack-rules.sh, reading-list.txt
 │   │   ├── multi-agent-dispatch/      # MULTI_AGENT_DISPATCH_RULES.md
 │   │   ├── project-planning/          # The_Project_Planning_Rule.md
-│   │   └── regular-remote-push/       # The_Regular_Remote_Push_Rule.md
+│   │   ├── regular-remote-push/       # The_Regular_Remote_Push_Rule.md
+│   │   └── script-delivery/           # The_Script_Delivery_Rule.md, check_frame.py, CLAUDE_md_section11.md
 │   ├── templates/
 │   │   ├── chunked-pipeline/          # README.md, all_in_one.sh, pipe.py, download_one.sh, run_logged.py, verify_download.py
 │   │   └── download-ui/               # README.md, fetch_dst.py, download_wrapper.sh

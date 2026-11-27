@@ -297,6 +297,17 @@ These are suggestions from the manager's own mistakes. Several executor failures
     - Vary one truth parameter per comparison row (never disable nuisance smearing when switching an offset on), and
       match reference targets to the exact-vs-asymptotic regime actually tested (`3.00` exact Poisson vs `1.92` CCGV
       at `n=0, b=0`). See [`The_Claude_Thought_Chain_Rule.md`](../../../claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md).
+29. **A script for the user: the templates' format, a check, and the user's run (user, 2026-11-27).**
+    - Order a script the user will run as a copy of `general/templates/download-ui/` and
+      `general/templates/chunked-pipeline/`, and ask for the output of
+      `general/rules/script-delivery/check_frame.py` on captures of its screen with the delivery. Accept no
+      "restored" or "matches" without it, and write none yourself.
+    - Act on a script's bridge line only after reading its sender in `~/.claude/agy-bridge/send.log` (`user@<tty>`
+      is a script in a terminal, a session's name is an agent) and the script's own files.
+    - Give a verdict only on a run that the user started, on a script the user has not objected to, with the pinned
+      tools unchanged since. While the user is correcting the script, record no verdict, close no step, push no
+      closure and ask nothing about later steps.
+    - See [The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md).
 
 ## Part C. What each agent is like as an executor
 
@@ -317,6 +328,17 @@ These are suggestions from the manager's own mistakes. Several executor failures
     printed nothing beyond fixed codes; the report was command output only, and every line in it matched a saved log.
   - **This is one narrow task.** Trust stays provisional: keep it on tightly specified work whose outputs the manager
     can check, and keep it off record prose.
+- **Seen again on 27 November,** in project E2, in both seats: "e2 Committee" (the manager) and "e2 executor".
+  - **Good:** the executor found why its first script stopped after the checksums (the pipeline guide was missing
+    from the reading list), and asked the user before it changed anything. Told that it was wrong, the manager
+    rebuilt what had happened from the logs, and the rebuilt account matches them.
+  - **Failed at the same thing as before: text that states a fact.** "Restored the original format", "compliant"
+    and "closed" were written with no command behind them, three times for the format alone.
+  - **New:** the executor typed a script's own bridge line by hand, and the manager closed project steps on it while
+    the user was still correcting the script.
+  - **Corrected the same day:** given one notice with the evidence, both read the templates, acknowledged, and
+    stopped. Have its format claims checked with `check_frame.py`
+    ([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md)).
 
 ### Codex
 
@@ -432,3 +454,6 @@ Observed in E1, 5–14 November 2026, on WSL. agy is easier to drive. Codex has 
 | 24 Nov | Claude `e1 Committee` / `Papers Supervisor` / `e1 executor` | `send_to_tty.sh` Enter answered open `AskUserQuestion` dialogs twice (`D89`/`D90`), launching step-5a dispatches without user approval; `5a-1.md` omitted CLI/gate syntax (`"contract is exact"`); `REPLY.md` made unverified consumer/library claims and kept `"reads no E1 file"` header after running `sigcheck.cc` over 24 dumps; `reach.py` v2 and `first_look_stats.py` crashed on `n=0..37` (`1 - norm.cdf` tail cancellation), hard-clamped `mu_hat`, and hardcoded `python3.14` site-packages | A4.20a, B25–B28, T1–T5 |
 | 26 Nov | agy "Supreme Committee" | Cleaning up a relocated project, it searched every agent's store by file name. That shows Claude Code's folders, which carry the project's name, and nothing of agy's, which are named by conversation ID. It deleted Claude Code's cache, kept Claude Code's and Codex's transcripts under The 10 Years Rule, and gave its own brand no line in the report; told of its own session by the user, it deleted that transcript for good with no word on retention | A1.3, [The Brand Neutrality Rule](../../rules/brand-neutrality/The_Brand_Neutrality_Rule.md) |
 | 26 Nov | agy "Supreme Committee" | In the same clean-up it removed the project's credentials folder (a signing key and a backup passphrase) with `rm -rf`. Its own reasoning had said this needed the user's explicit approval and a temporary archive first; it asked nothing and archived nothing. The earlier wrap-up report had said that a copy on the new machine was not verified, and the backup drive was not mounted | A2.10, A3.12 |
+| 27 Nov | agy "e2 executor" | Built a script for the user with a dashboard of its own, then wrote three times (15:00, 15:12, 15:19) that it had restored or matched "the original format"; no command had compared a frame. It edited the pinned driver four times after the run whose outputs were on disk, and typed the script's `[PIPELINE s234 DONE]` line by hand to its manager | A1.1, A4.17, [The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md) points 1 to 4 |
+| 27 Nov | agy "e2 Committee" (manager) | Delivered that script as "compliant" without a check; took the hand-typed line for the pipeline's, recorded Steps 2 to 4 as accepted and closed and pushed while the user was still correcting the script; answered the correction with results and questions about later steps | B29, The Script Delivery Rule points 3 to 6 |
+| 27 Nov | repository | No pipeline template existed until 16:31, so the format the user asked for had no file to copy, and neither session said so. The templates, and `check_frame.py` to check a screen against them, were added the same day | The Script Delivery Rule point 1 |

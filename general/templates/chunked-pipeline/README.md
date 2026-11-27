@@ -217,6 +217,14 @@ The second command reads the list `/path/to/test-root/files-tst1.tsv`. Its first
 acceptance wait runs out. Add ids to `runs/<ST>/pipeline-test/tst1/accepted-files.tsv` and run it again: the second
 run deletes those files.
 
+Then prove the screen before you say that the script has the format
+([The Script Delivery Rule](../../rules/script-delivery/The_Script_Delivery_Rule.md)). Capture one sandbox run piped
+and one in a terminal of 80 columns, check both, and paste the commands and their output with the delivery:
+
+```bash
+~/AI-management/general/rules/script-delivery/check_frame.py --kind pipeline capture-100.txt capture-80.txt
+```
+
 ### Checked on 2026-11-27
 
 **Before the merge,** the driver matched e7 exactly:
