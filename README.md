@@ -82,6 +82,8 @@ The repository is organized cleanly at the top level into 5 folders — **target
   Windows Terminal console input injection, `tmux send-keys`, the dialog guard, session titles and model switching. Host fixes (clipboard paste, keyboard, Codex `app-server` socket) are in `fix/`.
 * **[Muse CLI Local WSL2 Connection Guide](general/guides/muse-cli-wsl/MUSE_CLI_WSL_GUIDE.md)**  
   WSL2 installation (`muse-cli`), zero-interruption background Windows Chrome `NetworkService` memory cookie sync (`sync_muse_cookies_wsl.sh`), token lifecycle, and agent-safe commands.
+* **[Google Cloud HPC CPU Onboarding & Co-Execution Guide](general/guides/gcp-hpc-cpu-onboarding/GCP_HPC_CPU_ONBOARDING_GUIDE.md)**  
+  Colab CPU vs. Zen 5 desktop vs. GCP `H4D`/`C4D`, `$0`-upfront Ultra Developer Program credit onboarding (avoiding the `$5` Prepay trap), SKU exclusions, WSL2 multi-profile CDP human–agent break-down workflow, and cross-brand `gcp-cpu-compute` skill installer ([`install-gcp-cpu-skill.sh`](general/guides/gcp-hpc-cpu-onboarding/install-gcp-cpu-skill.sh)).
 
 ---
 
@@ -196,6 +198,7 @@ If Buy Me a Coffee is not convenient, [Alipay](assets/alipay.jpg) is also availa
 │       ├── agent-control-macos/       # How_to_Control_Agent_Sessions_macOS.md
 │       ├── agent-control-wsl/         # How_to_Control_Agent_Sessions_WSL.md
 │       ├── chunked-pipeline-workflow/ # CHUNKED_PIPELINE_GUIDE.md
+│   │   ├── gcp-hpc-cpu-onboarding/    # GCP_HPC_CPU_ONBOARDING_GUIDE.md, SKILL.md, install-gcp-cpu-skill.sh
 │       ├── muse-cli-wsl/              # MUSE_CLI_WSL_GUIDE.md, sync_muse_cookies_wsl.sh
 │       └── planner-executor-conduct/  # PLANNER_EXECUTOR_OPERATION_GUIDE.md
 ├── claude/
