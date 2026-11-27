@@ -28,11 +28,12 @@ Every session MUST read the entire `~/AI-management` rule set **at least once** 
 9. `general/regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md`
 10. `general/regulations/executor-regulations/HANDOVER_RULES.md`
 11. `general/templates/download-ui/README.md`
-12. `claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md`
-13. `general/tools/handover-lint/README.md`
-14. `general/rules/project-planning/The_Project_Planning_Rule.md`
-15. `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`
-16. Platform bridge guide as applicable: `general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md` or `general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md`.
+12. `general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md`
+13. `claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md`
+14. `general/tools/handover-lint/README.md`
+15. `general/rules/project-planning/The_Project_Planning_Rule.md`
+16. `general/rules/brand-neutrality/The_Brand_Neutrality_Rule.md`
+17. Platform bridge guide as applicable: `general/guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md` or `general/guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md`.
 
 ### How to acknowledge
 
@@ -40,7 +41,7 @@ Every session MUST read the entire `~/AI-management` rule set **at least once** 
 whole with the Read tool, by content, and refuses the session's other tools until every listed file is read. There is
 no command to run and none that can record it: `ack-rules.sh claude-<session_id>` only reports what is read. After a
 commit the hook asks only for the listed files whose content changed. The list the hook uses is
-[`reading-list.txt`](reading-list.txt) beside this file: items 1 to 15 above and the platform's bridge guide. Keep the
+[`reading-list.txt`](reading-list.txt) beside this file: items 1 to 16 above and the platform's bridge guide. Keep the
 two in step, and keep host and hardware fixes out of these files (they go in `fix/`), because every change to a listed
 file sends every session back to read it.
 
@@ -68,6 +69,7 @@ Whenever a task involves downloading datasets, files, or artifacts that the user
    - Keep the **`status` subcommand** (read-only, creates nothing, checks done/partial/bad/missing with no network), **automatic default folder** on bare `./wrapper.sh`, **Ctrl-C safe HTTP Range resume**, **size + checksum verification** (`*.bad` on failure, `fetch-log.tsv`, `SHA256SUMS`), **single-instance guard** skipping self/ancestors/descendants/`caffeinate`, and **exit codes `0` / `1` / `2` / `3`**.
    - Test through the exact launch wrapper (including `status` and `<100` col narrow layout) before delivering.
 3. **Rule 14 (Full runnable command at the very end):** the final element of your closing message MUST be the complete, exact, copy-paste-ready command line(s) (with `cd <repo>` or absolute paths, and all options) for the user to run.
+4. **Chain downstream data processing per `CHUNKED_PIPELINE_GUIDE.md` (amended 2026-11-27):** whenever the task includes data processing, skimming, filtering, or validation after download, do **not** stop silently after writing `SHA256SUMS`. Follow [`general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md`](../../guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md): chain download -> verification -> processing/skimming -> automated checks -> bridge wakeup (`send_to_tty.sh` to Manager/Committee) inside an unattended resumable script (and keep raw downloads until independent Manager acceptance on bounded disk).
 
 ---
 
@@ -97,7 +99,9 @@ work. In Claude Code a hook records the reads and refuses other tools until ever
 Gemini then run `~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh <session_id>`, only after reading.
 For any user-run download task, you MUST copy and adapt `~/AI-management/general/templates/download-ui/fetch_dst.py` and
 `download_wrapper.sh` keeping the exact in-place dashboard UI, narrow <100-col layout, `status` mode, resume,
-verification, single-instance guard, and exit codes, and end your response with the exact copy-paste runnable command.
+verification, single-instance guard, and exit codes, chain downstream data processing + checks + bridge wakeup per
+`general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md` whenever processing follows download, and end your
+response with the exact copy-paste runnable command.
 ```
 
 ---

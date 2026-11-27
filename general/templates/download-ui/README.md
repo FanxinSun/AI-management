@@ -6,6 +6,7 @@
 > 1. **You MUST deliver a runnable script** built by copying and adapting `fetch_dst.py` and `download_wrapper.sh` from this folder.
 > 2. **NEVER** invent an ad-hoc `curl`/`wget`/`tqdm`/line-by-line `print` downloader, and **NEVER** drop the in-place `\033[<n>A\033[J` dashboard, the `<100`-column narrow layout, the `status` subcommand, the automatic default folder, HTTP Range resume, size/checksum verification, the `caffeinate`-safe single-instance guard, or exit codes `0`/`1`/`2`/`3`.
 > 3. **Always test** through the exact launch wrapper (including `status` and `<100` col width) and place the **complete, exact, copy-paste-ready runnable command at the very end** of your closing message (Rule 14).
+> 4. **Chain downstream processing when the task processes data (amended 2026-11-27):** `download-ui/` supplies the download/verify layer; whenever the dataset is to be skimmed, filtered, validated, or processed after download, follow [`CHUNKED_PIPELINE_GUIDE.md`](../../guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md) (`download -> verify -> process -> tool checks -> bridge line to Manager/Committee`), keeping raw files until Manager acceptance on bounded disk rather than stopping silently after `SHA256SUMS`.
 
 Recorded 2026-11-19 at the user's request. Origin: the user's `~/Downloads/download_step3.sh` (parallel
 threaded downloading, a dashboard redrawn in place at a sensible refresh rate); rebuilt and tested in

@@ -15,6 +15,7 @@ general/rules/multi-agent-dispatch/MULTI_AGENT_DISPATCH_RULES.md
 general/regulations/executor-regulations/EXECUTOR_RULES_BLOCK.md
 general/regulations/executor-regulations/HANDOVER_RULES.md
 general/templates/download-ui/README.md
+general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md
 claude/rules/thought-chain-rigor/The_Claude_Thought_Chain_Rule.md
 general/tools/handover-lint/README.md
 general/rules/project-planning/The_Project_Planning_Rule.md

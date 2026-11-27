@@ -57,11 +57,14 @@ the incidents behind each rule, is `~/AI-management/general/regulations/executor
     `~/AI-management/general/rules/mandatory-repo-read/ack-rules.sh <session_id>`, and only after reading. In Claude
     Code a hook records the reads itself and refuses other tools until every listed file is read (2026-11-25); there
     is no command to run. Never skip this gate. See `general/rules/mandatory-repo-read/The_Mandatory_Repo_Read_Rule.md`.
-18. **Mandatory Download Script & UI Template (user, 2026-11-24):** whenever a task requires a user-run download script,
+18. **Mandatory Download Script & UI Template (user, 2026-11-24; pipeline cross-ref 2026-11-27):** whenever a task requires a user-run download script,
     you MUST copy and adapt `~/AI-management/general/templates/download-ui/fetch_dst.py` and `download_wrapper.sh` keeping the
     exact in-place dashboard UI (`\033[<n>A\033[J`), `<100`-col narrow layout, `status` mode, automatic default folder,
     HTTP Range resume, verification, `caffeinate`-safe single-instance guard, and exit codes `0`/`1`/`2`/`3`, and end
     your delivery message with the exact copy-paste runnable command (Rule 14). Never improvise an ad-hoc downloader.
+    When the downloaded dataset feeds downstream skimming/processing/validation, wire the unattended processing stages
+    and bridge wakeup per `general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md` rather than stopping
+    silently after `SHA256SUMS`.
 19. **Thought-chain, approval provenance & numerical hygiene (2026-11-24; scope stated 2026-11-25):** ask approvals in
     plain text (never TUI picker dialogs; verify plain user provenance in transcript + `~/.claude/agy-bridge/send.log`);
     state every `--flag`, path, schema and exit code literally, and `.partial` staging and SHA-256 pins where a step
