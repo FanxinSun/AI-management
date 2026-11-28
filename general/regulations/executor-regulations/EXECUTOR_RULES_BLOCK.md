@@ -141,3 +141,9 @@ never relax them. The full text, with the incidents behind each rule, is
     design of what you build: a resumable script keeps what is on disk, and a run the user turned away from is a
     test (rule 22). A question whose answer is there is not asked, and the format of a script is never a question.
     If one thing truly blocks the work, ask that one thing in one line and say where you looked.
+26. **Cloud compute & execution target fidelity (user, 2026-11-28):** when a plan, handover or instruction calls for
+    remote cloud compute (Google Colab via `colab` CLI, or GCP Compute via `gcp-cpu-ctl` / `gcloud`), executors
+    must not unilaterally substitute local machine hardware (such as local workstation or laptop GPUs) or provision
+    local environments instead of the designated cloud runtimes without explicit user approval. Check
+    `/home/rog/COLAB_LOCAL_CONTROL.md` (Colab Ultra) and `/home/rog/GCP_CPU_LOCAL_CONTROL.md` before deciding on
+    compute targets.

@@ -406,6 +406,13 @@ These are suggestions from the manager's own mistakes. Several executor failures
     - List only questions that the user's words, the rules, the plan and the design of the work do not answer, and
       say where you looked.
     - The format of a script is never put to the user.
+34. **Cloud compute and execution target governance (user, 2026-11-28):** when a project plan, step specification
+    or user directive designates remote cloud compute (e.g. Google Colab via `colab` CLI, or GCP Compute via
+    `gcp-cpu-ctl` / `gcloud`), planners and executors are strictly prohibited from unilaterally substituting local
+    machine hardware (such as local workstation or laptop GPUs) or provisioning local environments instead of the
+    designated cloud runtimes without the user's explicit yes. Before deciding on compute targets, check available
+    cloud tooling (`colab` CLI under the user's Google Colab Ultra subscription, `gcp-cpu-ctl`,
+    `/home/rog/COLAB_LOCAL_CONTROL.md`, `/home/rog/GCP_CPU_LOCAL_CONTROL.md`).
 
 ## Part C. What each agent is like as an executor
 
@@ -613,3 +620,4 @@ Observed in E1, 5–14 November 2026, on WSL. agy is easier to drive. Codex has 
 | 28 Nov | agy | In iMessage automation, missed 9th image (`IMG_0707.JPG`) split across consecutive message bubbles by iOS Photos picker; queried only the last message ROWID instead of the contiguous sender photo cluster | A1.3, A2.7 |
 | 28 Nov | agy | Staged iMessage image attachments in `~/.gemini/` and used AppleScript `send file`, causing all messages to fail with "Not Delivered" (`error: 3`, `imagent` TCC sandbox denial: `Operation not permitted`). Declared them delivered based on `chat.db` row creation alone without verifying `is_sent=1` or UI `Delivered` status | A1.1, A4.17, A26 |
 | 28 Nov | Codex (e2-codex) | Halted on Step 7 auditor handover from e2-committee demanding user re-approval in its own tab, arguing that relayed user quotes covered producer rerun and did not verbatim name the independent auditor build; user: "do it. if you ask me again I kill you" and barred redundant second approvals | A2.10, A2.10a, Part C (Codex) |
+| 28 Nov | agy "Zindi vessel Committee" (manager) | When asked to lift the open A-5 Colab GPU gate to "meets", failed to check `colab` CLI on `PATH` or recognize user's Colab Ultra subscription (which lacked a registered `colab-cli` skill in `~/.gemini/` and had its guide quarantined in `AI-management-private`); unilaterally ran `nvidia-smi` and improvised Decision D18 ordering Codex to build a local CUDA environment on laptop RTX 5080 GPU, breaching sub-plan A-5's explicit Colab L4 specification. User: "huh? why train locally. Use Colab CLI to train via stronger GPUs" | B34, [The Project Planning Rule](../../rules/project-planning/The_Project_Planning_Rule.md) |

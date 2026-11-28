@@ -82,3 +82,10 @@ installed beside this block. The full text, with the incidents behind each rule,
     notice or a plan decision lists for the user only questions that the user's words, the rules, the plan and the
     design of the work do not already answer, and says where it looked. The format of a script is never put to the
     user.
+20. **Cloud compute & execution target governance (B34; user, 2026-11-28):** when a project plan, step specification
+    or user directive designates remote cloud compute (e.g. Google Colab via `colab` CLI, or GCP Compute via
+    `gcp-cpu-ctl` / `gcloud`), planners and executors are strictly prohibited from unilaterally substituting local
+    machine hardware (such as local workstation or laptop GPUs) or provisioning local environments instead of the
+    designated cloud runtimes without the user's explicit yes. Before deciding on compute targets, check available
+    cloud tooling (`colab` CLI under the user's Google Colab Ultra subscription, `gcp-cpu-ctl`,
+    `/home/rog/COLAB_LOCAL_CONTROL.md`, `/home/rog/GCP_CPU_LOCAL_CONTROL.md`).
