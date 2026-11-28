@@ -53,22 +53,26 @@ VM sessions are ephemeral: packages installed with `colab install` are lost afte
 
 ## Files
 ```bash
-colab ls [path]                       # relative to /content
-colab upload LOCAL REMOTE             # REMOTE is relative to /content (NOT '/content/x' -> 400 error)
-colab download REMOTE [LOCAL]
-colab rm REMOTE
+colab ls [path]                       # defaults to path="content" (lists /content on the VM)
+colab upload LOCAL content/REMOTE     # Contents API targets '/'; use content/<name> so /content/<name> matches exec cwd!
+colab download content/REMOTE [LOCAL] # download from /content/<name>
+colab rm content/REMOTE               # remove /content/<name>
 ```
-- **Large files fail**: a single 461 MB upload returned HTTP 400; a small file worked. Workarounds: `split -b 40M` + upload
-  chunks + `cat` on VM (untested end to end), or better put data on Google Drive and `colab drivemount`, then read
-  `/content/drive/MyDrive/...`.
+- **Critical path rule (`files.py`, `contents.py`, `execution.py` in `google-colab-cli` 0.8.0):**
+  - `colab ls` defaults `path="content"` (listing `/content/`), and `colab exec` / `colab repl` explicitly `os.chdir('/content')`.
+  - However, `colab upload`, `colab download`, `colab rm`, and `colab edit` send the `remote_path` argument straight to `/api/contents/{path.strip("/")}` (**Jupyter root `/`**)!
+  - Passing a bare name (`colab upload bundle.tar.gz bundle.tar.gz`) uploads to **`/bundle.tar.gz`**, NOT `/content/bundle.tar.gz` — causing `FileNotFoundError` inside `colab exec`! **Always include the `content/` prefix** (`colab upload local.tar.gz content/local.tar.gz`).
+- **Large files fail**: a single 461 MB upload returned HTTP 400 due to request body size; small archives (~70 MB) work reliably. Workarounds for multi-hundred-MB files: `split -b 40M` + upload chunks + `cat` on VM, or put large datasets on Google Drive (`gdrive files upload ...`) and `colab drivemount`, then read `/content/drive/MyDrive/...`.
 
 ## Gotchas
+- **`colab exec` always returns exit code `0` even on unhandled Python tracebacks (`commands/execution.py`, `runtime.py`):**
+  `display_output` streams remote tracebacks to stderr, but `exec_command` never inspects outputs for `output_type == "error"` and does not exit non-zero on kernel exceptions. **Never rely on `$? == 0` alone** (`colab exec ... && ...`); always inspect stderr/stdout logs or verify an explicit output artifact / sentinel file (`colab download content/DONE.json` + SHA-256 check).
 - Interactive widget notebooks (ipywidgets / Plotly FigureWidget, etc.) do NOT work via `colab exec` (no front end).
   Run those locally (e.g. VS Code Jupyter) instead.
 - Always `colab stop` when done; sessions bill compute units. Keep-alive daemon prevents idle shutdown otherwise.
-- The VM cannot see local files: upload them (small) or use Drive (large). Results must be downloaded or written to Drive.
+- The VM cannot see local files: upload them under `content/` (small) or use Drive (large). Results written to `/content/` must be downloaded via `colab download content/...` or written to Drive.
 
 ## Applies to any project on this machine
 This guide is project-agnostic. Typical flow for any script/notebook:
-1. `colab new --gpu L4` (user does OAuth if prompted) -> 2. `colab install <deps>` -> 3. upload/mount data ->
-4. `colab exec -f job.py --timeout N` -> 5. `colab download` results -> 6. `colab stop`.
+1. `colab new --gpu L4` (user does OAuth if prompted) -> 2. `colab install <deps>` -> 3. `colab upload <file> content/<file>` / mount Drive ->
+4. `colab exec -f job.py --timeout N` -> 5. `colab download content/<out> <out>` (verify non-error sentinel + hashes) -> 6. `colab stop`.

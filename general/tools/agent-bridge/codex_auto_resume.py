@@ -209,7 +209,9 @@ def get_thread_info_for_proc(proc: dict) -> dict:
     # 3. Read rollout file for latest rate limits
     rpath = res["rollout_path"]
     if rpath and os.path.exists(rpath):
-        latest_tc = None
+        latest_codex_tc = None
+        latest_any_tc = None
+        latest_reached_type = None
         try:
             with open(rpath, "r", errors="ignore") as f:
                 for line in f:
@@ -217,22 +219,34 @@ def get_thread_info_for_proc(proc: dict) -> dict:
                         try:
                             obj = json.loads(line)
                             p = obj.get("payload", {})
-                            if p.get("type") == "token_count":
-                                latest_tc = p
+                            if isinstance(p, dict) and p.get("type") == "token_count":
+                                rl = p.get("rate_limits")
+                                if isinstance(rl, dict):
+                                    latest_any_tc = p
+                                    if rl.get("rate_limit_reached_type") is not None:
+                                        latest_reached_type = rl.get("rate_limit_reached_type")
+                                    # Prefer primary 'codex' quota bucket over auxiliary null-primary buckets (e.g. 'premium')
+                                    if rl.get("limit_id") == "codex" or isinstance(rl.get("primary"), dict):
+                                        latest_codex_tc = p
+                                        if rl.get("rate_limit_reached_type") is None:
+                                            latest_reached_type = None
                         except Exception:
                             pass
         except Exception:
             pass
 
+        latest_tc = latest_codex_tc or latest_any_tc
         if latest_tc:
-            rl = latest_tc.get("rate_limits", {})
-            pri = rl.get("primary", {})
-            sec = rl.get("secondary", {})
-            res["primary_used_percent"] = float(pri.get("used_percent") or 0.0)
-            res["resets_at"] = int(pri.get("resets_at") or 0)
-            res["secondary_used_percent"] = float(sec.get("used_percent") or 0.0)
-            res["weekly_resets_at"] = int(sec.get("resets_at") or 0)
-            res["rate_limit_type"] = rl.get("rate_limit_reached_type")
+            rl = latest_tc.get("rate_limits") or {}
+            pri = rl.get("primary") or {}
+            sec = rl.get("secondary") or {}
+            if isinstance(pri, dict):
+                res["primary_used_percent"] = float(pri.get("used_percent") or 0.0)
+                res["resets_at"] = int(pri.get("resets_at") or 0)
+            if isinstance(sec, dict):
+                res["secondary_used_percent"] = float(sec.get("used_percent") or 0.0)
+                res["weekly_resets_at"] = int(sec.get("resets_at") or 0)
+            res["rate_limit_type"] = rl.get("rate_limit_reached_type") or latest_reached_type
 
     return res
 

@@ -90,3 +90,6 @@ installed beside this block. The full text, with the incidents behind each rule,
     directive designates remote cloud compute (Colab or GCP), planners and executors are strictly prohibited from
     unilaterally substituting local machine hardware (e.g. local workstation/laptop GPUs) or building local CUDA
     environments instead of cloud runtimes without the user's explicit yes.
+21. **Dispatch non-conflicting idle workers immediately (B35; user, 2026-11-28):** when an executor stops on a quota
+    limit or blocker while another worker sits idle at its prompt (even if it owns a background job with zero file
+    overlap), dispatch non-conflicting work immediately rather than serializing until the background task finishes.

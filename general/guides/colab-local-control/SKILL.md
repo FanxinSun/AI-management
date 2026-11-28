@@ -29,18 +29,19 @@ colab new --gpu L4 -s my-run      # Options: T4, L4, G4, A100, H100
 colab sessions                    # Verify session state
 ```
 
-### 2. Dependency Installation & Remote Execution
+### 2. Dependency Installation & Remote Execution (`colab exec` exit-0 trap!)
+- **Default timeout is 30s:** Always pass `--timeout` (e.g. `7200`) for training runs.
+- **`colab exec` always returns exit code `0` even on Python tracebacks!** Verify an explicit completion sentinel (`content/DONE.json`), stderr output, and downloaded artifact hashes rather than trusting `$? == 0`.
 ```bash
 colab install -s my-run -r requirements.txt
-# Default timeout is only 30s — always pass --timeout for real training!
 colab exec -s my-run -f train.py --timeout 7200
 ```
 
-### 3. File Transfer
-- **Small files / bundles (< ~50 MB verified; avoid single >400 MB HTTP 400 uploads):**
+### 3. File Transfer (`content/` prefix REQUIRED!)
+- **Small files / bundles (always prefix `content/...`!):** `colab ls` defaults to `content/` and `colab exec` runs in `/content`, **but `colab upload` / `download` / `rm` target Jupyter root `/`!** Passing a bare filename writes to `/` and causes `FileNotFoundError` in `colab exec`. Avoid single >400 MB HTTP 400 uploads.
   ```bash
-  colab upload local_bundle.tar.gz bundle.tar.gz   # REMOTE is relative to /content (never '/content/...')
-  colab download output_preds.parquet local_preds.parquet
+  colab upload local_bundle.tar.gz content/bundle.tar.gz
+  colab download content/output_preds.parquet local_preds.parquet
   ```
 - **Large datasets:** Put files on Google Drive (`gdrive files upload ...`) and mount inside Colab with `colab drivemount /content/drive`.
 

@@ -140,6 +140,59 @@ class TestCodexAutoResume(unittest.TestCase):
                 car.get_session_records = orig_get_records
                 car.resume_session = orig_resume
 
+    def test_rollout_null_primary_bucket_does_not_clobber_codex_quota(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            rollout = Path(tmpdir) / "rollout-test.jsonl"
+            db_path = Path(tmpdir) / "state_5.sqlite"
+            import sqlite3
+            con = sqlite3.connect(db_path)
+            con.execute("CREATE TABLE threads (id TEXT, rollout_path TEXT, title TEXT, cwd TEXT, updated_at INT)")
+            con.execute(
+                "INSERT INTO threads VALUES (?, ?, ?, ?, ?)",
+                ("11111111-1111-1111-1111-111111111111", str(rollout), "test", "/tmp/proj", 100),
+            )
+            con.commit()
+            con.close()
+
+            events = [
+                {
+                    "payload": {
+                        "type": "token_count",
+                        "rate_limits": {
+                            "limit_id": "codex",
+                            "primary": {"used_percent": 100.0, "resets_at": 1795863843},
+                            "secondary": {"used_percent": 31.0, "resets_at": 1796403177},
+                            "rate_limit_reached_type": None,
+                        },
+                    }
+                },
+                {
+                    "payload": {
+                        "type": "token_count",
+                        "rate_limits": {
+                            "limit_id": "premium",
+                            "primary": None,
+                            "secondary": None,
+                            "rate_limit_reached_type": None,
+                        },
+                    }
+                },
+            ]
+            rollout.write_text("\n".join(json.dumps(e) for e in events) + "\n")
+
+            orig_codex_home = car.CODEX_HOME
+            car.CODEX_HOME = Path(tmpdir)
+            try:
+                info = car.get_thread_info_for_proc({
+                    "cmd_str": "codex resume 11111111-1111-1111-1111-111111111111",
+                    "cwd": "/tmp/proj",
+                })
+                self.assertEqual(info["primary_used_percent"], 100.0)
+                self.assertEqual(info["resets_at"], 1795863843)
+                self.assertEqual(info["secondary_used_percent"], 31.0)
+            finally:
+                car.CODEX_HOME = orig_codex_home
+
 
 if __name__ == "__main__":
     unittest.main()
