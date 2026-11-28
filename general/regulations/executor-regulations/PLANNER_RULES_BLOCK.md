@@ -82,10 +82,11 @@ installed beside this block. The full text, with the incidents behind each rule,
     notice or a plan decision lists for the user only questions that the user's words, the rules, the plan and the
     design of the work do not already answer, and says where it looked. The format of a script is never put to the
     user.
-20. **Cloud compute & execution target governance (B34; user, 2026-11-28):** when a project plan, step specification
-    or user directive designates remote cloud compute (e.g. Google Colab via `colab` CLI, or GCP Compute via
-    `gcp-cpu-ctl` / `gcloud`), planners and executors are strictly prohibited from unilaterally substituting local
-    machine hardware (such as local workstation or laptop GPUs) or provisioning local environments instead of the
-    designated cloud runtimes without the user's explicit yes. Before deciding on compute targets, check available
-    cloud tooling (`colab` CLI under the user's Google Colab Ultra subscription, `gcp-cpu-ctl`,
-    `/home/rog/COLAB_LOCAL_CONTROL.md`, `/home/rog/GCP_CPU_LOCAL_CONTROL.md`).
+20. **Cloud compute & execution target governance (B34; user, 2026-11-28):** This machine has **`colab` CLI**
+    (`~/.local/bin/colab`) + `gdrive` CLI under an active **Google Colab Ultra subscription** (~2,000 monthly
+    Compute Units; `T4`/`L4`/`A100`/`H100` GPUs + TPUs; see `~/COLAB_LOCAL_CONTROL.md` and `colab-cli` skill) and
+    **`gcp-cpu-ctl` / `gcloud`** for 32–384 vCPU GCP Compute Engine jobs (`C4D`/`H4D`; `~/GCP_CPU_LOCAL_CONTROL.md`).
+    Never overlook these cloud tools when choosing GPU/HPC compute targets. When a plan, step spec, or user
+    directive designates remote cloud compute (Colab or GCP), planners and executors are strictly prohibited from
+    unilaterally substituting local machine hardware (e.g. local workstation/laptop GPUs) or building local CUDA
+    environments instead of cloud runtimes without the user's explicit yes.

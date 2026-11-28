@@ -151,7 +151,8 @@ case "$mode" in
     note="[AI-MANAGEMENT RULES GATE] This session has not read ${#missing[@]} of the ${#paths[@]} rule files in $REPO at their current content. Read each with the Read tool, whole (no offset, no limit), before anything else; every other tool is refused until then. The hook records the reads; there is no command to run.$(unread_lines)
 Two rules from these files that sessions have broken:
 - A download the user will run is delivered as a script copied and adapted from $REPO/general/templates/download-ui/fetch_dst.py and download_wrapper.sh (in-place dashboard, narrow layout below 100 columns, status subcommand, resume, verification, single-instance guard, exit codes 0/1/2/3); never an improvised downloader. If the task processes the downloaded files, wire processing, checks, and bridge wakeup per $REPO/general/guides/chunked-pipeline-workflow/CHUNKED_PIPELINE_GUIDE.md rather than stopping silently after SHA256SUMS.
-- When the user has to run something, the complete copy-paste command is the last thing in your closing message (Rule 14)."
+- When the user has to run something, the complete copy-paste command is the last thing in your closing message (Rule 14).
+- Cloud compute awareness & fidelity (Rule B34 / Executor Rule 26): colab CLI (~/.local/bin/colab, Google Colab Ultra: T4/L4/A100/H100) + gdrive CLI and gcp-cpu-ctl (GCP C4D/H4D) are available on this machine; never unilaterally substitute local machine hardware when a plan/task designates cloud compute."
     jq -n --arg e "$mode" --arg n "$note" '{hookSpecificOutput:{hookEventName:$e, additionalContext:$n}}'
     exit 0
     ;;

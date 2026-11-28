@@ -406,13 +406,9 @@ These are suggestions from the manager's own mistakes. Several executor failures
     - List only questions that the user's words, the rules, the plan and the design of the work do not answer, and
       say where you looked.
     - The format of a script is never put to the user.
-34. **Cloud compute and execution target governance (user, 2026-11-28):** when a project plan, step specification
-    or user directive designates remote cloud compute (e.g. Google Colab via `colab` CLI, or GCP Compute via
-    `gcp-cpu-ctl` / `gcloud`), planners and executors are strictly prohibited from unilaterally substituting local
-    machine hardware (such as local workstation or laptop GPUs) or provisioning local environments instead of the
-    designated cloud runtimes without the user's explicit yes. Before deciding on compute targets, check available
-    cloud tooling (`colab` CLI under the user's Google Colab Ultra subscription, `gcp-cpu-ctl`,
-    `/home/rog/COLAB_LOCAL_CONTROL.md`, `/home/rog/GCP_CPU_LOCAL_CONTROL.md`).
+34. **Cloud compute and execution target governance (user, 2026-11-28):**
+    - **Capability awareness:** This machine has **`colab` CLI** (`~/.local/bin/colab`) + **`gdrive` CLI** (`~/.local/bin/gdrive`) configured under an active **Google Colab Ultra subscription** (~2,000 monthly Compute Units; `T4`, `L4`, `A100`, `H100` GPU and TPU tiers; see `~/COLAB_LOCAL_CONTROL.md` and the `colab-cli` skill), alongside **`gcp-cpu-ctl` / `gcloud`** for 32–384 vCPU / >64 GB RAM GCP Compute Engine jobs (`C4D` / `H4D`; see `~/GCP_CPU_LOCAL_CONTROL.md` and the `gcp-cpu-compute` skill). Never overlook these tools when selecting compute targets or claim Colab is unavailable / browser-only without checking `export PATH="$HOME/.local/bin:$PATH"; colab version; colab sessions`.
+    - **Target fidelity:** When a project plan, step specification, or user directive designates remote cloud compute (Colab or GCP), planners and executors are strictly prohibited from unilaterally substituting local machine hardware (such as local workstation or laptop GPUs) or provisioning local environments instead of the designated cloud runtimes without the user's explicit yes. If one Colab GPU tier (e.g. `A100`) hits transient capacity limits (`503`), fall back across other Colab cloud tiers (`H100`, `L4`, `T4`) unless the user orders local execution.
 
 ## Part C. What each agent is like as an executor
 
