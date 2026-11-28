@@ -37,8 +37,8 @@ colab install -s my-run -r requirements.txt
 colab exec -s my-run -f train.py --timeout 7200
 ```
 
-### 3. File Transfer (`content/` prefix REQUIRED!)
-- **Small files / bundles (always prefix `content/...`!):** `colab ls` defaults to `content/` and `colab exec` runs in `/content`, **but `colab upload` / `download` / `rm` target Jupyter root `/`!** Passing a bare filename writes to `/` and causes `FileNotFoundError` in `colab exec`. Avoid single >400 MB HTTP 400 uploads.
+### 3. File Transfer (`content/` prefix REQUIRED & `5M–10M` chunk ceiling!)
+- **Small files / bundles (always prefix `content/...` & keep `<= 10 MB` per file!):** `colab ls` defaults to `content/` and `colab exec` runs in `/content`, **but `colab upload` / `download` / `rm` target Jupyter root `/`!** Passing a bare filename writes to `/` and causes `FileNotFoundError` in `colab exec`. Moreover, `contents.py` Base64-encodes uploads into a single JSON `PUT` (`+33%` expansion): `>= 30 MB` (`~40 MB` Base64) triggers a proxy **HTTP `408` timeout** (~30s). Split bundles with `split -b 8M` (`5M–10M`, `<= 13 MB` Base64), wait `15s` post-allocation before uploading, retry each chunk up to 3x, and never confuse upload `408` with GPU capacity `503`.
   ```bash
   colab upload local_bundle.tar.gz content/bundle.tar.gz
   colab download content/output_preds.parquet local_preds.parquet

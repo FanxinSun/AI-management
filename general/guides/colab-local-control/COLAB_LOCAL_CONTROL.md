@@ -62,7 +62,10 @@ colab rm content/REMOTE               # remove /content/<name>
   - `colab ls` defaults `path="content"` (listing `/content/`), and `colab exec` / `colab repl` explicitly `os.chdir('/content')`.
   - However, `colab upload`, `colab download`, `colab rm`, and `colab edit` send the `remote_path` argument straight to `/api/contents/{path.strip("/")}` (**Jupyter root `/`**)!
   - Passing a bare name (`colab upload bundle.tar.gz bundle.tar.gz`) uploads to **`/bundle.tar.gz`**, NOT `/content/bundle.tar.gz` — causing `FileNotFoundError` inside `colab exec`! **Always include the `content/` prefix** (`colab upload local.tar.gz content/local.tar.gz`).
-- **Large files fail**: a single 461 MB upload returned HTTP 400 due to request body size; small archives (~70 MB) work reliably. Workarounds for multi-hundred-MB files: `split -b 40M` + upload chunks + `cat` on VM, or put large datasets on Google Drive (`gdrive files upload ...`) and `colab drivemount`, then read `/content/drive/MyDrive/...`.
+- **Chunking limit & proxy timeout (`HTTP 408` / `400`, verified 2026-11-28):**
+  - `contents.py` Base64-encodes the entire file inside a single JSON `PUT` request (`+33%` size expansion). A `30 MB` chunk produces a `~40 MB` Base64 JSON payload, which exceeded the Colab runtime proxy timeout (`~30–36s`) and returned **HTTP `408 Request Timeout`** (`16:27:03` on `gpu-l4`), while a single 461 MB upload returned HTTP `400`.
+  - **Safe per-chunk limit & sequence:** Keep every `colab upload` file/chunk **`5M–10M`** (`split -b 8M` or `<= 10M`, giving `<= 13.3 MB` Base64 JSON), sleep **`15s`** after `colab new` VM allocation for proxy warmup before uploading, and wrap each chunk upload in a **3-attempt per-chunk retry loop** (re-assemble with `cat` and verify SHA-256 on `/content`), OR put larger datasets on Google Drive (`gdrive files upload ...`) and `colab drivemount`, then read `/content/drive/MyDrive/...`.
+- **Distinguish upload `408` from GPU capacity `503`:** Never misclassify a post-allocation `colab upload` HTTP `408` timeout as GPU capacity exhaustion (`503`) or prematurely downgrade GPU tiers (e.g. L4 -> T4); only `/tun/m/assign` `503` indicates GPU capacity shortage.
 
 ## Gotchas
 - **`colab exec` always returns exit code `0` even on unhandled Python tracebacks (`commands/execution.py`, `runtime.py`):**
