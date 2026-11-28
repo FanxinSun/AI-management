@@ -249,11 +249,17 @@ def inspect_screen_for_limits(target: str) -> tuple[bool, int]:
     is_limited = False
     parsed_reset = 0
 
-    if ("usage limit" in output.lower() or "5h 0% left" in output or "0% left" in output or "try again at" in output.lower()):
+    # Strict check: only match when 5h 0% left or explicit active limit error message.
+    # Never match generic "usage limit" or "0% left" in scrollback/previous messages.
+    has_zero_left = bool(re.search(r"5h\s+0%\s+left", output, re.IGNORECASE))
+    has_limit_banner = bool(re.search(r"(?:You['’]ve\s+hit\s+your\s+usage\s+limit|rate\s+limit\s+reached)", output, re.IGNORECASE))
+    has_try_again = bool(re.search(r"try\s+again\s+at\s+([0-9]{1,2}:[0-9]{2}(?:\s*[AP]M)?)", output, re.IGNORECASE))
+
+    if has_zero_left or (has_limit_banner and has_try_again):
         is_limited = True
 
-    # Look for "try again at HH:MM AM/PM" or "resets HH:MM AM/PM"
-    m = re.search(r"(?:try again at|resets)\s+([0-9]{1,2}:[0-9]{2}(?:\s*[AP]M)?)", output, re.IGNORECASE)
+    # Look specifically for "try again at HH:MM AM/PM" or "5h limit: 0% left · resets at HH:MM"
+    m = re.search(r"(?:try again at|0%\s+left\s+·\s+resets\s+at)\s+([0-9]{1,2}:[0-9]{2}(?:\s*[AP]M)?)", output, re.IGNORECASE)
     if m:
         time_str = m.group(1).strip()
         now = datetime.datetime.now()
@@ -298,27 +304,40 @@ def get_session_records() -> list:
             "status": "RUNNING",
         }
 
-        if rec["resets_at"]:
+        # Validate resets_at: must not be a stale timestamp hours/days in the past
+        # Valid window: [now - 300, now + 6 * 3600]
+        valid_resets_at = False
+        if rec["resets_at"] and (now - 300 <= rec["resets_at"] <= now + 6 * 3600):
+            valid_resets_at = True
             rem = rec["resets_at"] - now
             rec["seconds_remaining"] = max(0, int(rem))
+        elif rec["resets_at"] and rec["resets_at"] < now - 300:
+            # Stale historical reset timestamp from previous days/sessions; clear it
+            rec["resets_at"] = 0
+            rec["seconds_remaining"] = 0
 
-        # Check if rate limited from rollout or screen
-        is_limited_by_rollout = (info["primary_used_percent"] >= 100.0 or info["rate_limit_type"] is not None)
-        screen_limited, screen_reset = inspect_screen_for_limits(target_name)
-
-        if is_limited_by_rollout or screen_limited:
-            rec["rate_limited"] = True
-            if screen_reset and not rec["resets_at"]:
-                rec["resets_at"] = screen_reset
-                rem = rec["resets_at"] - now
-                rec["seconds_remaining"] = max(0, int(rem))
-
-            if rec["seconds_remaining"] > 0:
-                rec["status"] = "RATE_LIMITED"
-            else:
-                rec["status"] = "READY_TO_RESUME"
-        else:
+        # Rate limit determination:
+        # 1. Rollout is primary source of truth: if used_percent < 99.0 and no rate_limit_type, session is NOT rate limited.
+        if info["primary_used_percent"] < 99.0 and info["rate_limit_type"] is None:
+            rec["rate_limited"] = False
             rec["status"] = "OK"
+        else:
+            is_limited_by_rollout = (info["primary_used_percent"] >= 99.0 or info["rate_limit_type"] is not None)
+            screen_limited, screen_reset = inspect_screen_for_limits(target_name)
+
+            if is_limited_by_rollout or screen_limited:
+                rec["rate_limited"] = True
+                if screen_reset and not rec["resets_at"]:
+                    rec["resets_at"] = screen_reset
+                    rem = rec["resets_at"] - now
+                    rec["seconds_remaining"] = max(0, int(rem))
+
+                if rec["seconds_remaining"] > 0:
+                    rec["status"] = "RATE_LIMITED"
+                else:
+                    rec["status"] = "READY_TO_RESUME"
+            else:
+                rec["status"] = "OK"
 
         records.append(rec)
     return records
@@ -380,10 +399,21 @@ def cmd_check() -> int:
 
         if r["rate_limited"]:
             resets_at = r["resets_at"]
-            # Add a 15-second grace window to ensure server-side quota propagation
-            if resets_at and now >= (resets_at + 15):
-                # Eligible for resume
-                if not s_data.get("resumed_for_reset", 0) == resets_at:
+            if resets_at and now < resets_at:
+                # Active rate limit waiting
+                any_waiting = True
+                if s_data.get("waiting_for_reset") != resets_at:
+                    state[t_key] = {
+                        "waiting_for_reset": resets_at,
+                        "target": r["target"],
+                        "pid": r["pid"],
+                    }
+                    save_state(state)
+                    rem = int(resets_at - now)
+                    log_event(f"Session {r['target']} (pid {r['pid']}) entered rate-limit. Resets in {format_countdown(rem)}")
+            elif resets_at and now >= (resets_at + 15):
+                # Eligible for resume ONLY if previously tracked waiting for this exact reset window
+                if s_data.get("waiting_for_reset") == resets_at and s_data.get("resumed_for_reset") != resets_at:
                     success = resume_session(r["target"], r["pid"], reason=f"quota reset at {datetime.datetime.fromtimestamp(resets_at)}")
                     if success:
                         state[t_key] = {
@@ -395,10 +425,8 @@ def cmd_check() -> int:
                         save_state(state)
             else:
                 any_waiting = True
-                rem = max(0, int(resets_at - now)) if resets_at else 0
-                log_event(f"Session {r['target']} (pid {r['pid']}) is rate-limited. Resets in {format_countdown(rem)}")
         else:
-            # Clean up old state if session is no longer rate limited
+            # Session is healthy / not rate limited; clear waiting state if any
             if t_key in state:
                 state.pop(t_key, None)
                 save_state(state)

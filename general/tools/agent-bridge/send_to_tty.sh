@@ -19,6 +19,7 @@
 #                                          name the calling agent session
 #   send_to_tty.sh --whoami                show the calling agent session
 #   send_to_tty.sh --list                  list running agents and names
+#   send_to_tty.sh --prune                 prune stale registrations of dead sessions
 #
 # <target> is one of:
 #   reply            the session that last messaged you (best for answers)
@@ -310,8 +311,21 @@ cmd_list() {
   echo "(TITLE = the session's /rename title, read live; usable as a target: send_to_tty.sh \"<title>\" \"msg\")"
   for f in "$REG"/*; do
     [ -f "$f" ] || continue
-    reg_alive "${f##*/}" || echo "stale registration: ${f##*/} (pid $(reg_get "${f##*/}" pid) gone)"
+    reg_alive "${f##*/}" || echo "stale registration: ${f##*/} (pid $(reg_get "${f##*/}" pid) gone; prune with --prune)"
   done
+}
+
+cmd_prune() {
+  local count=0
+  for f in "$REG"/*; do
+    [ -f "$f" ] || continue
+    if ! reg_alive "${f##*/}"; then
+      echo "pruned stale registration: ${f##*/} (pid $(reg_get "${f##*/}" pid) gone)"
+      rm -f "$f"
+      count=$((count + 1))
+    fi
+  done
+  echo "pruned $count stale registration(s)"
 }
 
 cmd_register() {
@@ -728,6 +742,7 @@ deliver_linux() {  # tty msg submit is_claude tgt_pid
 
 case "$1" in
   --list|-l)  cmd_list; exit ;;
+  --prune)    cmd_prune; exit ;;
   --whoami)   me=$(caller_pid); [ -n "$me" ] || die "not inside an agent session"
               p=$(partner "$me")
               echo "$(label_of "$me") ($(kind_of "$me") pid $me on $(tty_of "$me"))${p:+; reply goes to $(label_of "$p")}"; exit ;;
