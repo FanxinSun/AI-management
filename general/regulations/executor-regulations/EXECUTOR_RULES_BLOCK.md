@@ -148,3 +148,7 @@ never relax them. The full text, with the incidents behind each rule, is
     instruction calls for remote cloud compute (Google Colab or GCP Compute), executors must not unilaterally
     substitute local machine hardware (such as local workstation or laptop GPUs) or provision local environments
     instead of the designated cloud runtimes without explicit user approval.
+27. **Restoration fidelity & screen-first diagnosis (user, 2026-11-28):** when restoring sessions after a crash,
+    restore tabs into their original windows identically (`wt.exe -w 0`); when investigating a halted session or
+    user report of prompts, inspect the live console screen (`send_to_tty.sh --read <target>`) first rather than
+    assuming a plan-level gate.

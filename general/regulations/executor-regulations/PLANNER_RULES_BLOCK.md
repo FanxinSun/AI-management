@@ -93,3 +93,5 @@ installed beside this block. The full text, with the incidents behind each rule,
 21. **Dispatch non-conflicting idle workers immediately (B35; user, 2026-11-28):** when an executor stops on a quota
     limit or blocker while another worker sits idle at its prompt (even if it owns a background job with zero file
     overlap), dispatch non-conflicting work immediately rather than serializing until the background task finishes.
+22. **Terminal restoration fidelity and screen-first diagnosis (B36; user, 2026-11-28):** restoration after a crash
+    means restoring the layout *identically to before the reboot* (window grouping, tabs, sessions; user: `"restoration means restore as what is used to be. So you MUST put them in the same windows, identical to before the reboot"`). When a session halts or user reports confirmation prompts, read the live console screen (`send_to_tty.sh --read <target>`) before reading plan files; distinguish TUI permission dialogs (`settings.json` command allowlists) from project specification gates.
