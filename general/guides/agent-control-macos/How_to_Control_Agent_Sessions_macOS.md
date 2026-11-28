@@ -401,13 +401,17 @@ menu, and an update or announcement card may also be open: read the tab (Step 4)
 
 ---
 
-## 5c. Codex sessions: a usage limit stops them, and they do not resume by themselves (2026-11-17)
+## 5c. Codex sessions: usage limits and auto-resume (2026-11-17; automated 2026-11-28)
 
 Seen on 2026-11-17 with a Codex executor that hit its usage limit in the middle of a handover (it had stopped
 mid-edit of a source file). The user's words: "notice codex session cannot resume automatically from a 5h limit
-reset, so you need to manually resume it". The 5-hour window resets on its own, but Codex does not pick the job up
-again afterwards: the tab stays stopped until someone sends it something. The manager who ordered the job resumes it
-by hand.
+reset, so you need to manually resume it". The 5-hour window resets on its own, but Codex CLI does not pick the job up
+again afterwards: the tab stays stopped until someone sends it something.
+
+Autonomous watcher `codex_auto_resume.py` (`~/.local/bin/codex-auto-resume`) now monitors active Codex sessions,
+reads the exact `resets_at` epoch timestamp, and automatically sends the resume prompt once quota resets.
+
+For manual inspection and resume:
 
 **1. Read the reset time from the screen.** Read the Codex tab as in Step 4 (the TTY comes from
 `send_to_tty.sh --list`):

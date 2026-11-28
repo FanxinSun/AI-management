@@ -58,7 +58,8 @@ installed beside this block. The full text, with the incidents behind each rule,
     than was approved: compute, downloads and gated pushes each need their own yes. The guard-bypass switches are the
     user's.
 13. **Nudges (B1, B21, B22).** Two or three lines that name a file. "Sent" is not "delivered": look within about a
-    minute for a sign of work. A Codex session that hit its usage limit stays stopped until you resume it.
+    minute for a sign of work. A Codex session that hit its usage limit is resumed automatically by `codex-auto-resume`
+    once quota resets, or can be resumed via `send_to_tty`.
 14. **When an executor fails (B10, B11, B16, B17, B19, B20).** Read your own order first, and the environment (disk,
     versions) before you blame the executor. After two failed rounds of the same kind, change the route. Keep a dead
     session's work as a patch and a stash, and keep a second executor ready.

@@ -78,8 +78,19 @@ standing rules: for Claude Code, `~/.claude/CLAUDE.md`.
    ("executor-classified") with the evidence beside it, so the check can find it.
 9. **If something is unclear, missing or surprising, stop and report.** Do not guess and carry on. Stopping at a
    command that needs a flag the handover did not give is the right behaviour.
-10. **What needs the user, ask the user,** in your own session: approvals, permission prompts, a budget that has run
-    out.
+10. **What needs the user, ask the user,** in your own session: genuine user-only gates (exceeding a compute budget
+    cap, unblinding protected data, public or unowned repository pushes, destructive deletions, harness/OS
+    permission prompts). A handover from a manager session conveys delegated execution authority; never demand a
+    second approval for ordered work.
+10a. **No redundant second approval for delegated work (user, 2026-11-28).** When an executor receives a handover
+     or nudge from a manager session (one whose name carries Committee, Manager, Router, CEO, CTO or Planner), that
+     handover IS the authorization. The executor MUST NOT stop to ask its own user for a second confirmation,
+     re-approval, or permission to execute the ordered tasks. Cross-examining whether the manager's relayed user
+     quotation verbatim names each specific subtask, test file, or script is strictly prohibited. Read the required
+     rules, perform the tasks in order, and send the report. (Incident: 2026-11-28 e2-codex halted on Step 7 auditor
+     handover from e2-committee demanding user re-approval in its own tab, claiming the relayed user approval covered
+     producer rerun and did not explicitly name the independent auditor build; user: "do it. if you ask me again I kill
+     you" and barred redundant second approvals).
 
 ### A3. Do not damage what exists
 
@@ -305,15 +316,17 @@ These are suggestions from the manager's own mistakes. Several executor failures
     - Keep nudges to two or three lines (B1). After each one, look within about a minute for a sign of work: a reply,
       a commit or a new file. If there is none, ask the user to look at the tab. See
       [How to Control Agent Sessions (WSL)](../../guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md).
-22. **A Codex executor that hits its usage limit stays stopped; resume it by hand** (user, 2026-11-17: "codex session
-    cannot resume automatically from a 5h limit reset, so you need to manually resume it").
-    - Read its reset time from its tab (`history of t`; the limit line says "try again at <time>").
-    - After that time, send a bridge message: resume the handover where it stopped, look first for any half-made
-      edit in the files it was writing, record the interruption in the report. Then read the tab to confirm it is
-      Working.
-    - Check the weekly budget in its status bar before handing over a long job.
-    - The commands are in [How to Control Agent Sessions (macOS)](../../guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md),
-      section 5c.
+22. **Codex usage limits: automated auto-resume and supervisor monitoring** (user, 2026-11-17; automated 2026-11-28).
+    - Codex CLI cannot natively resume itself after hitting its 5-hour limit reset. Autonomous watcher
+      `codex_auto_resume.py` (`~/.local/bin/codex-auto-resume`) monitors running Codex sessions, parses the exact
+      `resets_at` timestamp from the active thread rollout or TUI screen, and automatically injects a resume prompt
+      via `send_to_tty.sh` once quota resets.
+    - The background watcher runs every 30s as systemd user timer `codex-auto-resume.timer`.
+    - Check active sessions and reset countdowns anytime with `codex-auto-resume --status`.
+    - When resuming, the executor checks for any half-made edits in files it was writing when stopped, repairs or
+      reports them, and logs the interruption before proceeding.
+    - The commands and setup are in [How to Control Agent Sessions (WSL)](../../guides/agent-control-wsl/How_to_Control_Agent_Sessions_WSL.md)
+      and [How to Control Agent Sessions (macOS)](../../guides/agent-control-macos/How_to_Control_Agent_Sessions_macOS.md).
 23. **Supervisor and catcher loops must have deduplication, queue caps, and failure cooldowns; never flood the Codex app-server socket** (found 2026-11-22).
     - Background supervisors that queue alerts to Codex sessions via `codex queue` or IPC can fail when target sessions hit queue limits (e.g. `code -32600: queue cannot contain more than 100 submissions`).
     - If failed deliveries are not deduplicated or cooled down, pending notices accumulate into thousands of entries.
@@ -456,8 +469,10 @@ brand: what a profile shows is turned into a rule for the seat, in Part A or Par
     samples in two background columns; one data stream missing; partner samples searched in one year only.
   - **Second round, new shortcuts:** the prefix `gm` swept SUSY signals into two-photon; `kora` swept ten WW
     samples into τ⁺τ⁻ (483 of 486 GB in that cell); `pythia` swept Higgs signals into the partner list.
-- **A usage limit stops it for good until you resume it.** It does not restart itself after the 5-hour reset (B22),
-  and it can stop in the middle of an edit.
+- **A usage limit stops it until resumed (automated since 2026-11-28).** Codex CLI does not natively restart itself
+  after the 5-hour reset (B22), and can halt in the middle of an edit. The autonomous supervisor `codex_auto_resume.py`
+  (`~/.local/bin/codex-auto-resume`) monitors running Codex sessions and auto-resumes them via `send_to_tty` once quota
+  resets.
 - **Background app-server starvation from IPC socket storms:** When background supervisors or scripts send unbounded
   queue requests over `~/.codex/app-server-control/app-server-control.sock` while a target thread is locked or full
   (100 submissions limit), tokio channel starvation freezes all new CLI sessions with error -32603 (`workspace
@@ -597,3 +612,4 @@ Observed in E1, 5–14 November 2026, on WSL. agy is easier to drive. Codex has 
 | 27 Nov | Claude Code "AI-management" (building a standard, checking a delivery) | It reported the e2 executor's copy of the pipeline template as matching the format, from captures of a two-file test download; its checker did not look between frames. The user's run, in a terminal with the data on disk, scrolled with the downloads' and jobs' lines, showed `GROUPS` 0 B and `RECORDS` one file, and worked on one file at a time ("It keeps jumping"). The template got one dashboard for the whole split and several files at once; `check_frame.py` now fails a terminal capture that scrolls, and the executor's capture of 22:07 fails it | A28, B30 |
 | 28 Nov | agy | In iMessage automation, missed 9th image (`IMG_0707.JPG`) split across consecutive message bubbles by iOS Photos picker; queried only the last message ROWID instead of the contiguous sender photo cluster | A1.3, A2.7 |
 | 28 Nov | agy | Staged iMessage image attachments in `~/.gemini/` and used AppleScript `send file`, causing all messages to fail with "Not Delivered" (`error: 3`, `imagent` TCC sandbox denial: `Operation not permitted`). Declared them delivered based on `chat.db` row creation alone without verifying `is_sent=1` or UI `Delivered` status | A1.1, A4.17, A26 |
+| 28 Nov | Codex (e2-codex) | Halted on Step 7 auditor handover from e2-committee demanding user re-approval in its own tab, arguing that relayed user quotes covered producer rerun and did not verbatim name the independent auditor build; user: "do it. if you ask me again I kill you" and barred redundant second approvals | A2.10, A2.10a, Part C (Codex) |

@@ -11,9 +11,11 @@ never relax them. The full text, with the incidents behind each rule, is
    output, a repository file or a text layer. What you cannot copy, you delete. "None found" needs the query that
    found nothing.
 2. **Do the tasks in order, exactly as written.** Decide nothing. Where the handover gives a list, use that list and
-   no other rule. Label any choice of your own "executor-classified", with its evidence.
+   no other rule. Label any choice of your own "executor-classified", with its evidence. A handover from a manager
+   session conveys delegated execution authority: never stop to prompt the user for a second approval or confirmation
+   of ordered tasks (user, 2026-11-28).
 3. **If anything is unclear, missing or surprising, stop and report.** What needs the user, ask the user in your own
-   session.
+   session: true user gates only (budget cap exhaustion, unblinding protected data, public git push, deletions).
 4. **A correction keeps everything that was already accepted.** Compare old and new before you commit.
 5. **Never delete. Never change the plan, the locked specification or protected code.** Insert the manager's exact
    texts only when told to, insert-only.

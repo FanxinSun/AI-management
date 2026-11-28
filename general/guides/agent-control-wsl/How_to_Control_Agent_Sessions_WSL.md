@@ -58,6 +58,21 @@ Return handling:
 - Earlier, `send_to_tty.sh` gated `submit=1` for `codex` on `[ "$OS" != Linux ]`, so on WSL a Codex tab treated `"text\r"` as a paste and left the message unsubmitted in the prompt box. `codex` now sets `submit=1` on Linux/WSL too, and `deliver_linux` omits the trailing `\r` from the initial burst when `submit=1`.
 - Codex 0.171+ also runs tool shells under a tty-less `codex app-server` daemon, which caused `caller_pid()` to tag outgoing messages `[from codex:<daemon_pid>]` (making `reply` fail with `target 'reply' has no terminal`). `caller_pid()` now resolves a tty-less `codex` ancestor back to the live `codex` TUI process matching the thread's `cwd`.
 
+### Codex usage-limit automated resume (2026-11-28)
+
+Codex sessions halt when hitting the 5-hour quota limit (showing `5h 0% left` or `try again at <HH:MM>`). To ensure autonomous execution without stalling manager workflows:
+- `codex-auto-resume` (`~/AI-management/general/tools/agent-bridge/codex_auto_resume.py`, global at `~/.local/bin/codex-auto-resume`) monitors running Codex processes, matches each to its active rollout in `~/.codex/sessions/`, extracts the exact epoch timestamp `rate_limits.primary.resets_at`, and polls/waits until reset.
+- Once reset arrives, it checks that the session is idle and sends:
+  `[from codex-auto-resume] Your 5-hour usage limit has reset. Resume execution from where you stopped under the active handover. Check for any half-made edits in the files you were writing when interrupted, fix or report them, and proceed with the remaining tasks.`
+- Runs in the background via systemd user timer `codex-auto-resume.timer` every 30 s.
+- Useful commands:
+  ```bash
+  codex-auto-resume --status           # View all running Codex sessions, 5h usage %, and reset countdown
+  codex-auto-resume --check            # Run single check and resume eligible sessions
+  codex-auto-resume --watch            # Watch live in terminal foreground
+  codex-auto-resume --resume <target>  # Immediately resume target session
+  ```
+
 ### Switching an executor's model on WSL (tested 2026-11-14)
 
 - **agy: works.** `send_to_tty.sh --raw agy:<pid> "/model gemini-4-hydrogen-high"` changed the session's model at

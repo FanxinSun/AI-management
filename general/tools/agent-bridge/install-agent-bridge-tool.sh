@@ -21,9 +21,14 @@ sync_file() {
 
 sync_file "$SCRIPT_DIR/send_to_tty.sh" "$BRIDGE_DEST/send_to_tty.sh" 0755
 sync_file "$SCRIPT_DIR/conin_inject.ps1" "$BRIDGE_DEST/conin_inject.ps1" 0644
+sync_file "$SCRIPT_DIR/codex_auto_resume.py" "$BRIDGE_DEST/codex_auto_resume.py" 0755
 
 ln -sfn "$SCRIPT_DIR/send_to_tty.sh" "$LOCAL_BIN/send_to_tty"
 ln -sfn "$SCRIPT_DIR/send_to_tty.sh" "$LOCAL_BIN/send_to_tty.sh"
+ln -sfn "$SCRIPT_DIR/codex_auto_resume.py" "$LOCAL_BIN/codex-auto-resume"
+ln -sfn "$SCRIPT_DIR/codex_auto_resume.py" "$LOCAL_BIN/codex_auto_resume.py"
+
+python3 -B "$SCRIPT_DIR/test_codex_auto_resume.py"
 
 bash -n "$SCRIPT_DIR/send_to_tty.sh"
 
