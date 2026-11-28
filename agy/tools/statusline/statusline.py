@@ -10,16 +10,16 @@ import signal
 COLOR_FILE = os.path.expanduser("~/.gemini/antigravity-cli/session_color")
 
 COLOR_MAP = {
-    "yellow": "\033[1;30;43m",         # Claude Code yellow
-    "cyan": "\033[1;30;46m",           # Bright cyan
-    "blue": "\033[1;97;44m",           # Blue
-    "magenta": "\033[1;97;45m",        # Magenta
-    "purple": "\033[1;97;45m",         # Purple
-    "green": "\033[1;30;42m",          # Green
-    "red": "\033[1;97;41m",            # Red
-    "orange": "\033[1;30;48;5;208m",   # Orange
-    "gray": "\033[1;97;100m",          # Gray
-    "white": "\033[1;30;47m",          # White
+    "yellow": "\033[1;38;2;0;0;0;48;2;245;158;11m",       # High-contrast pitch black on Amber/Gold
+    "cyan": "\033[1;38;2;0;0;0;48;2;6;182;212m",          # High-contrast pitch black on Cyan
+    "blue": "\033[1;38;2;255;255;255;48;2;37;99;235m",    # High-contrast pure white on Royal Blue
+    "magenta": "\033[1;38;2;255;255;255;48;2;192;38;211m",# High-contrast pure white on Magenta
+    "purple": "\033[1;38;2;255;255;255;48;2;147;51;234m", # High-contrast pure white on Purple
+    "green": "\033[1;38;2;0;0;0;48;2;34;197;94m",         # High-contrast pitch black on Green
+    "red": "\033[1;38;2;255;255;255;48;2;239;68;68m",     # High-contrast pure white on Red
+    "orange": "\033[1;38;2;0;0;0;48;2;249;115;22m",       # High-contrast pitch black on Orange
+    "gray": "\033[1;38;2;255;255;255;48;2;100;116;139m",  # High-contrast pure white on Slate Gray
+    "white": "\033[1;38;2;0;0;0;48;2;241;245;249m",       # High-contrast pitch black on White
 }
 RESET = "\033[0m"
 
@@ -218,10 +218,10 @@ def main():
 
     # Status pill (WORKING / STOPPED)
     if is_working:
-        status_pill = f"\033[1;30;43m {frame} WORKING {RESET}"
+        status_pill = f"\033[1;38;2;0;0;0;48;2;245;158;11m {frame} WORKING {RESET}"
         right_sections.append(status_pill)
     elif title:
-        status_pill = f"\033[1;30;42m ⏹️ STOPPED {RESET}"
+        status_pill = f"\033[1;38;2;0;0;0;48;2;34;197;94m ⏹️ STOPPED {RESET}"
         right_sections.append(status_pill)
 
     # Session title badge (Claude Code style pill at far right)

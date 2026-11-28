@@ -14,9 +14,9 @@ This guide explains how to customize the **Antigravity CLI (`agy`)** interface t
   * **Left:** Dimmed shortcut hint (`? for shortcuts`).
   * **Center/Right:** Model metadata (`auto · Gemini 3.8 Flash (High) · high`).
   * **Block 1 (State Pill):** High-contrast background pill showing agent activity:
-    * When active: Yellow block with animated frame ` ⠸ WORKING ` (`\033[1;30;43m`).
-    * When idle: Green block ` ⏹️ STOPPED ` (`\033[1;30;42m`).
-  * **Block 2 (Session Name Pill):** Far-right colored pill showing the conversation title (`AI-management`). Its color is configurable on the fly (e.g. Red `\033[1;97;41m`).
+    * When active: Vibrant Amber Gold block with animated frame ` ⠸ WORKING ` (`\033[1;38;2;0;0;0;48;2;245;158;11m`).
+    * When idle: Vibrant Green block ` ⏹️ STOPPED ` (`\033[1;38;2;0;0;0;48;2;34;197;94m`).
+  * **Block 2 (Session Name Pill):** Far-right colored pill showing the conversation title (`AI-management`), rendered in TrueColor pure black text (`\033[1;38;2;0;0;0;...m`) on bright backgrounds and crisp white text (`\033[1;38;2;255;255;255;...m`) on dark backgrounds to ensure high contrast regardless of terminal theme overrides (such as Tokyo Night mapping ANSI `1;30` to slate gray `#565f89`). Its color is configurable on the fly (e.g. Red `\033[1;38;2;255;255;255;48;2;239;68;68m`).
 * **Terminal Tab / Window Title ("Status GIF", `statusline.py title`):**
   * Displays `⠸ AI-management ⠸` while the agent is thinking or running commands, actively cycling through braille frames every 120ms.
   * Transitions to `⏹️ AI-management` when the agent is idle.
@@ -65,11 +65,11 @@ To keep the blocks aligned flush to the bottom right:
 ### Status & Session Pills
 
 ```python
-# Status pill
+# Status pill (24-bit TrueColor high contrast)
 if is_working:
-    status_pill = f"\033[1;30;43m {frame} WORKING \033[0m"
+    status_pill = f"\033[1;38;2;0;0;0;48;2;245;158;11m {frame} WORKING \033[0m"
 elif title:
-    status_pill = f"\033[1;30;42m ⏹️ STOPPED \033[0m"
+    status_pill = f"\033[1;38;2;0;0;0;48;2;34;197;94m ⏹️ STOPPED \033[0m"
 
 # Session badge (color read from ~/.gemini/antigravity-cli/session_color)
 if title:
